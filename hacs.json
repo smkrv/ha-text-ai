@@ -1,8 +1,0 @@
-{
-    "name": "HA Text AI Integration",
-    "filename": "ha_text_ai.zip",
-    "hide_default_branch": true,
-    "homeassistant": "2023.5.0",
-    "render_readme": true,
-    "zip_release": true
-}
