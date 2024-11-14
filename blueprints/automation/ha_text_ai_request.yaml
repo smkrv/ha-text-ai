@@ -1,0 +1,106 @@
+blueprint:
+  name: Text AI Request
+  description: Send a prompt to Text AI service and store the response in a Text Helper
+  domain: automation
+  source_url: https://github.com/your_username/ha-text-ai/blob/main/blueprints/automation/ha_text_ai_request.yaml
+  input:
+    trigger_entity:
+      name: Trigger Entity
+      description: Entity that will trigger this automation
+      selector:
+        entity: {}
+    prompt_template:
+      name: Prompt Template
+      description: Template for the prompt. You can use template syntax, e.g., {{ states('sensor.temperature') }}
+      selector:
+        text:
+          multiline: true
+    response_id:
+      name: Response ID
+      description: Unique identifier for the Text Helper that will store the response
+      selector:
+        text:
+    model:
+      name: AI Model
+      description: The AI model to use for generation
+      default: gpt-3.5-turbo
+      selector:
+        text:
+    temperature:
+      name: Temperature
+      description: Controls randomness in the response (0-2)
+      default: 0.7
+      selector:
+        number:
+          min: 0.0
+          max: 2.0
+          step: 0.1
+          mode: slider
+    max_tokens:
+      name: Max Tokens
+      description: Maximum length of the response
+      default: 150
+      selector:
+        number:
+          min: 1
+          max: 4096
+          step: 1
+    top_p:
+      name: Top P
+      description: Controls diversity via nucleus sampling
+      default: 1.0
+      selector:
+        number:
+          min: 0.0
+          max: 1.0
+          step: 0.1
+          mode: slider
+    frequency_penalty:
+      name: Frequency Penalty
+      description: Reduces repetition of token sequences
+      default: 0.0
+      selector:
+        number:
+          min: -2.0
+          max: 2.0
+          step: 0.1
+          mode: slider
+    presence_penalty:
+      name: Presence Penalty
+      description: Reduces repetition of topics
+      default: 0.0
+      selector:
+        number:
+          min: -2.0
+          max: 2.0
+          step: 0.1
+          mode: slider
+
+mode: queued
+max_exceeded: silent
+
+trigger:
+  - platform: state
+    entity_id: !input trigger_entity
+
+variables:
+  prompt_template: !input prompt_template
+  response_id: !input response_id
+  model: !input model
+  temperature: !input temperature
+  max_tokens: !input max_tokens
+  top_p: !input top_p
+  frequency_penalty: !input frequency_penalty
+  presence_penalty: !input presence_penalty
+
+action:
+  - service: ha_text_ai.text_ai_call
+    data:
+      prompt: "{{ prompt_template }}"
+      response_id: "{{ response_id }}"
+      model: "{{ model }}"
+      temperature: "{{ temperature }}"
+      max_tokens: "{{ max_tokens }}"
+      top_p: "{{ top_p }}"
+      frequency_penalty: "{{ frequency_penalty }}"
+      presence_penalty: "{{ presence_penalty }}"
