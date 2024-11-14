@@ -1,13 +1,15 @@
 {  
-  "domain": "ha_text_ai",  
-  "name": "HA Text AI Integration",  
-  "version": "1.0.0",  
-  "documentation": "https://github.com/smkrv/ha-text-ai",  
-  "issue_tracker": "https://github.com/smkrv/ha-text-ai/issues",  
-  "dependencies": [],  
-  "codeowners": ["@smkrv"],  
-  "requirements": ["openai>=1.0.0"],  
-  "config_flow": true,  
-  "iot_class": "cloud_polling",  
-  "homeassistant": "2023.5.0"  
+    "domain": "ha_text_ai",  
+    "name": "HA Text AI",  
+    "version": "1.0.0",  
+    "config_flow": true,  
+    "documentation": "https://github.com/smkrv/ha-text-ai",  
+    "issue_tracker": "https://github.com/smkrv/ha-text-ai/issues",  
+    "requirements": ["openai>=1.0.0"],  
+    "ssdp": [],  
+    "zeroconf": [],  
+    "homekit": {},  
+    "dependencies": [],  
+    "codeowners": ["@ysmkrv"],  
+    "iot_class": "cloud_polling"  
 }
