@@ -1,27 +1,34 @@
-{
-    "config": {
-        "step": {
-            "user": {
-                "data": {
-                    "api_key": "API Key",
-                    "api_base": "API Base URL",
-                    "request_interval": "Request Interval (seconds)"
-                }
-            }
-        },
-        "error": {
-            "invalid_api_key": "Invalid API key",
-            "cannot_connect": "Failed to connect to API",
-            "unknown": "Unexpected error"
-        }
-    },
-    "options": {
-        "step": {
-            "init": {
-                "data": {
-                    "request_interval": "Request Interval (seconds)"
-                }
-            }
-        }
-    }
+{  
+    "config": {  
+        "abort": {  
+            "already_configured": "Service is already configured"  
+        },  
+        "error": {  
+            "cannot_connect": "Failed to connect",  
+            "invalid_api_key": "Invalid API key",  
+            "unknown": "Unexpected error"  
+        },  
+        "step": {  
+            "user": {  
+                "data": {  
+                    "api_key": "API Key",  
+                    "api_base": "API Base URL",  
+                    "request_interval": "Request interval (seconds)"  
+                },  
+                "description": "Enter your OpenAI API credentials",  
+                "title": "OpenAI API"  
+            }  
+        }  
+    },  
+    "options": {  
+        "step": {  
+            "init": {  
+                "data": {  
+                    "request_interval": "Request interval (seconds)"  
+                },  
+                "description": "Configure HA Text AI options",  
+                "title": "HA Text AI Options"  
+            }  
+        }  
+    }  
 }
