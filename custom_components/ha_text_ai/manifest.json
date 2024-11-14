@@ -10,6 +10,7 @@
     "zeroconf": [],  
     "homekit": {},  
     "dependencies": [],  
-    "codeowners": ["@ysmkrv"],  
-    "iot_class": "cloud_polling"  
+    "codeowners": ["@smkrv"],  
+    "iot_class": "cloud_polling",  
+    "min_ha_version": "2023.8.0"  
 }
