@@ -6,7 +6,7 @@ from typing import Any
 
 import voluptuous as vol  
 from openai import AsyncOpenAI  
-from openai.types.error import APIError  
+from openai import OpenAIError  # Updated import  
 from openai.exceptions import AuthenticationError, APIConnectionError  
 
 from homeassistant import config_entries  
@@ -86,8 +86,8 @@ class TextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             raise ApiKeyError from err  
         except APIConnectionError as err:  
             raise ApiConnectionError from err  
-        except APIError as err:  
-            if err.status_code == 401:  
+        except OpenAIError as err:  # Changed from APIError  
+            if getattr(err, 'status_code', None) == 401:  # Safe status_code check  
                 raise ApiKeyError from err  
             raise ApiConnectionError from err  
 
