@@ -135,4 +135,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ## Support
 
 If you have any questions or need help, please:
-1. Open an Issue [https://github.com/smkrv/ha-text-ai/issues]
+1. Open an [issue https://github.com/smkrv/ha-text-ai/issues]
