@@ -1,8 +1,5 @@
 {  
   "name": "HA Text AI Integration",  
-  "render_readme": true,  
-  "domains": ["ha_text_ai"],  
-  "homeassistant": "2023.5.0",  
-  "iot_class": "Cloud Polling",  
-  "category": "integration"  
+  "content_in_root": false,  
+  "render_readme": true  
 }
