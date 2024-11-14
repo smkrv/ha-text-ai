@@ -61,7 +61,7 @@ data:
 
 1. Go to Settings -> Automations & Scenes
 2. Click the "Add Blueprint" button
-3. Import this URL: `https://github.com/smkrv/ha-text-ai/blob/main/blueprints/automation/ha_text_ai_request.yaml` [(copy link)](https://github.com/smkrv/ha-text-ai/blob/main/blueprints/automation/ha_text_ai_request.yaml)
+3. Import this URL: `https://github.com/smkrv/ha-text-ai/blob/main/blueprints/automation/ha_text_ai_request.yaml`, [copy link](https://github.com/smkrv/ha-text-ai/blob/main/blueprints/automation/ha_text_ai_request.yaml)
 
 4. Create a new automation using the blueprint
 5. Configure the trigger and prompt template
