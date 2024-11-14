@@ -26,18 +26,15 @@ blueprint:
       default: ""  
       selector:  
         text:  
-      required: false  
     state_to:  
       name: To State  
       description: Optional 'to state' condition (for state trigger)  
       default: ""  
       selector:  
         text:  
-      required: false  
     numeric_above:  
       name: Above Value  
       description: Trigger when numeric value is above (for numeric state)  
-      required: false  
       selector:  
         number:  
           mode: box  
@@ -45,7 +42,6 @@ blueprint:
     numeric_below:  
       name: Below Value  
       description: Trigger when numeric value is below (for numeric state)  
-      required: false  
       selector:  
         number:  
           mode: box  
@@ -53,13 +49,11 @@ blueprint:
     time_at:  
       name: Time  
       description: Time for the trigger (for time trigger)  
-      required: false  
       selector:  
         time: {}  
     template_value:  
       name: Template  
       description: Template condition (for template trigger)  
-      required: false  
       selector:  
         template: {}  
     prompt_template:  
