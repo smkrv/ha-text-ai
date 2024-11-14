@@ -1,184 +1,203 @@
-blueprint:  
-  name: Text AI Request  
-  description: Send a prompt to Text AI service and store the response in a Text Helper  
-  domain: automation  
-  source_url: https://github.com/smkrv/ha-text-ai/blob/main/blueprints/automation/ha_text_ai_request.yaml  
-  input:  
-    trigger_type:  
-      name: Trigger Type  
-      description: Select the type of trigger for automation  
-      default: state  
-      selector:  
-        select:  
-          options:  
-            - state  
-            - numeric_state  
-            - time  
-            - template  
-    trigger_entity:  
-      name: Trigger Entity  
-      description: Entity that will trigger this automation  
-      selector:  
-        entity: {}  
-    state_from:  
-      name: From State  
-      description: Optional 'from state' condition (for state trigger)  
-      default: ""  
-      selector:  
-        text:  
-    state_to:  
-      name: To State  
-      description: Optional 'to state' condition (for state trigger)  
-      default: ""  
-      selector:  
-        text:  
-    numeric_above:  
-      name: Above Value  
-      description: Trigger when numeric value is above (for numeric state)  
-      selector:  
-        number:  
-          mode: box  
-          step: 0.1  
-    numeric_below:  
-      name: Below Value  
-      description: Trigger when numeric value is below (for numeric state)  
-      selector:  
-        number:  
-          mode: box  
-          step: 0.1  
-    time_at:  
-      name: Time  
-      description: Time for the trigger (for time trigger)  
-      selector:  
-        time: {}  
-    template_value:  
-      name: Template  
-      description: Template condition (for template trigger)  
-      selector:  
-        template: {}  
-    prompt_template:  
-      name: Prompt Template  
-      description: Template for the prompt. You can use template syntax, e.g., {{ states('sensor.temperature') }}  
-      selector:  
-        text:  
-          multiline: true  
-    response_id:  
-      name: Response ID  
-      description: Unique identifier for the Text Helper that will store the response  
-      selector:  
-        text:  
-    model:  
-      name: AI Model  
-      description: The AI model to use for generation  
-      default: gpt-3.5-turbo  
-      selector:  
-        select:  
-          options:  
-            - gpt-4  
-            - gpt-3.5-turbo  
-            - gpt-3.5-turbo-16k  
-    temperature:  
-      name: Temperature  
-      description: Controls randomness in the response (0-2)  
-      default: 0.7  
-      selector:  
-        number:  
-          min: 0.0  
-          max: 2.0  
-          step: 0.1  
-          mode: slider  
-    max_tokens:  
-      name: Max Tokens  
-      description: Maximum length of the response  
-      default: 150  
-      selector:  
-        number:  
-          min: 1  
-          max: 4096  
-          step: 1  
-    top_p:  
-      name: Top P  
-      description: Controls diversity via nucleus sampling  
-      default: 1.0  
-      selector:  
-        number:  
-          min: 0.0  
-          max: 1.0  
-          step: 0.1  
-          mode: slider  
-    frequency_penalty:  
-      name: Frequency Penalty  
-      description: Reduces repetition of token sequences  
-      default: 0.0  
-      selector:  
-        number:  
-          min: -2.0  
-          max: 2.0  
-          step: 0.1  
-          mode: slider  
-    presence_penalty:  
-      name: Presence Penalty  
-      description: Reduces repetition of topics  
-      default: 0.0  
-      selector:  
-        number:  
-          min: -2.0  
-          max: 2.0  
-          step: 0.1  
-          mode: slider  
+blueprint:
+  name: Text AI Request
+  description: Send text prompts to AI service and store responses in a Text Helper
+  domain: automation
+  source_url: https://github.com/smkrv/ha-text-ai/blob/main/blueprints/automation/ha_text_ai_request.yaml
+  input:
+    # Trigger Configuration
+    trigger_type:
+      name: Trigger Type
+      description: Select the type of trigger for this automation
+      default: state
+      selector:
+        select:
+          options:
+            - state
+            - numeric_state
+            - time
+            - template
 
-mode: queued  
-max_exceeded: silent  
+    trigger_entity:
+      name: Trigger Entity
+      description: Entity that will trigger this automation when its state changes
+      selector:
+        entity: {}
 
-trigger:  
-  - choose:  
-      - conditions:  
-          - condition: template  
-            value_template: "{{ trigger_type == 'state' }}"  
-        sequence:  
-          - platform: state  
-            entity_id: !input trigger_entity  
-            from: !input state_from  
-            to: !input state_to  
-      - conditions:  
-          - condition: template  
-            value_template: "{{ trigger_type == 'numeric_state' }}"  
-        sequence:  
-          - platform: numeric_state  
-            entity_id: !input trigger_entity  
-            above: !input numeric_above  
-            below: !input numeric_below  
-      - conditions:  
-          - condition: template  
-            value_template: "{{ trigger_type == 'time' }}"  
-        sequence:  
-          - platform: time  
-            at: !input time_at  
-      - conditions:  
-          - condition: template  
-            value_template: "{{ trigger_type == 'template' }}"  
-        sequence:  
-          - platform: template  
-            value_template: !input template_value  
+    # State Trigger Options
+    state_from:
+      name: From State
+      description: Previous state value to trigger the automation (optional, for state trigger)
+      default: ""
+      selector:
+        text:
 
-variables:  
-  prompt_template: !input prompt_template  
-  response_id: !input response_id  
-  model: !input model  
-  temperature: !input temperature  
-  max_tokens: !input max_tokens  
-  top_p: !input top_p  
-  frequency_penalty: !input frequency_penalty  
-  presence_penalty: !input presence_penalty  
+    state_to:
+      name: To State
+      description: New state value to trigger the automation (optional, for state trigger)
+      default: ""
+      selector:
+        text:
 
-action:  
-  - service: ha_text_ai.text_ai_call  
-    data:  
-      prompt: "{{ prompt_template }}"  
-      response_id: "{{ response_id }}"  
-      model: "{{ model }}"  
-      temperature: "{{ temperature }}"  
-      max_tokens: "{{ max_tokens }}"  
-      top_p: "{{ top_p }}"  
-      frequency_penalty: "{{ frequency_penalty }}"  
+    # Numeric State Options
+    numeric_above:
+      name: Above Value
+      description: Trigger when the numeric value exceeds this threshold
+      selector:
+        number:
+          mode: box
+          step: 0.1
+
+    numeric_below:
+      name: Below Value
+      description: Trigger when the numeric value falls below this threshold
+      selector:
+        number:
+          mode: box
+          step: 0.1
+
+    # Time Trigger Options
+    time_at:
+      name: Time
+      description: Specific time to trigger the automation (for time trigger)
+      selector:
+        time: {}
+
+    # Template Trigger Options
+    template_value:
+      name: Template
+      description: Template condition that evaluates to true/false (for template trigger)
+      selector:
+        template: {}
+
+    # AI Configuration
+    prompt_template:
+      name: Prompt Template
+      description: >
+        Template for the AI prompt. Supports Home Assistant template syntax.
+        Example: {{ states('sensor.temperature') }} degrees - what should I wear?
+      selector:
+        text:
+          multiline: true
+
+    response_id:
+      name: Response ID
+      description: Unique identifier for the Text Helper entity that will store the AI response
+      selector:
+        text:
+
+    model_name:
+      name: AI Model Name
+      description: The name of the AI model to use (e.g., gpt-4, gpt-3.5-turbo, claude-2)
+      selector:
+        text:
+
+    # Advanced AI Parameters
+    temperature:
+      name: Temperature
+      description: Controls randomness in the response (0 = deterministic, 2 = maximum creativity)
+      default: 0.7
+      selector:
+        number:
+          min: 0.0
+          max: 2.0
+          step: 0.1
+          mode: slider
+
+    max_tokens:
+      name: Maximum Tokens
+      description: Maximum length of the generated response in tokens
+      default: 150
+      selector:
+        number:
+          min: 1
+          max: 4096
+          step: 1
+
+    top_p:
+      name: Top P
+      description: Controls diversity via nucleus sampling (lower = more focused)
+      default: 1.0
+      selector:
+        number:
+          min: 0.0
+          max: 1.0
+          step: 0.1
+          mode: slider
+
+    frequency_penalty:
+      name: Frequency Penalty
+      description: Reduces repetition of token sequences (-2.0 to 2.0)
+      default: 0.0
+      selector:
+        number:
+          min: -2.0
+          max: 2.0
+          step: 0.1
+          mode: slider
+
+    presence_penalty:
+      name: Presence Penalty
+      description: Reduces repetition of topics (-2.0 to 2.0)
+      default: 0.0
+      selector:
+        number:
+          min: -2.0
+          max: 2.0
+          step: 0.1
+          mode: slider
+
+mode: queued
+max_exceeded: silent
+
+trigger:
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger_type == 'state' }}"
+        sequence:
+          - platform: state
+            entity_id: !input trigger_entity
+            from: !input state_from
+            to: !input state_to
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger_type == 'numeric_state' }}"
+        sequence:
+          - platform: numeric_state
+            entity_id: !input trigger_entity
+            above: !input numeric_above
+            below: !input numeric_below
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger_type == 'time' }}"
+        sequence:
+          - platform: time
+            at: !input time_at
+      - conditions:
+          - condition: template
+            value_template: "{{ trigger_type == 'template' }}"
+        sequence:
+          - platform: template
+            value_template: !input template_value
+
+variables:
+  prompt_template: !input prompt_template
+  response_id: !input response_id
+  model_name: !input model_name
+  temperature: !input temperature
+  max_tokens: !input max_tokens
+  top_p: !input top_p
+  frequency_penalty: !input frequency_penalty
+  presence_penalty: !input presence_penalty
+
+action:
+  - service: ha_text_ai.text_ai_call
+    data:
+      prompt: "{{ prompt_template }}"
+      response_id: "{{ response_id }}"
+      model: "{{ model_name }}"
+      temperature: "{{ temperature }}"
+      max_tokens: "{{ max_tokens }}"
+      top_p: "{{ top_p }}"
+      frequency_penalty: "{{ frequency_penalty }}"
       presence_penalty: "{{ presence_penalty }}"
