@@ -1,0 +1,27 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "data": {
+                    "api_key": "API Key",
+                    "api_base": "API Base URL",
+                    "request_interval": "Request Interval (seconds)"
+                }
+            }
+        },
+        "error": {
+            "invalid_api_key": "Invalid API key",
+            "cannot_connect": "Failed to connect to API",
+            "unknown": "Unexpected error"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "data": {
+                    "request_interval": "Request Interval (seconds)"
+                }
+            }
+        }
+    }
+}
