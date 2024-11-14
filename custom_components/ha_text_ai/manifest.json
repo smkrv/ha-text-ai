@@ -12,5 +12,6 @@
     "dependencies": [],  
     "codeowners": ["@smkrv"],  
     "iot_class": "cloud_polling",  
-    "min_ha_version": "2023.8.0"  
+    "min_ha_version": "2023.8.0",  
+    "icon": "images/icon.svg"  
 }
