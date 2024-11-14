@@ -25,10 +25,16 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)  
 
+@config_entries.HANDLERS.register(DOMAIN)  
 class TextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  
     """Handle a config flow for HA Text AI Integration."""  
 
     VERSION = 1  
+    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL  
+
+    def __init__(self) -> None:  
+        """Initialize the config flow."""  
+        super().__init__()  
 
     async def async_step_user(  
         self, user_input: dict[str, Any] | None = None  
