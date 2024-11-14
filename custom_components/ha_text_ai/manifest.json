@@ -5,7 +5,7 @@
   "documentation": "https://github.com/smkrv/ha-text-ai",
   "issue_tracker": "https://github.com/smkrv/ha-text-ai/issues",
   "dependencies": [],
-  "codeowners": ["@your_username"],
+  "codeowners": ["@smkrv"],
   "requirements": ["openai==0.27.8"],
   "config_flow": true,
   "iot_class": "cloud_polling",
