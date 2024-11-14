@@ -2,7 +2,7 @@ blueprint:
   name: Text AI Request
   description: Send a prompt to Text AI service and store the response in a Text Helper
   domain: automation
-  source_url: https://github.com/your_username/ha-text-ai/blob/main/blueprints/automation/ha_text_ai_request.yaml
+  source_url: https://github.com/smkrv/ha-text-ai/blob/main/blueprints/automation/ha_text_ai_request.yaml
   input:
     trigger_entity:
       name: Trigger Entity
