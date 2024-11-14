@@ -1,5 +1,3 @@
-`README.md`:
-```markdown
 # HA Text AI Integration
 
 A Home Assistant integration that provides a bridge to OpenAI-compatible API services with automatic Text Helper management.
