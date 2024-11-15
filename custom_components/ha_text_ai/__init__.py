@@ -12,9 +12,10 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY, Platform  
 from homeassistant.core import HomeAssistant, ServiceCall  
 from homeassistant.helpers import entity_registry as er  
-from homeassistant.helpers.entity_component import EntityComponent  
 from homeassistant.helpers import config_validation as cv  
+from homeassistant.helpers.entity_platform import async_get_current_platform  
 from homeassistant.components import input_text  
+from homeassistant.helpers.reload import async_integration_yaml_config  
 
 from .const import (  
     DOMAIN,  
@@ -49,33 +50,43 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "processing": False,  
     }  
 
-    async def create_text_helper(name: str) -> str:  
-        """Create a Text Helper if it doesn't exist."""  
+    async def ensure_text_helper(name: str) -> str:  
+        """Ensure Text Helper exists and return its entity_id."""  
         object_id = f"{TEXT_HELPER_PREFIX}{name}"  
-        
         entity_id = f"input_text.{object_id}"  
-        entity_registry = er.async_get(hass)  
         
-        if entity_registry.async_get(entity_id) is None:  
+        if not hass.states.async_available(entity_id):  
+            current_config = await async_integration_yaml_config(hass, "input_text") or {}  
+            
+            new_config = current_config.copy()  
+            new_config[object_id] = {  
+                "name": f"AI Response {name}",  
+                "max": TEXT_HELPER_MAX_LENGTH,  
+                "initial": ""  
+            }  
+            
+
             await hass.services.async_call(  
                 "input_text",  
-                "create",  
-                {  
-                    "name": f"AI Response {name}",  
-                    "id": object_id,  
-                    "max": TEXT_HELPER_MAX_LENGTH,  
-                    "initial": "",  
-                },  
+                "reload",  
+                target={"entity_id": entity_id},  
+                blocking=True  
             )  
+            
+ 
+            for _ in range(10):    
+                if hass.states.async_available(entity_id):  
+                    break  
+                await asyncio.sleep(0.1)  
         
         return entity_id  
 
     async def handle_text_ai_call(call: ServiceCall) -> None:  
         """Handle the text AI service call."""  
-        entry_id = list(hass.data[DOMAIN].keys())[0]  # Используем первую настроенную интеграцию  
+        entry_id = list(hass.data[DOMAIN].keys())[0]   
         
         response_id = call.data.get("response_id", "default")  
-        entity_id = await create_text_helper(response_id)  
+        entity_id = await ensure_text_helper(response_id)  
 
         request_data = {  
             "prompt": call.data["prompt"],  
