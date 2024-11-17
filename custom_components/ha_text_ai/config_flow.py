@@ -1,130 +1,89 @@
-"""Config flow for HA Text AI Integration."""  
-from __future__ import annotations  
 
-import logging  
-from typing import Any  
+#### `config_flow.py`
+```python
+"""Config flow for HA text AI integration."""
+import voluptuous as vol
+from homeassistant import config_entries
+import homeassistant.helpers.config_validation as cv
+from homeassistant.core import callback
 
-import voluptuous as vol  
-from openai import AsyncOpenAI  
-from openai import OpenAIError, AuthenticationError, APIConnectionError  
+from .const import (
+    DOMAIN,
+    CONF_MODEL,
+    CONF_TEMPERATURE,
+    CONF_MAX_TOKENS,
+    CONF_API_ENDPOINT,
+    CONF_REQUEST_INTERVAL,
+    DEFAULT_MODEL,
+    DEFAULT_TEMPERATURE,
+    DEFAULT_MAX_TOKENS,
+    DEFAULT_API_ENDPOINT,
+    DEFAULT_REQUEST_INTERVAL,
+)
 
-from homeassistant import config_entries  
-from homeassistant.core import HomeAssistant, callback  
-from homeassistant.data_entry_flow import FlowResult  
-from homeassistant.exceptions import HomeAssistantError  
+class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+    """Handle a config flow for HA text AI."""
 
-from .const import (  
-    DOMAIN,  
-    CONF_API_KEY,  
-    CONF_API_BASE,  
-    CONF_REQUEST_INTERVAL,  
-    DEFAULT_API_BASE,  
-    DEFAULT_REQUEST_INTERVAL,  
-)  
+    VERSION = 1
 
-_LOGGER = logging.getLogger(__name__)  
+    async def async_step_user(self, user_input=None):
+        """Handle the initial step."""
+        errors = {}
 
-class TextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):  
-    """Handle a config flow for HA Text AI Integration."""  
+        if user_input is not None:
+            return self.async_create_entry(title="HA text AI", data=user_input)
 
-    VERSION = 1  
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema({
+                vol.Required("api_key"): str,
+                vol.Optional(CONF_MODEL, default=DEFAULT_MODEL): str,
+                vol.Optional(CONF_TEMPERATURE, default=DEFAULT_TEMPERATURE): vol.Coerce(float),
+                vol.Optional(CONF_MAX_TOKENS, default=DEFAULT_MAX_TOKENS): vol.Coerce(int),
+                vol.Optional(CONF_API_ENDPOINT, default=DEFAULT_API_ENDPOINT): str,
+                vol.Optional(CONF_REQUEST_INTERVAL, default=DEFAULT_REQUEST_INTERVAL): vol.Coerce(float),
+            }),
+            errors=errors,
+        )
 
-    async def async_step_user(  
-        self, user_input: dict[str, Any] | None = None  
-    ) -> FlowResult:  
-        """Handle the initial step."""  
-        errors = {}  
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Get the options flow for this handler."""
+        return OptionsFlowHandler(config_entry)
 
-        if user_input is not None:  
-            try:  
-                await self._test_api_key(user_input[CONF_API_KEY], user_input.get(CONF_API_BASE))  
-                return self.async_create_entry(  
-                    title="HA Text AI",  
-                    data=user_input,  
-                )  
-            except ApiKeyError:  
-                errors["base"] = "invalid_api_key"  
-            except ApiConnectionError:  
-                errors["base"] = "cannot_connect"  
-            except Exception:  # pylint: disable=broad-except  
-                _LOGGER.exception("Unexpected exception")  
-                errors["base"] = "unknown"  
+class OptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle options flow for HA text AI."""
 
-        return self.async_show_form(  
-            step_id="user",  
-            data_schema=vol.Schema(  
-                {  
-                    vol.Required(CONF_API_KEY): str,  
-                    vol.Optional(CONF_API_BASE, default=DEFAULT_API_BASE): str,  
-                    vol.Optional(CONF_REQUEST_INTERVAL, default=DEFAULT_REQUEST_INTERVAL): int,  
-                }  
-            ),  
-            errors=errors,  
-        )  
+    def __init__(self, config_entry):
+        """Initialize options flow."""
+        self.config_entry = config_entry
 
-    @staticmethod  
-    async def _test_api_key(api_key: str, api_base: str | None) -> None:  
-        """Test if the API key is valid."""  
-        try:  
-            client = AsyncOpenAI(  
-                api_key=api_key,  
-                base_url=api_base if api_base else DEFAULT_API_BASE  
-            )  
-            
-            models = await client.models.list()  
-            if not models.data:  
-                raise ApiKeyError  
-                
-        except AuthenticationError as err:  
-            raise ApiKeyError from err  
-        except APIConnectionError as err:  
-            raise ApiConnectionError from err  
-        except OpenAIError as err:  
-            if getattr(err, 'status_code', None) == 401:  
-                raise ApiKeyError from err  
-            raise ApiConnectionError from err  
+    async def async_step_init(self, user_input=None):
+        """Handle options flow."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
 
-    @staticmethod  
-    @callback  
-    def async_get_options_flow(  
-        config_entry: config_entries.ConfigEntry,  
-    ) -> TextAIOptionsFlow:  
-        """Get the options flow for this handler."""  
-        return TextAIOptionsFlow(config_entry)  
-
-
-class TextAIOptionsFlow(config_entries.OptionsFlow):  
-    """Handle options flow for HA Text AI Integration."""  
-
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:  
-        """Initialize options flow."""  
-        self.config_entry = config_entry  
-
-    async def async_step_init(  
-        self, user_input: dict[str, Any] | None = None  
-    ) -> FlowResult:  
-        """Manage options."""  
-        if user_input is not None:  
-            return self.async_create_entry(title="", data=user_input)  
-
-        return self.async_show_form(  
-            step_id="init",  
-            data_schema=vol.Schema(  
-                {  
-                    vol.Optional(  
-                        CONF_REQUEST_INTERVAL,  
-                        default=self.config_entry.options.get(  
-                            CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL  
-                        ),  
-                    ): int,  
-                }  
-            ),  
-        )  
-
-
-class ApiKeyError(HomeAssistantError):  
-    """Error to indicate there is an invalid API key."""  
-
-
-class ApiConnectionError(HomeAssistantError):  
-    """Error to indicate there is a connection error."""
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema({
+                vol.Optional(
+                    CONF_TEMPERATURE,
+                    default=self.config_entry.options.get(
+                        CONF_TEMPERATURE, DEFAULT_TEMPERATURE
+                    ),
+                ): vol.Coerce(float),
+                vol.Optional(
+                    CONF_MAX_TOKENS,
+                    default=self.config_entry.options.get(
+                        CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS
+                    ),
+                ): vol.Coerce(int),
+                vol.Optional(
+                    CONF_REQUEST_INTERVAL,
+                    default=self.config_entry.options.get(
+                        CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL
+                    ),
+                ): vol.Coerce(float),
+            }),
+        )

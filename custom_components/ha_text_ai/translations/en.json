@@ -1,34 +1,38 @@
-{  
-    "config": {  
-        "abort": {  
-            "already_configured": "Service is already configured"  
-        },  
-        "error": {  
-            "cannot_connect": "Failed to connect",  
-            "invalid_api_key": "Invalid API key",  
-            "unknown": "Unexpected error"  
-        },  
-        "step": {  
-            "user": {  
-                "data": {  
-                    "api_key": "API Key",  
-                    "api_base": "API Base URL",  
-                    "request_interval": "Request interval (seconds)"  
-                },  
-                "description": "Enter your OpenAI API credentials",  
-                "title": "OpenAI API"  
-            }  
-        }  
-    },  
-    "options": {  
-        "step": {  
-            "init": {  
-                "data": {  
-                    "request_interval": "Request interval (seconds)"  
-                },  
-                "description": "Configure HA Text AI options",  
-                "title": "HA Text AI Options"  
-            }  
-        }  
-    }  
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up HA text AI",
+        "description": "Set up your OpenAI integration",
+        "data": {
+          "api_key": "API Key",
+          "model": "Model",
+          "temperature": "Temperature",
+          "max_tokens": "Max Tokens",
+          "api_endpoint": "API Endpoint",
+          "request_interval": "Request Interval (seconds)"
+        }
+      }
+    },
+    "error": {
+      "auth": "API key is invalid.",
+      "cannot_connect": "Failed to connect to API.",
+      "unknown": "Unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "Device is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "HA text AI Options",
+        "data": {
+          "temperature": "Temperature",
+          "max_tokens": "Max Tokens",
+          "request_interval": "Request Interval (seconds)"
+        }
+      }
+    }
+  }
 }

@@ -1,13 +1,30 @@
-"""Constants for the HA Text AI Integration."""  
-DOMAIN = "ha_text_ai"  
+"""Constants for the HA text AI integration."""
+from homeassistant.const import Platform
 
-CONF_API_KEY = "api_key"  
-CONF_API_BASE = "api_base"  
-CONF_REQUEST_INTERVAL = "request_interval"  
+DOMAIN = "ha_text_ai"
+PLATFORMS = [Platform.SENSOR]
 
-DEFAULT_API_BASE = "https://api.openai.com/v1"  
-DEFAULT_REQUEST_INTERVAL = 5  # 5 seconds  
+# Configuration
+CONF_MODEL = "model"
+CONF_TEMPERATURE = "temperature"
+CONF_MAX_TOKENS = "max_tokens"
+CONF_API_ENDPOINT = "api_endpoint"
+CONF_REQUEST_INTERVAL = "request_interval"
 
-# Text Helper related  
-TEXT_HELPER_MAX_LENGTH = 65536  
-TEXT_HELPER_PREFIX = "text_ai_response_"
+# Defaults
+DEFAULT_MODEL = "gpt-3.5-turbo"
+DEFAULT_TEMPERATURE = 0.7
+DEFAULT_MAX_TOKENS = 1000
+DEFAULT_API_ENDPOINT = "https://api.openai.com/v1"
+DEFAULT_REQUEST_INTERVAL = 1.0
+
+# Attributes
+ATTR_QUESTION = "question"
+ATTR_RESPONSE = "response"
+ATTR_LAST_UPDATED = "last_updated"
+
+# Services
+SERVICE_ASK_QUESTION = "ask_question
+SERVICE_CLEAR_HISTORY = "clear_history"
+SERVICE_GET_HISTORY = "get_history"
+SERVICE_SET_SYSTEM_PROMPT = "set_system_prompt"

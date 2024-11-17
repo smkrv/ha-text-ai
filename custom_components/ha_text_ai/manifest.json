@@ -1,17 +1,15 @@
-{  
-    "domain": "ha_text_ai",  
-    "name": "HA Text AI",  
-    "version": "1.0.0",  
-    "config_flow": true,  
-    "documentation": "https://github.com/smkrv/ha-text-ai",  
-    "issue_tracker": "https://github.com/smkrv/ha-text-ai/issues",  
-    "requirements": ["openai>=1.0.0"],  
-    "ssdp": [],  
-    "zeroconf": [],  
-    "homekit": {},  
-    "dependencies": [],  
-    "codeowners": ["@smkrv"],  
-    "iot_class": "cloud_polling",  
-    "min_ha_version": "2023.8.0",  
-    "icon": "images/icon.svg"  
+{
+  "domain": "ha_text_ai",
+  "name": "HA text AI",
+  "config_flow": true,
+  "documentation": "https://github.com/smkrv/ha_text_ai",
+  "issue_tracker": "https://github.com/smkrv/ha_text_ai/issues",
+  "requirements": ["openai>=1.0.0"],
+  "ssdp": [],
+  "zeroconf": [],
+  "homekit": {},
+  "dependencies": [],
+  "codeowners": ["@smkrv"],
+  "version": "1.0.1",
+  "iot_class": "cloud_polling"
 }

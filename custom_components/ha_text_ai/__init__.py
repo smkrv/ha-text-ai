@@ -1,156 +1,150 @@
-"""The HA Text AI Integration."""  
-from __future__ import annotations  
+"""The HA text AI integration."""
+import logging
+from typing import Any
 
-import asyncio  
-import logging  
-from typing import Any  
+import voluptuous as vol
 
-from openai import AsyncOpenAI  
-import voluptuous as vol  
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_API_KEY, Platform
+from homeassistant.core import HomeAssistant, ServiceCall
+import homeassistant.helpers.config_validation as cv
 
-from homeassistant.config_entries import ConfigEntry  
-from homeassistant.const import CONF_API_KEY, Platform  
-from homeassistant.core import HomeAssistant, ServiceCall  
-from homeassistant.helpers import entity_registry as er  
-from homeassistant.helpers.entity_component import EntityComponent  
-from homeassistant.helpers import config_validation as cv  
-from homeassistant.components import input_text  
+from .const import (
+    DOMAIN,
+    PLATFORMS,
+    SERVICE_ASK_QUESTION,
+    SERVICE_CLEAR_HISTORY,
+    SERVICE_GET_HISTORY,
+    SERVICE_SET_SYSTEM_PROMPT,
+    CONF_MODEL,
+    CONF_TEMPERATURE,
+    CONF_MAX_TOKENS,
+    CONF_API_ENDPOINT,
+    CONF_REQUEST_INTERVAL,
+)
+from .coordinator import HATextAICoordinator
 
-from .const import (  
-    DOMAIN,  
-    CONF_API_BASE,  
-    CONF_REQUEST_INTERVAL,  
-    DEFAULT_API_BASE,  
-    DEFAULT_REQUEST_INTERVAL,  
-    TEXT_HELPER_PREFIX,  
-    TEXT_HELPER_MAX_LENGTH,  
-)  
+_LOGGER = logging.getLogger(__name__)
 
-_LOGGER = logging.getLogger(__name__)  
-
-PLATFORMS: list[Platform] = []  
-
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:  
-    """Set up the HA Text AI component."""  
-    hass.data.setdefault(DOMAIN, {})  
-    return True  
-
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:  
-    """Set up HA Text AI from a config entry."""  
-    client = AsyncOpenAI(  
-        api_key=entry.data[CONF_API_KEY],  
-        base_url=entry.data.get(CONF_API_BASE, DEFAULT_API_BASE)  
-    )  
-
-    hass.data[DOMAIN][entry.entry_id] = {  
-        "client": client,  
-        CONF_REQUEST_INTERVAL: entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL),  
-        "queue": [],  
-        "processing": False,  
-    }  
-
-    async def create_text_helper(name: str) -> str:  
-        """Create a Text Helper if it doesn't exist."""  
-        object_id = f"{TEXT_HELPER_PREFIX}{name}"  
-        
-        entity_id = f"input_text.{object_id}"  
-        entity_registry = er.async_get(hass)  
-        
-        if entity_registry.async_get(entity_id) is None:  
-            await hass.services.async_call(  
-                "input_text",  
-                "create",  
-                {  
-                    "name": f"AI Response {name}",  
-                    "id": object_id,  
-                    "max": TEXT_HELPER_MAX_LENGTH,  
-                    "initial": "",  
-                },  
-            )  
-        
-        return entity_id  
-
-    async def handle_text_ai_call(call: ServiceCall) -> None:  
-        """Handle the text AI service call."""  
-        entry_id = list(hass.data[DOMAIN].keys())[0]  # Используем первую настроенную интеграцию  
-        
-        response_id = call.data.get("response_id", "default")  
-        entity_id = await create_text_helper(response_id)  
-
-        request_data = {  
-            "prompt": call.data["prompt"],  
-            "model": call.data.get("model", "gpt-3.5-turbo"),  
-            "temperature": call.data.get("temperature", 0.7),  
-            "max_tokens": call.data.get("max_tokens", 150),  
-            "top_p": call.data.get("top_p", 1.0),  
-            "frequency_penalty": call.data.get("frequency_penalty", 0.0),  
-            "presence_penalty": call.data.get("presence_penalty", 0.0),  
-            "entity_id": entity_id,  
-        }  
-
-        hass.data[DOMAIN][entry_id]["queue"].append(request_data)  
-        
-        if not hass.data[DOMAIN][entry_id]["processing"]:  
-            asyncio.create_task(process_queue(hass, entry_id))  
-
-    async def process_queue(hass: HomeAssistant, entry_id: str) -> None:  
-        """Process the queue of requests."""  
-        if hass.data[DOMAIN][entry_id]["processing"]:  
-            return  
-
-        hass.data[DOMAIN][entry_id]["processing"] = True  
-        client = hass.data[DOMAIN][entry_id]["client"]  
-        
-        while hass.data[DOMAIN][entry_id]["queue"]:  
-            request = hass.data[DOMAIN][entry_id]["queue"].pop(0)  
-            
-            try:  
-                response = await client.chat.completions.create(  
-                    model=request["model"],  
-                    messages=[{"role": "user", "content": request["prompt"]}],  
-                    temperature=request["temperature"],  
-                    max_tokens=request["max_tokens"],  
-                    top_p=request["top_p"],  
-                    frequency_penalty=request["frequency_penalty"],  
-                    presence_penalty=request["presence_penalty"],  
-                )  
-
-                response_text = response.choices[0].message.content  
-                await hass.services.async_call(  
-                    "input_text",  
-                    "set_value",  
-                    {  
-                        "entity_id": request["entity_id"],  
-                        "value": response_text  
-                    },  
-                )  
-
-            except Exception as e:  
-                _LOGGER.error("Error processing request: %s", str(e))  
-
-            await asyncio.sleep(hass.data[DOMAIN][entry_id][CONF_REQUEST_INTERVAL])  
-
-        hass.data[DOMAIN][entry_id]["processing"] = False  
-
-    hass.services.async_register(  
-        DOMAIN,  
-        "text_ai_call",  
-        handle_text_ai_call,  
-        schema=vol.Schema({  
-            vol.Required("prompt"): cv.string,  
-            vol.Optional("response_id", default="default"): cv.string,  
-            vol.Optional("model", default="gpt-3.5-turbo"): cv.string,  
-            vol.Optional("temperature", default=0.7): vol.Coerce(float),  
-            vol.Optional("max_tokens", default=150): vol.Coerce(int),  
-            vol.Optional("top_p", default=1.0): vol.Coerce(float),  
-            vol.Optional("frequency_penalty", default=0.0): vol.Coerce(float),  
-            vol.Optional("presence_penalty", default=0.0): vol.Coerce(float),  
-        })  
-    )  
-
-    return True  
-
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:  
-    """Unload a config entry."""  
-    hass.data[DOMAIN].pop(entry.entry_id)  
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up the HA text AI component from configuration.yaml."""
+    hass.data.setdefault(DOMAIN, {})
     return True
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up HA text AI from a config entry."""
+    coordinator = HATextAICoordinator(
+        hass,
+        api_key=entry.data[CONF_API_KEY],
+        endpoint=entry.data.get(CONF_API_ENDPOINT),
+        model=entry.data.get(CONF_MODEL),
+        temperature=entry.data.get(CONF_TEMPERATURE),
+        max_tokens=entry.data.get(CONF_MAX_TOKENS),
+        request_interval=entry.data.get(CONF_REQUEST_INTERVAL),
+    )
+
+    await coordinator.async_config_entry_first_refresh()
+
+    hass.data.setdefault(DOMAIN, {})
+    hass.data[DOMAIN][entry.entry_id] = coordinator
+
+    await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    async def async_ask_question(call: ServiceCall) -> None:
+        """Handle the ask_question service call."""
+        question = call.data["question"]
+        model = call.data.get("model", coordinator.model)
+        temperature = call.data.get("temperature", coordinator.temperature)
+        max_tokens = call.data.get("max_tokens", coordinator.max_tokens)
+
+        # Temporarily update parameters if they were overridden
+        original_model = coordinator.model
+        original_temperature = coordinator.temperature
+        original_max_tokens = coordinator.max_tokens
+
+        try:
+            coordinator.model = model
+            coordinator.temperature = temperature
+            coordinator.max_tokens = max_tokens
+            await coordinator.async_ask_question(question)
+        finally:
+            # Restore original parameters
+            coordinator.model = original_model
+            coordinator.temperature = original_temperature
+            coordinator.max_tokens = original_max_tokens
+
+    async def async_clear_history(call: ServiceCall) -> None:
+        """Handle the clear_history service call."""
+        coordinator._responses.clear()
+        await coordinator.async_refresh()
+
+    async def async_get_history(call: ServiceCall) -> None:
+        """Handle the get_history service call."""
+        limit = call.data.get("limit", 10)
+        history = list(coordinator._responses.items())[-limit:]
+        return {
+            "history": [
+                {"question": q, "response": r} for q, r in history
+            ]
+        }
+
+    async def async_set_system_prompt(call: ServiceCall) -> None:
+        """Handle the set_system_prompt service call."""
+        prompt = call.data["prompt"]
+        coordinator.system_prompt = prompt
+
+    # Register all services
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ASK_QUESTION,
+        async_ask_question,
+        schema=vol.Schema({
+            vol.Required("question"): cv.string,
+            vol.Optional("model"): cv.string,
+            vol.Optional("temperature"): vol.Coerce(float),
+            vol.Optional("max_tokens"): vol.Coerce(int),
+        })
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CLEAR_HISTORY,
+        async_clear_history,
+        schema=vol.Schema({})
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_HISTORY,
+        async_get_history,
+        schema=vol.Schema({
+            vol.Optional("limit"): vol.Coerce(int),
+        })
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_SYSTEM_PROMPT,
+        async_set_system_prompt,
+        schema=vol.Schema({
+            vol.Required("prompt"): cv.string,
+        })
+    )
+
+    return True
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unload_ok:
+        hass.data[DOMAIN].pop(entry.entry_id)
+        # Unregister services
+        for service in [
+            SERVICE_ASK_QUESTION,
+            SERVICE_CLEAR_HISTORY,
+            SERVICE_GET_HISTORY,
+            SERVICE_SET_SYSTEM_PROMPT
+        ]:
+            hass.services.async_remove(DOMAIN, service)
+
+    return unload_ok
