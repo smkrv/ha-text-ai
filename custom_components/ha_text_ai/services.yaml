@@ -1,77 +1,84 @@
-text_ai_call:
-  name: Text AI Call
-  description: Make a request to the Text AI service
+# Service to ask a question
+ask_question:
+  name: Ask Question
+  description: Send a question to the AI and get a response
   fields:
-    prompt:
-      name: Prompt
-      description: The prompt to send to the AI service
+    question:
+      name: Question
+      description: The question or prompt to send to the AI
       required: true
-      example: "Tell me a joke about the weather"
+      example: "What is the weather like today?"
       selector:
         text:
           multiline: true
-    response_id:
-      name: Response ID
-      description: Unique identifier for the response Text Helper
-      required: false
-      default: "default"
-      example: "weather_joke"
-      selector:
-        text:
+
     model:
       name: Model
-      description: The AI model to use
+      description: Override the default model for this question (optional)
       required: false
-      default: "gpt-3.5-turbo"
       example: "gpt-4"
+      default: "gpt-3.5-turbo"
       selector:
-        text:
+        select:
+          options:
+            - "gpt-3.5-turbo"
+            - "gpt-4"
+            - "gpt-4-32k"
+
     temperature:
       name: Temperature
-      description: Sampling temperature (0-2)
+      description: Control randomness in the response (0.0-1.0, lower is more focused)
       required: false
       default: 0.7
       selector:
         number:
-          min: 0
-          max: 2
+          min: 0.0
+          max: 1.0
           step: 0.1
+
     max_tokens:
       name: Max Tokens
-      description: Maximum number of tokens in the response
+      description: Maximum length of the response
       required: false
-      default: 150
+      default: 1000
       selector:
         number:
           min: 1
-          max: 4096
-    top_p:
-      name: Top P
-      description: Nucleus sampling parameter
+          max: 4000
+          step: 1
+
+# Service to clear response history
+clear_history:
+  name: Clear History
+  description: Clear the stored question and response history
+  fields: {}
+
+# Service to get response history
+get_history:
+  name: Get History
+  description: Get the history of questions and responses
+  fields:
+    limit:
+      name: Limit
+      description: Maximum number of history items to return
       required: false
-      default: 1.0
+      default: 10
       selector:
         number:
-          min: 0
-          max: 1
-          step: 0.1
-    frequency_penalty:
-      name: Frequency Penalty
-      description: Frequency penalty parameter (-2.0 to 2.0)
-      required: false
-      default: 0.0
+          min: 1
+          max: 100
+          step: 1
+
+# Service to set system prompt
+set_system_prompt:
+  name: Set System Prompt
+  description: Set a system prompt that will be used for all future questions
+  fields:
+    prompt:
+      name: System Prompt
+      description: The system prompt to set
+      required: true
+      example: "You are a helpful assistant specializing in home automation"
       selector:
-        number:
-          min: -2.0
-          max: 2.0
-          step: 0.1
-    presence_penalty:
-      name: Presence Penalty
-      description: Presence penalty parameter (-2.0 to 2.0)
-      required: false
-      default: 0.0
-      selector:
-        number:
-          min: -2.0
-          max: 2.0
-          step: 0.1
+        text:
+          multiline: true
