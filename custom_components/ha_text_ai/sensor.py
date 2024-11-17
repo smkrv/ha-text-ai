@@ -56,3 +56,4 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             ATTR_RESPONSE: last_response,
             ATTR_LAST_UPDATED: self.coordinator.last_update_success_time,
         }
+        
