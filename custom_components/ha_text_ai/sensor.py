@@ -33,12 +33,26 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._config_entry = config_entry
         self._attr_unique_id = f"{config_entry.entry_id}"
         self._attr_name = "HA text AI"
+        self._attr_state_class = SensorStateClass.MEASUREMENT
 
-        @property
-        def extra_state_attributes(self) -> Optional[Dict[str, Any]]:
-            """Return entity specific state attributes."""
-            return {
-                ATTR_QUESTION: list(self.coordinator.data.keys())[-1] if self.coordinator.data else None,
-                ATTR_RESPONSE: list(self.coordinator.data.values())[-1] if self.coordinator.data else None,
-                ATTR_LAST_UPDATED: self.coordinator.last_update_success_time,
-            }
+    @property
+    def state(self) -> StateType:
+        """Return the state of the sensor."""
+        if self.coordinator.data:
+            return "Ready"  # Assuming "Ready" is a valid state, you might want to return something meaningful, like the last response time.
+        return "Not Ready"
+
+    @property
+    def extra_state_attributes(self) -> Optional[Dict[str, Any]]:
+        """Return entity specific state attributes."""
+        if not self.coordinator.data:
+            return None
+        keys = list(self.coordinator.data.keys())
+        values = list(self.coordinator.data.values())
+        last_question = keys[-1]
+        last_response = values[-1]
+        return {
+            ATTR_QUESTION: last_question,
+            ATTR_RESPONSE: last_response,
+            ATTR_LAST_UPDATED: self.coordinator.last_update_success_time,
+        }

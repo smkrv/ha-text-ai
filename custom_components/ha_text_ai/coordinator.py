@@ -12,6 +12,9 @@ from homeassistant.exceptions import ConfigEntryAuthFailed
 from .const import (
     DOMAIN,
     DEFAULT_REQUEST_INTERVAL,
+    CONF_MODEL,
+    CONF_TEMPERATURE,
+    CONF_MAX_TOKENS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -44,6 +47,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self.max_tokens = max_tokens
         self._question_queue = asyncio.Queue()
         self._responses: Dict[str, Any] = {}
+        self.system_prompt: Optional[str] = None
 
         openai.api_key = self.api_key
         if endpoint != "https://api.openai.com/v1":
@@ -56,10 +60,15 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
         try:
             question = await self._question_queue.get()
-            response = await self.hass.async_add_executor_job(
+            response_content = await self.hass.async_add_executor_job(
                 self._make_api_call, question
             )
+            response = {
+                "question": question,
+                "response": response_content
+            }
             self._responses[question] = response
+            _LOGGER.debug(f"Response from API: {response}")
             return self._responses
 
         except openai.error.AuthenticationError as err:
@@ -71,9 +80,11 @@ class HATextAICoordinator(DataUpdateCoordinator):
     def _make_api_call(self, question: str) -> str:
         """Make API call to OpenAI."""
         try:
+            messages = [{"role": "system", "content": self.system_prompt}] if self.system_prompt else []
+            messages.append({"role": "user", "content": question})
             completion = openai.chat.completions.create(
                 model=self.model,
-                messages=[{"role": "user", "content": question}],
+                messages=messages,
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
             )
@@ -85,4 +96,19 @@ class HATextAICoordinator(DataUpdateCoordinator):
     async def async_ask_question(self, question: str) -> None:
         """Add question to queue."""
         await self._question_queue.put(question)
+        _LOGGER.debug(f"Question added to queue: {question}")
         await self.async_refresh()
+
+    def clear_history(self) -> None:
+        """Clear the stored question and response history."""
+        self._responses.clear()
+        _LOGGER.info("History cleared.")
+
+    def get_history(self, limit: int = 10) -> Dict[str, Any]:
+        """Get the history of questions and responses."""
+        return {"history": list(self._responses.values())[-limit:]}
+
+    def set_system_prompt(self, prompt: str) -> None:
+        """Set a system prompt that will be used for all future questions."""
+        self.system_prompt = prompt
+        _LOGGER.info(f"System prompt set: {prompt}")

@@ -18,13 +18,13 @@ DEFAULT_MAX_TOKENS = 1000
 DEFAULT_API_ENDPOINT = "https://api.openai.com/v1"
 DEFAULT_REQUEST_INTERVAL = 1.0
 
+# Services
+SERVICE_ASK_QUESTION = "ask_question"
+SERVICE_CLEAR_HISTORY = "clear_history"
+SERVICE_GET_HISTORY = "get_history"
+SERVICE_SET_SYSTEM_PROMPT = "set_system_prompt"
+
 # Attributes
 ATTR_QUESTION = "question"
 ATTR_RESPONSE = "response"
 ATTR_LAST_UPDATED = "last_updated"
-
-# Services
-SERVICE_ASK_QUESTION = "ask_question
-SERVICE_CLEAR_HISTORY = "clear_history"
-SERVICE_GET_HISTORY = "get_history"
-SERVICE_SET_SYSTEM_PROMPT = "set_system_prompt"
