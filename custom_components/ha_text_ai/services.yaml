@@ -1,4 +1,3 @@
-# Service to ask a question
 ask_question:
   name: Ask Question
   description: Send a question to the AI and get a response
@@ -47,13 +46,11 @@ ask_question:
           max: 4000
           step: 1
 
-# Service to clear response history
 clear_history:
   name: Clear History
   description: Clear the stored question and response history
   fields: {}
 
-# Service to get response history
 get_history:
   name: Get History
   description: Get the history of questions and responses
@@ -69,7 +66,6 @@ get_history:
           max: 100
           step: 1
 
-# Service to set system prompt
 set_system_prompt:
   name: Set System Prompt
   description: Set a system prompt that will be used for all future questions
