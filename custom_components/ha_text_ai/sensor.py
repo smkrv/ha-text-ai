@@ -1,7 +1,7 @@
 """Sensor platform for HA text AI."""
 from typing import Any, Callable, Dict, Optional
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import SensorEntity, SensorStateClass
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -56,4 +56,3 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             ATTR_RESPONSE: last_response,
             ATTR_LAST_UPDATED: self.coordinator.last_update_success_time,
         }
-        
