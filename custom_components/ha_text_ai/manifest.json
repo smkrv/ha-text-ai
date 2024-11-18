@@ -1,5 +1,5 @@
 {
-  "domain": "ha-text-ai",
+  "domain": "ha_text_ai",
   "name": "HA text AI",
   "config_flow": true,
   "documentation": "https://github.com/smkrv/ha-text-ai",
