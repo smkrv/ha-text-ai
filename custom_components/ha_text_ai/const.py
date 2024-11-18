@@ -1,7 +1,7 @@
 """Constants for the HA text AI integration."""
 from homeassistant.const import Platform
 
-DOMAIN = "ha-text-ai"
+DOMAIN = "ha_text_ai"
 PLATFORMS = [Platform.SENSOR]
 
 # Configuration

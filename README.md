@@ -53,7 +53,7 @@ cd ~/.homeassistant
 mkdir -p custom_components
 
 # 3. Clone the repository
-git clone https://github.com/smkrv/ha-text-ai.git custom_components/ha-text-ai
+git clone https://github.com/smkrv/ha-text-ai.git custom_components/ha_text_ai
 
 # 4. Restart Home Assistant
 ```
@@ -63,14 +63,14 @@ git clone https://github.com/smkrv/ha-text-ai.git custom_components/ha-text-ai
 
 ### Basic Configuration
 ```yaml
-ha-text-ai:
+ha_text_ai:
   api_key: your_openai_api_key
   model: gpt-3.5-turbo
 ```
 
 ### Advanced Configuration
 ```yaml
-ha-text-ai:
+ha_text_ai:
   api_key: your_openai_api_key
   model: gpt-4
   temperature: 0.8
@@ -83,7 +83,7 @@ ha-text-ai:
 
 ### Ask Question
 ```yaml
-service: ha-text-ai.ask_question
+service: ha_text_ai.ask_question
 data:
   question: "What's the weather like today?"
   model: "gpt-4"  # optional
@@ -91,9 +91,9 @@ data:
 ```
 
 ### More Services
-- `ha-text-ai.clear_history`: Reset conversation history
-- `ha-text-ai.get_history`: Retrieve past interactions
-- `ha-text-ai.set_system_prompt`: Configure AI behavior
+- `ha_text_ai.clear_history`: Reset conversation history
+- `ha_text_ai.get_history`: Retrieve past interactions
+- `ha_text_ai.set_system_prompt`: Configure AI behavior
 
 ## 🔍 Advanced Usage
 
@@ -105,7 +105,7 @@ automation:
     entity_id: binary_sensor.motion
     to: 'on'
   action:
-    service: ha-text-ai.ask_question
+    service: ha_text_ai.ask_question
     data:
       question: "What should I do when motion is detected?"
 ```
