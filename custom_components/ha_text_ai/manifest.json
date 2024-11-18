@@ -1,9 +1,9 @@
 {
-  "domain": "ha_text_ai",
+  "domain": "ha-text-ai",
   "name": "HA text AI",
   "config_flow": true,
-  "documentation": "https://github.com/smkrv/ha_text_ai",
-  "issue_tracker": "https://github.com/smkrv/ha_text_ai/issues",
+  "documentation": "https://github.com/smkrv/ha-text-ai",
+  "issue_tracker": "https://github.com/smkrv/ha-text-ai/issues",
   "requirements": ["openai>=1.0.0"],
   "ssdp": [],
   "zeroconf": [],
