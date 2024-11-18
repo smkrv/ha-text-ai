@@ -1,6 +1,3 @@
-
-#### `config_flow.py`
-```python
 """Config flow for HA text AI integration."""
 import voluptuous as vol
 from homeassistant import config_entries
@@ -21,10 +18,11 @@ from .const import (
     DEFAULT_REQUEST_INTERVAL,
 )
 
-class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
+class HATextAIConfigFlow(config_entries.ConfigFlow):
     """Handle a config flow for HA text AI."""
 
     VERSION = 1
+    DOMAIN = DOMAIN  # Define the domain as a class variable
 
     async def async_step_user(self, user_input=None):
         """Handle the initial step."""
