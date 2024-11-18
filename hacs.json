@@ -2,5 +2,6 @@
   "name": "HA text AI",
   "render_readme": true,
   "domains": ["sensor"],
-  "homeassistant": "2023.8.0"
+  "homeassistant": "2023.8.0",
+  "icon": "mdi:brain"
 }
