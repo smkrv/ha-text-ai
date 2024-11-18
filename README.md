@@ -2,10 +2,10 @@
 
 <div align="center">
 
-![GitHub release](https://img.shields.io/github/release/smkrv/ha_text_ai.svg)
-![GitHub stars](https://img.shields.io/github/stars/smkrv/ha_text_ai.svg?style=social)
-![GitHub forks](https://img.shields.io/github/forks/smkrv/ha_text_ai.svg?style=social)
-![GitHub issues](https://img.shields.io/github/issues/smkrv/ha_text_ai.svg)
+![GitHub release](https://img.shields.io/github/release/smkrv/ha-text-ai.svg)
+![GitHub stars](https://img.shields.io/github/stars/smkrv/ha-text-ai.svg?style=social)
+![GitHub forks](https://img.shields.io/github/forks/smkrv/ha-text-ai.svg?style=social)
+![GitHub issues](https://img.shields.io/github/issues/smkrv/ha-text-ai.svg)
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/hacs/integration)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -53,7 +53,7 @@ cd ~/.homeassistant
 mkdir -p custom_components
 
 # 3. Clone the repository
-git clone https://github.com/smkrv/ha_text_ai.git custom_components/ha_text_ai
+git clone https://github.com/smkrv/ha-text-ai.git custom_components/ha-text-ai
 
 # 4. Restart Home Assistant
 ```
@@ -63,14 +63,14 @@ git clone https://github.com/smkrv/ha_text_ai.git custom_components/ha_text_ai
 
 ### Basic Configuration
 ```yaml
-ha_text_ai:
+ha-text-ai:
   api_key: your_openai_api_key
   model: gpt-3.5-turbo
 ```
 
 ### Advanced Configuration
 ```yaml
-ha_text_ai:
+ha-text-ai:
   api_key: your_openai_api_key
   model: gpt-4
   temperature: 0.8
@@ -83,7 +83,7 @@ ha_text_ai:
 
 ### Ask Question
 ```yaml
-service: ha_text_ai.ask_question
+service: ha-text-ai.ask_question
 data:
   question: "What's the weather like today?"
   model: "gpt-4"  # optional
@@ -91,9 +91,9 @@ data:
 ```
 
 ### More Services
-- `ha_text_ai.clear_history`: Reset conversation history
-- `ha_text_ai.get_history`: Retrieve past interactions
-- `ha_text_ai.set_system_prompt`: Configure AI behavior
+- `ha-text-ai.clear_history`: Reset conversation history
+- `ha-text-ai.get_history`: Retrieve past interactions
+- `ha-text-ai.set_system_prompt`: Configure AI behavior
 
 ## 🔍 Advanced Usage
 
@@ -105,7 +105,7 @@ automation:
     entity_id: binary_sensor.motion
     to: 'on'
   action:
-    service: ha_text_ai.ask_question
+    service: ha-text-ai.ask_question
     data:
       question: "What should I do when motion is detected?"
 ```
@@ -140,6 +140,6 @@ We welcome contributions! Here's how you can help:
 
 <div align="center">
 
-**[Documentation](https://github.com/smkrv/ha_text_ai/wiki)** | **[Report Bug](https://github.com/smkrv/ha_text_ai/issues)** | **[Request Feature](https://github.com/smkrv/ha_text_ai/issues)**
+**[Documentation](https://github.com/smkrv/ha-text-ai/wiki)** | **[Report Bug](https://github.com/smkrv/ha-text-ai/issues)** | **[Request Feature](https://github.com/smkrv/ha-text-ai/issues)**
 
 </div>
