@@ -1,128 +1,145 @@
 # 🤖 HA text AI Integration for Home Assistant
 
+<div align="center">
+
 ![GitHub release](https://img.shields.io/github/release/smkrv/ha_text_ai.svg)
 ![GitHub stars](https://img.shields.io/github/stars/smkrv/ha_text_ai.svg?style=social)
 ![GitHub forks](https://img.shields.io/github/forks/smkrv/ha_text_ai.svg?style=social)
 ![GitHub issues](https://img.shields.io/github/issues/smkrv/ha_text_ai.svg)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/hacs/integration)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-This is a custom integration for Home Assistant that allows you to interact with OpenAI's text generation models. It provides a sensor entity to track the status of the integration and services to ask questions, view response history, and clear the history. 📊🔍
+</div>
 
----
-
-## Features
-
-- **Sensor Entity**: Track the readiness of the HA text AI integration.
-- **Ask Question Service**: Submit questions to the AI and receive responses.
-- **Clear History Service**: Erase the stored history of questions and responses.
-- **Get History Service**: Retrieve the history of recent interactions.
-- **Set System Prompt Service**: Configure a system prompt for all future AI questions.
+<p align="center">
+Powerful OpenAI integration for Home Assistant enabling natural language interaction with your smart home
+</p>
 
 ---
 
-## Installation via HACS
+## 📋 Table of Contents
+- [Features](#-features)
+- [Installation](#-installation)
+- [Configuration](#-configuration)
+- [Services](#-services)
+- [Advanced Usage](#-advanced-usage)
+- [Troubleshooting](#-troubleshooting)
+- [Contributing](#-contributing)
 
-1. **Install HACS** (if you haven't already): Follow the [HACS installation guide](https://hacs.xyz/docs/installation/prerequisites/) if you need to install HACS first.
-2. **Add HA text AI Integration to HACS**:
-    - Open Home Assistant.
-    - Navigate to **HACS**.
-    - Click on **Integrations**.
-    - Click the **Explore & Add Repositories** button (➕).
-    - Enter the repository URL: `https://github.com/smkrv/ha_text_ai`
-    - Click **Add repository**.
-3. **Install**:
-    - In the list of available integrations, find **HA text AI**.
-    - Click on **Install**.
+## ✨ Features
+
+- 🔄 **Real-time AI Interaction**: Seamless communication with OpenAI's latest models
+- 📝 **Conversation History**: Track and manage your AI interactions
+- ⚙️ **Customizable Settings**: Fine-tune AI behavior with adjustable parameters
+- 🔌 **Easy Integration**: Simple setup process through HACS or manual installation
+- 🎯 **System Prompts**: Set context for more relevant AI responses
+
+## 🚀 Installation
+
+### HACS Installation (Recommended)
+1. Ensure [HACS](https://hacs.xyz/) is installed
+2. Search for "HA text AI" in HACS
+3. Click Install
+4. Restart Home Assistant
+
+<details>
+<summary>Manual Installation Steps</summary>
+
+```bash
+# 1. Navigate to your Home Assistant configuration directory
+cd ~/.homeassistant
+
+# 2. Create custom_components directory if it doesn't exist
+mkdir -p custom_components
+
+# 3. Clone the repository
+git clone https://github.com/smkrv/ha_text_ai.git custom_components/ha_text_ai
+
+# 4. Restart Home Assistant
+```
+</details>
+
+## ⚙️ Configuration
+
+### Basic Configuration
+```yaml
+ha_text_ai:
+  api_key: your_openai_api_key
+  model: gpt-3.5-turbo
+```
+
+### Advanced Configuration
+```yaml
+ha_text_ai:
+  api_key: your_openai_api_key
+  model: gpt-4
+  temperature: 0.8
+  max_tokens: 2000
+  api_endpoint: https://custom-endpoint.com/v1
+  request_interval: 2.0
+```
+
+## 🛠 Services
+
+### Ask Question
+```yaml
+service: ha_text_ai.ask_question
+data:
+  question: "What's the weather like today?"
+  model: "gpt-4"  # optional
+  temperature: 0.7  # optional
+```
+
+### More Services
+- `ha_text_ai.clear_history`: Reset conversation history
+- `ha_text_ai.get_history`: Retrieve past interactions
+- `ha_text_ai.set_system_prompt`: Configure AI behavior
+
+## 🔍 Advanced Usage
+
+### Automation Example
+```yaml
+automation:
+  trigger:
+    platform: state
+    entity_id: binary_sensor.motion
+    to: 'on'
+  action:
+    service: ha_text_ai.ask_question
+    data:
+      question: "What should I do when motion is detected?"
+```
+
+## 🔧 Troubleshooting
+
+<details>
+<summary>Common Issues and Solutions</summary>
+
+### API Key Issues
+- Verify API key format
+- Check API key permissions
+- Ensure proper configuration in secrets.yaml
+
+### Connection Problems
+- Verify internet connection
+- Check API endpoint accessibility
+- Review Home Assistant logs
+</details>
+
+## 👥 Contributing
+
+We welcome contributions! Here's how you can help:
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Submit a pull request
 
 ---
 
-## Manual Installation
+<div align="center">
 
-1. **Download the repository**:
-    - Clone the repository to your Home Assistant’s `config/custom_components` directory.
-    ```bash
-    git clone https://github.com/smkrv/ha_text_ai.git config/custom_components/ha_text_ai
-    ```
+**[Documentation](https://github.com/smkrv/ha_text_ai/wiki)** | **[Report Bug](https://github.com/smkrv/ha_text_ai/issues)** | **[Request Feature](https://github.com/smkrv/ha_text_ai/issues)**
 
-2. **Restart Home Assistant**:
-    - Go to **Configuration** -> **Server Controls** in Home Assistant and restart your Home Assistant instance.
-
-3. **Configuration**:
-    - Navigate to **Configuration** -> **Integrations** in Home Assistant.
-    - Click **Add Integration** (➕).
-    - Search for **HA text AI** and click **Configure**.
-    - Enter your OpenAI API key and other optional settings as prompted.
-
----
-
-## Configuration Options
-
-- **API Key**: Your OpenAI API key
-- **Model**: The OpenAI model to use (default: `gpt-3.5-turbo`)
-- **Temperature**: Controls the randomness of the output. Lower values make the output more deterministic (default: `0.7`)
-- **Max Tokens**: Maximum length of the response (default: `1000`)
-- **API Endpoint**: Custom endpoint URL for the OpenAI API (default: `https://api.openai.com/v1`)
-- **Request Interval**: Time interval for polling the API (in seconds, default: `1.0`)
-
----
-
-## Services
-
-### 1. Ask Question
-**Service:** `ha_text_ai.ask_question`
-- **Description**: Ask a question to the integrated AI and receive a response.
-- **Parameters**:
-    - `question`: The question or prompt to send to the AI (required)
-    - `model`: Override the default model for this question (optional)
-    - `temperature`: Adjust randomness in the response (0.0-1.0, optional)
-    - `max_tokens`: Limit the length of the response (optional)
-
-### 2. Clear History
-**Service:** `ha_text_ai.clear_history`
-- **Description**: Clear the stored history of questions and responses.
-
-### 3. Get History
-**Service:** `ha_text_ai.get_history`
-- **Description**: Retrieve the history of recent interactions.
-- **Parameters**:
-    - `limit`: Maximum number of history items to return (default: `10`)
-
-### 4. Set System Prompt
-**Service:** `ha_text_ai.set_system_prompt`
-- **Description**: Set a system prompt to guide the AI's behavior in future interactions.
-- **Parameters**:
-    - `prompt`: The system prompt to set (required)
-
----
-
-## Advanced Usage
-
-- **Sensor State**: The sensor entity `sensor.ha_text_ai` will show `Ready` if the integration is configured and operational, otherwise it will show `Not Ready`.
-- **Attributes**: When the sensor state is `Ready`, it provides attributes:
-    - `question`: The last question asked.
-    - `response`: The response to the last question.
-    - `last_updated`: Timestamp of the last successful update from the API.
-
----
-
-## Logs & Debugging
-
-- To view logs and debug issues, check the Home Assistant logs under **Configuration** -> **Logs**.
-
----
-
-## Contributing
-
-Feel free to contribute to this project! Open an issue or submit a pull request with any questions, improvements, or bug fixes.
-
-- **Issues**: [github.com/smkrv/ha_text_ai/issues](https://github.com/smkrv/ha_text_ai/issues)
-- **Pull Requests**: [github.com/smkrv/ha_text_ai/pulls](https://github.com/smkrv/ha_text_ai/pulls)
-
----
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
----
-
-🚀 Ready to use your AI-powered assistant in Home Assistant? Just set up and start asking questions through the integrated services!
+</div>
