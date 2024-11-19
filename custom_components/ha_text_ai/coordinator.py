@@ -1,21 +1,51 @@
+"""The HA Text AI integration."""
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
+from .const import DOMAIN, PLATFORMS
+from .coordinator import HATextAICoordinator
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up HA Text AI from a config entry."""
+    try:
+        coordinator = HATextAICoordinator(
+            hass,
+            api_key=entry.data["api_key"],
+            endpoint=entry.data.get("api_endpoint", "https://api.openai.com/v1"),
+            model=entry.data.get("model", "gpt-3.5-turbo"),
+            temperature=entry.data.get("temperature", 0.7),
+            max_tokens=entry.data.get("max_tokens", 1000),
+            request_interval=entry.data.get("request_interval", 1.0),
+        )
+
+        await coordinator.async_config_entry_first_refresh()
+
+        hass.data.setdefault(DOMAIN, {})
+        hass.data[DOMAIN][entry.entry_id] = coordinator
+
+        return await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+    except Exception as ex:
+        raise ConfigEntryNotReady(f"Failed to setup entry: {str(ex)}") from ex
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unload_ok:
+        hass.data[DOMAIN].pop(entry.entry_id)
+    return unload_ok
+
 """Data coordinator for HA text AI."""
 import asyncio
 import logging
 from datetime import timedelta
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import openai
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.exceptions import ConfigEntryAuthFailed
 
-from .const import (
-    DOMAIN,
-    DEFAULT_REQUEST_INTERVAL,
-    CONF_MODEL,
-    CONF_TEMPERATURE,
-    CONF_MAX_TOKENS,
-)
+from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -40,18 +70,26 @@ class HATextAICoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=request_interval),
         )
 
+        if not api_key:
+            raise ValueError("API key is required")
+        if not isinstance(temperature, (int, float)) or not 0 <= temperature <= 2:
+            raise ValueError("Temperature must be between 0 and 2")
+        if not isinstance(max_tokens, int) or max_tokens < 1:
+            raise ValueError("Max tokens must be a positive integer")
+
         self.api_key = api_key
-        self.endpoint = endpoint
-        self.model = model
-        self.temperature = temperature
-        self.max_tokens = max_tokens
+        self.endpoint = endpoint or "https://api.openai.com/v1"
+        self.model = model or "gpt-3.5-turbo"
+        self.temperature = float(temperature)
+        self.max_tokens = int(max_tokens)
         self._question_queue = asyncio.Queue()
         self._responses: Dict[str, Any] = {}
         self.system_prompt: Optional[str] = None
 
-        openai.api_key = self.api_key
-        if endpoint != "https://api.openai.com/v1":
-            openai.api_base = endpoint
+        self.client = openai.OpenAI(
+            api_key=self.api_key,
+            base_url=self.endpoint
+        )
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Update data via OpenAI API."""
@@ -63,15 +101,14 @@ class HATextAICoordinator(DataUpdateCoordinator):
             response_content = await self.hass.async_add_executor_job(
                 self._make_api_call, question
             )
-            response = {
+            self._responses[question] = {
                 "question": question,
                 "response": response_content
             }
-            self._responses[question] = response
-            _LOGGER.debug(f"Response from API: {response}")
+            _LOGGER.debug("Response from API: %s", response_content)
             return self._responses
 
-        except openai.error.AuthenticationError as err:
+        except openai.AuthenticationError as err:
             raise ConfigEntryAuthFailed from err
         except Exception as err:
             _LOGGER.error("Error communicating with API: %s", err)
@@ -80,9 +117,12 @@ class HATextAICoordinator(DataUpdateCoordinator):
     def _make_api_call(self, question: str) -> str:
         """Make API call to OpenAI."""
         try:
-            messages = [{"role": "system", "content": self.system_prompt}] if self.system_prompt else []
+            messages = []
+            if self.system_prompt:
+                messages.append({"role": "system", "content": self.system_prompt})
             messages.append({"role": "user", "content": question})
-            completion = openai.chat.completions.create(
+
+            completion = self.client.chat.completions.create(
                 model=self.model,
                 messages=messages,
                 temperature=self.temperature,
@@ -92,23 +132,3 @@ class HATextAICoordinator(DataUpdateCoordinator):
         except Exception as err:
             _LOGGER.error("Error in API call: %s", err)
             raise
-
-    async def async_ask_question(self, question: str) -> None:
-        """Add question to queue."""
-        await self._question_queue.put(question)
-        _LOGGER.debug(f"Question added to queue: {question}")
-        await self.async_refresh()
-
-    def clear_history(self) -> None:
-        """Clear the stored question and response history."""
-        self._responses.clear()
-        _LOGGER.info("History cleared.")
-
-    def get_history(self, limit: int = 10) -> Dict[str, Any]:
-        """Get the history of questions and responses."""
-        return {"history": list(self._responses.values())[-limit:]}
-
-    def set_system_prompt(self, prompt: str) -> None:
-        """Set a system prompt that will be used for all future questions."""
-        self.system_prompt = prompt
-        _LOGGER.info(f"System prompt set: {prompt}")

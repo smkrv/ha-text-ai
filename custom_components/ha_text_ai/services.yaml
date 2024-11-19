@@ -1,63 +1,76 @@
 ask_question:
   name: Ask Question
-  description: Send a question to the AI and get a response
+  description: Send a question to the AI model and receive a detailed response
   fields:
     question:
       name: Question
-      description: The question or prompt to send to the AI
+      description: Your question or prompt for the AI assistant
       required: true
-      example: "What is the weather like today?"
+      example: "What automations would you recommend for a smart kitchen?"
       selector:
         text:
           multiline: true
+          type: text
 
     model:
       name: Model
-      description: Override the default model for this question (optional)
+      description: Select an AI model to use (optional, overrides default setting)
       required: false
-      example: "gpt-4"
+      example: "gpt-3.5-turbo"
       default: "gpt-3.5-turbo"
       selector:
         select:
           options:
-            - "gpt-3.5-turbo"
-            - "gpt-4"
-            - "gpt-4-32k"
+            - label: "GPT-3.5 Turbo"
+              value: "gpt-3.5-turbo"
+              icon: "mdi:rocket-launch"
+            - label: "GPT-4"
+              value: "gpt-4"
+              icon: "mdi:brain"
+            - label: "GPT-4 32K"
+              value: "gpt-4-32k"
+              icon: "mdi:brain-circuit"
 
     temperature:
       name: Temperature
-      description: Control randomness in the response (0.0-1.0, lower is more focused)
+      description: >-
+        Controls response creativity (0-2):
+        Lower values (0-0.7) for focused, consistent responses
+        Higher values (0.7-2.0) for more creative, varied responses
       required: false
       default: 0.7
       selector:
         number:
           min: 0.0
-          max: 1.0
+          max: 2.0
           step: 0.1
+          mode: slider
+          unit_of_measurement: ""
 
     max_tokens:
       name: Max Tokens
-      description: Maximum length of the response
+      description: Maximum length of the response (longer responses use more tokens)
       required: false
       default: 1000
       selector:
         number:
           min: 1
-          max: 4000
+          max: 4096
           step: 1
+          mode: box
 
 clear_history:
   name: Clear History
-  description: Clear the stored question and response history
+  description: Delete all stored questions and responses from the conversation history
   fields: {}
 
 get_history:
   name: Get History
-  description: Get the history of questions and responses
+  description: Retrieve recent conversation history between you and the AI
   fields:
     limit:
       name: Limit
-      description: Maximum number of history items to return
+      description: Number of most recent conversations to return
       required: false
       default: 10
       selector:
@@ -65,16 +78,26 @@ get_history:
           min: 1
           max: 100
           step: 1
+          mode: box
 
 set_system_prompt:
   name: Set System Prompt
-  description: Set a system prompt that will be used for all future questions
+  description: >-
+    Configure the AI's behavior by setting a system prompt that will be used
+    for all future conversations until changed
   fields:
     prompt:
       name: System Prompt
-      description: The system prompt to set
+      description: >-
+        Instructions that define how the AI should behave and respond.
+        This affects all future conversations.
       required: true
-      example: "You are a helpful assistant specializing in home automation"
+      example: >-
+        You are a home automation expert assistant. Provide practical advice
+        focused on smart home technology and automation. Use clear, concise
+        language and include specific product recommendations when relevant.
       selector:
         text:
           multiline: true
+          type: text
+          rows: 4

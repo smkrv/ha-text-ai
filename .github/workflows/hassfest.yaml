@@ -2,13 +2,44 @@ name: Validate with hassfest
 
 on:
   push:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'custom_components/**'
+      - '.github/workflows/**'
   pull_request:
+    branches:
+      - main
+    paths:
+      - 'custom_components/**'
+      - '.github/workflows/**'
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 0 * * *"  # Run daily at midnight UTC
+  workflow_dispatch:  # Allow manual trigger
 
 jobs:
   validate:
+    name: Validate with hassfest
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+
     steps:
-      - uses: actions/checkout@v3
-      - uses: home-assistant/actions/hassfest@master
+      - name: ⤵️ Check out code from GitHub
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 🚀 Run hassfest validation
+        uses: home-assistant/actions/hassfest@master
+        with:
+          strict: true
+
+      - name: ℹ️ Print hassfest version
+        if: always()
+        run: |
+          echo "Hassfest version: $(hassfest --version)"
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true

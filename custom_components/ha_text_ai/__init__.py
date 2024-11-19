@@ -5,10 +5,10 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_API_KEY, Platform
+from homeassistant.const import CONF_API_KEY
 from homeassistant.core import HomeAssistant, ServiceCall
 import homeassistant.helpers.config_validation as cv
-from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, ConfigEntryNotReady
 
 from .const import (
     DOMAIN,
@@ -28,95 +28,80 @@ from .coordinator import HATextAICoordinator
 _LOGGER = logging.getLogger(__name__)
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
-    """Set up the HA text AI component from configuration.yaml."""
+    """Set up the HA text AI component."""
     hass.data.setdefault(DOMAIN, {})
 
     async def async_ask_question(call: ServiceCall) -> None:
-        """Handle the ask_question service call.
+        """Handle the ask_question service call."""
+        if not hass.data[DOMAIN]:
+            raise HomeAssistantError("No AI Text integration configured")
 
-        Args:
-            call: Service call containing question and optional parameters.
-        """
+        coordinator = next(iter(hass.data[DOMAIN].values()))
+        question = call.data["question"]
+
+ 
+        original_params = {
+            "model": coordinator.model,
+            "temperature": coordinator.temperature,
+            "max_tokens": coordinator.max_tokens
+        }
+
         try:
-            # Get the coordinator from the first config entry
-            if not hass.data[DOMAIN]:
-                raise HomeAssistantError("No AI Text integration configured")
 
-            coordinator = next(iter(hass.data[DOMAIN].values()))
+            if "model" in call.data:
+                coordinator.model = call.data["model"]
+            if "temperature" in call.data:
+                coordinator.temperature = call.data["temperature"]
+            if "max_tokens" in call.data:
+                coordinator.max_tokens = call.data["max_tokens"]
 
-            question = call.data["question"]
-            model = call.data.get("model", coordinator.model)
-            temperature = call.data.get("temperature", coordinator.temperature)
-            max_tokens = call.data.get("max_tokens", coordinator.max_tokens)
-
-            # Temporarily update parameters if they were overridden
-            original_model = coordinator.model
-            original_temperature = coordinator.temperature
-            original_max_tokens = coordinator.max_tokens
-
-            try:
-                coordinator.model = model
-                coordinator.temperature = temperature
-                coordinator.max_tokens = max_tokens
-                await coordinator.async_ask_question(question)
-            finally:
-                # Restore original parameters
-                coordinator.model = original_model
-                coordinator.temperature = original_temperature
-                coordinator.max_tokens = original_max_tokens
+            await coordinator.async_ask_question(question)
         except Exception as ex:
             _LOGGER.error("Error asking question: %s", str(ex))
-            raise HomeAssistantError(f"Failed to ask question: {str(ex)}")
+            raise HomeAssistantError(f"Failed to ask question: {str(ex)}") from ex
+        finally:
+
+            coordinator.model = original_params["model"]
+            coordinator.temperature = original_params["temperature"]
+            coordinator.max_tokens = original_params["max_tokens"]
 
     async def async_clear_history(call: ServiceCall) -> None:
         """Handle the clear_history service call."""
-        try:
-            if not hass.data[DOMAIN]:
-                raise HomeAssistantError("No AI Text integration configured")
+        if not hass.data[DOMAIN]:
+            raise HomeAssistantError("No AI Text integration configured")
 
-            coordinator = next(iter(hass.data[DOMAIN].values()))
-            coordinator._responses.clear()
-            await coordinator.async_refresh()
-        except Exception as ex:
-            _LOGGER.error("Error clearing history: %s", str(ex))
-            raise HomeAssistantError(f"Failed to clear history: {str(ex)}")
+        coordinator = next(iter(hass.data[DOMAIN].values()))
+        coordinator._responses.clear()
+        await coordinator.async_refresh()
 
     async def async_get_history(call: ServiceCall) -> dict[str, list]:
-        """Handle the get_history service call.
+        """Handle the get_history service call."""
+        if not hass.data[DOMAIN]:
+            raise HomeAssistantError("No AI Text integration configured")
 
-        Returns:
-            Dictionary containing chat history.
-        """
-        try:
-            if not hass.data[DOMAIN]:
-                raise HomeAssistantError("No AI Text integration configured")
+        coordinator = next(iter(hass.data[DOMAIN].values()))
+        if not coordinator._responses:
+            return {"history": []}
 
-            coordinator = next(iter(hass.data[DOMAIN].values()))
-            limit = call.data.get("limit", 10)
-            history = list(coordinator._responses.items())[-limit:]
-            return {
-                "history": [
-                    {"question": q, "response": r} for q, r in history
-                ]
-            }
-        except Exception as ex:
-            _LOGGER.error("Error getting history: %s", str(ex))
-            raise HomeAssistantError(f"Failed to get history: {str(ex)}")
+        limit = call.data.get("limit", 10)
+        history = list(coordinator._responses.items())
+        limited_history = history[-limit:] if len(history) > limit else history
+
+        return {
+            "history": [
+                {"question": q, "response": r} for q, r in limited_history
+            ]
+        }
 
     async def async_set_system_prompt(call: ServiceCall) -> None:
         """Handle the set_system_prompt service call."""
-        try:
-            if not hass.data[DOMAIN]:
-                raise HomeAssistantError("No AI Text integration configured")
+        if not hass.data[DOMAIN]:
+            raise HomeAssistantError("No AI Text integration configured")
 
-            coordinator = next(iter(hass.data[DOMAIN].values()))
-            prompt = call.data["prompt"]
-            coordinator.system_prompt = prompt
-        except Exception as ex:
-            _LOGGER.error("Error setting system prompt: %s", str(ex))
-            raise HomeAssistantError(f"Failed to set system prompt: {str(ex)}")
+        coordinator = next(iter(hass.data[DOMAIN].values()))
+        coordinator.system_prompt = call.data["prompt"]
 
-    # Register services
+
     hass.services.async_register(
         DOMAIN,
         SERVICE_ASK_QUESTION,
@@ -176,32 +161,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
         await coordinator.async_config_entry_first_refresh()
-
         hass.data[DOMAIN][entry.entry_id] = coordinator
 
         return await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     except Exception as ex:
-        _LOGGER.error("Error setting up entry: %s", str(ex))
-        raise ConfigEntryNotReady from ex
+        raise ConfigEntryNotReady(f"Failed to setup entry: {str(ex)}") from ex
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    try:
-        unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-        if unload_ok:
-            hass.data[DOMAIN].pop(entry.entry_id)
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unload_ok:
+        hass.data[DOMAIN].pop(entry.entry_id)
 
-            # Only remove services if this is the last entry
-            if not hass.data[DOMAIN]:
-                for service in [
-                    SERVICE_ASK_QUESTION,
-                    SERVICE_CLEAR_HISTORY,
-                    SERVICE_GET_HISTORY,
-                    SERVICE_SET_SYSTEM_PROMPT
-                ]:
+
+        if not hass.data[DOMAIN]:
+            services = [
+                SERVICE_ASK_QUESTION,
+                SERVICE_CLEAR_HISTORY,
+                SERVICE_GET_HISTORY,
+                SERVICE_SET_SYSTEM_PROMPT
+            ]
+            for service in services:
+                if service in hass.services.async_services().get(DOMAIN, {}):
                     hass.services.async_remove(DOMAIN, service)
 
-        return unload_ok
-    except Exception as ex:
-        _LOGGER.error("Error unloading entry: %s", str(ex))
-        return False
+    return unload_ok

@@ -1,145 +1,165 @@
-# 🤖 HA text AI Integration for Home Assistant
+# 🤖 HA Text AI for Home Assistant
 
 <div align="center">
 
-![GitHub release](https://img.shields.io/github/release/smkrv/ha-text-ai.svg)
+![GitHub release](https://img.shields.io/github/release/smkrv/ha-text-ai.svg?style=flat-square)
+![GitHub downloads](https://img.shields.io/github/downloads/smkrv/ha-text-ai/total.svg?style=flat-square)
 ![GitHub stars](https://img.shields.io/github/stars/smkrv/ha-text-ai.svg?style=social)
-![GitHub forks](https://img.shields.io/github/forks/smkrv/ha-text-ai.svg?style=social)
-![GitHub issues](https://img.shields.io/github/issues/smkrv/ha-text-ai.svg)
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/hacs/integration)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+![GitHub last commit](https://img.shields.io/github/last-commit/smkrv/ha-text-ai.svg?style=flat-square)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
 </div>
 
 <p align="center">
-Powerful OpenAI integration for Home Assistant enabling natural language interaction with your smart home
+Transform your smart home experience with powerful AI assistance powered by OpenAI's GPT models
 </p>
 
 ---
 
-## 📋 Table of Contents
-- [Features](#-features)
-- [Installation](#-installation)
-- [Configuration](#-configuration)
-- [Services](#-services)
-- [Advanced Usage](#-advanced-usage)
-- [Troubleshooting](#-troubleshooting)
-- [Contributing](#-contributing)
+## 🌟 Features
 
-## ✨ Features
+- 🧠 **Advanced AI Integration**: Leverage OpenAI's powerful models (GPT-3.5, GPT-4) for smart home interactions
+- 💬 **Natural Language Control**: Control your home and get information using everyday language
+- 📝 **Conversation Memory**: Maintain context with conversation history tracking
+- ⚡ **Real-time Responses**: Get quick, contextual responses to your queries
+- 🎯 **Customizable Behavior**: Fine-tune AI responses with adjustable parameters
+- 🔒 **Secure Integration**: Your API key and data are handled securely
+- 🎨 **Flexible Configuration**: Easy setup with multiple configuration options
+- 🔄 **Automation Ready**: Integrate AI responses into your automations
 
-- 🔄 **Real-time AI Interaction**: Seamless communication with OpenAI's latest models
-- 📝 **Conversation History**: Track and manage your AI interactions
-- ⚙️ **Customizable Settings**: Fine-tune AI behavior with adjustable parameters
-- 🔌 **Easy Integration**: Simple setup process through HACS or manual installation
-- 🎯 **System Prompts**: Set context for more relevant AI responses
+## 📋 Prerequisites
 
-## 🚀 Installation
+- Home Assistant installation (Core, OS, Container, or Supervised)
+- OpenAI API key ([Get one here](https://platform.openai.com/account/api-keys))
+- Python 3.9 or newer
 
-### HACS Installation (Recommended)
-1. Ensure [HACS](https://hacs.xyz/) is installed
-2. Search for "HA text AI" in HACS
-3. Click Install
-4. Restart Home Assistant
+## ⚡ Quick Start
 
-<details>
-<summary>Manual Installation Steps</summary>
-
-```bash
-# 1. Navigate to your Home Assistant configuration directory
-cd ~/.homeassistant
-
-# 2. Create custom_components directory if it doesn't exist
-mkdir -p custom_components
-
-# 3. Clone the repository
-git clone https://github.com/smkrv/ha-text-ai.git custom_components/ha_text_ai
-
-# 4. Restart Home Assistant
-```
-</details>
-
-## ⚙️ Configuration
-
-### Basic Configuration
+### Manual Installation
+1. Download the repository
+2. Copy `custom_components/ha_text_ai` to your `custom_components` directory
+3. Restart Home Assistant
+4. Add configuration to `configuration.yaml`:
 ```yaml
 ha_text_ai:
-  api_key: your_openai_api_key
-  model: gpt-3.5-turbo
+  api_key: !secret openai_api_key
 ```
 
-### Advanced Configuration
-```yaml
-ha_text_ai:
-  api_key: your_openai_api_key
-  model: gpt-4
-  temperature: 0.8
-  max_tokens: 2000
-  api_endpoint: https://custom-endpoint.com/v1
-  request_interval: 2.0
-```
+## ⚙️ Configuration Options
 
-## 🛠 Services
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `api_key` | string | Required | Your OpenAI API key |
+| `model` | string | `gpt-3.5-turbo` | AI model to use |
+| `temperature` | float | `0.7` | Response creativity (0-2) |
+| `max_tokens` | integer | `1000` | Maximum response length |
+| `request_interval` | float | `1.0` | Minimum seconds between requests |
+| `api_endpoint` | string | OpenAI default | Custom API endpoint URL |
 
-### Ask Question
+## 🛠️ Available Services
+
+### ask_question
+Ask the AI assistant a question:
 ```yaml
 service: ha_text_ai.ask_question
 data:
-  question: "What's the weather like today?"
+  question: "What's the optimal temperature for sleeping?"
   model: "gpt-4"  # optional
-  temperature: 0.7  # optional
+  temperature: 0.5  # optional
+  max_tokens: 500  # optional
 ```
 
-### More Services
-- `ha_text_ai.clear_history`: Reset conversation history
-- `ha_text_ai.get_history`: Retrieve past interactions
-- `ha_text_ai.set_system_prompt`: Configure AI behavior
+### set_system_prompt
+Configure AI behavior:
+```yaml
+service: ha_text_ai.set_system_prompt
+data:
+  prompt: "You are a home automation expert focused on energy efficiency"
+```
 
-## 🔍 Advanced Usage
+### clear_history
+Reset conversation history:
+```yaml
+service: ha_text_ai.clear_history
+```
 
-### Automation Example
+### get_history
+Retrieve conversation history:
+```yaml
+service: ha_text_ai.get_history
+data:
+  limit: 5  # optional
+```
+
+## 🔧 Practical Examples
+
+### Smart Temperature Management
+```yaml
+automation:
+  trigger:
+    platform: time_pattern
+    hours: "/1"
+  action:
+    service: ha_text_ai.ask_question
+    data:
+      question: >
+        Current temperature is {{ states('sensor.living_room_temperature') }}°C.
+        Should I adjust the thermostat for optimal comfort and energy savings?
+```
+
+### Smart Lighting Assistant
 ```yaml
 automation:
   trigger:
     platform: state
-    entity_id: binary_sensor.motion
+    entity_id: binary_sensor.living_room_motion
     to: 'on'
+  condition:
+    condition: template
+    value_template: "{{ states('sensor.illuminance') | float < 10 }}"
   action:
     service: ha_text_ai.ask_question
     data:
-      question: "What should I do when motion is detected?"
+      question: >
+        Motion detected in living room with low light levels.
+        What's the best lighting scene to set based on the time of day?
 ```
 
-## 🔧 Troubleshooting
+## ❗ Common Issues
 
-<details>
-<summary>Common Issues and Solutions</summary>
+### API Rate Limits
+- Increase `request_interval` if hitting rate limits
+- Consider upgrading your OpenAI plan
+- Use caching for frequent queries
 
-### API Key Issues
-- Verify API key format
-- Check API key permissions
-- Ensure proper configuration in secrets.yaml
+### High Token Usage
+- Reduce `max_tokens` parameter
+- Clear conversation history regularly
+- Use focused system prompts
 
-### Connection Problems
-- Verify internet connection
-- Check API endpoint accessibility
-- Review Home Assistant logs
-</details>
+### Connection Issues
+- Check internet connectivity
+- Verify API key validity
+- Ensure endpoint accessibility
 
-## 👥 Contributing
+## 🤝 Contributing
 
-We welcome contributions! Here's how you can help:
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Push to the branch
-5. Submit a pull request
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 <div align="center">
 
-**[Documentation](https://github.com/smkrv/ha-text-ai/wiki)** | **[Report Bug](https://github.com/smkrv/ha-text-ai/issues)** | **[Request Feature](https://github.com/smkrv/ha-text-ai/issues)**
+Made with ❤️ for the Home Assistant Community
 
 </div>

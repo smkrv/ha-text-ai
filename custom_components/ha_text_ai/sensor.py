@@ -1,7 +1,13 @@
 """Sensor platform for HA text AI."""
+from datetime import datetime
+import logging
 from typing import Any, Callable, Dict, Optional
 
-from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.components.sensor import (
+    SensorEntity,
+    SensorStateClass,
+    SensorDeviceClass,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -10,6 +16,8 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN, ATTR_QUESTION, ATTR_RESPONSE, ATTR_LAST_UPDATED
 from .coordinator import HATextAICoordinator
+
+_LOGGER = logging.getLogger(__name__)
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -23,6 +31,11 @@ async def async_setup_entry(
 class HATextAISensor(CoordinatorEntity, SensorEntity):
     """HA text AI Sensor."""
 
+    _attr_has_entity_name = True
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_icon = "mdi:robot"
+
     def __init__(
         self,
         coordinator: HATextAICoordinator,
@@ -32,27 +45,50 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._config_entry = config_entry
         self._attr_unique_id = f"{config_entry.entry_id}"
-        self._attr_name = "HA text AI"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
+        self._attr_name = "Last Response"
 
     @property
     def state(self) -> StateType:
         """Return the state of the sensor."""
-        if self.coordinator.data:
-            return "Ready"  # Assuming "Ready" is a valid state, you might want to return something meaningful, like the last response time.
-        return "Not Ready"
+        if not self.coordinator.data:
+            return None
+        return self.coordinator.last_update_success_time
 
     @property
     def extra_state_attributes(self) -> Optional[Dict[str, Any]]:
         """Return entity specific state attributes."""
         if not self.coordinator.data:
             return None
-        keys = list(self.coordinator.data.keys())
-        values = list(self.coordinator.data.values())
-        last_question = keys[-1]
-        last_response = values[-1]
-        return {
-            ATTR_QUESTION: last_question,
-            ATTR_RESPONSE: last_response,
-            ATTR_LAST_UPDATED: self.coordinator.last_update_success_time,
-        }
+
+        try:
+
+            history = list(self.coordinator.data.items())
+            if not history:
+                return None
+
+            last_question, last_data = history[-1]
+
+
+            if isinstance(last_data, dict):
+                last_response = last_data.get("response", "")
+            else:
+                last_response = str(last_data)
+
+            return {
+                ATTR_QUESTION: last_question,
+                ATTR_RESPONSE: last_response,
+                ATTR_LAST_UPDATED: self.coordinator.last_update_success_time,
+            }
+        except (IndexError, KeyError, AttributeError) as err:
+            _LOGGER.warning("Error getting attributes: %s", err)
+            return None
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return self.coordinator.last_update_success
+
+    @property
+    def should_poll(self) -> bool:
+        """No need to poll. Coordinator notifies entity of updates."""
+        return False

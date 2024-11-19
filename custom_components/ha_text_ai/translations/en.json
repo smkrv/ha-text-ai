@@ -3,34 +3,76 @@
     "step": {
       "user": {
         "title": "Set up HA text AI",
-        "description": "Set up your OpenAI integration",
+        "description": "Configure your OpenAI integration for smart home interactions",
         "data": {
-          "api_key": "API Key",
-          "model": "Model",
-          "temperature": "Temperature",
-          "max_tokens": "Max Tokens",
-          "api_endpoint": "API Endpoint",
-          "request_interval": "Request Interval (seconds)"
+          "api_key": {
+            "name": "API Key",
+            "description": "Your OpenAI API key (starts with 'sk-')"
+          },
+          "model": {
+            "name": "AI Model",
+            "description": "Select the AI model to use (e.g., gpt-3.5-turbo)"
+          },
+          "temperature": {
+            "name": "Temperature",
+            "description": "Response creativity (0-2): lower for focused, higher for creative responses"
+          },
+          "max_tokens": {
+            "name": "Max Tokens",
+            "description": "Maximum response length (1-4096 tokens)"
+          },
+          "api_endpoint": {
+            "name": "API Endpoint",
+            "description": "OpenAI API endpoint URL (leave default if unsure)"
+          },
+          "request_interval": {
+            "name": "Request Interval",
+            "description": "Minimum time between API requests in seconds (0.1 or higher)"
+          }
         }
       }
     },
     "error": {
-      "auth": "API key is invalid.",
-      "cannot_connect": "Failed to connect to API.",
-      "unknown": "Unexpected error occurred."
+      "invalid_auth": "Invalid API key. Please check your OpenAI API key and try again.",
+      "cannot_connect": "Failed to connect to API. Please check your internet connection and API endpoint.",
+      "unknown": "Unexpected error occurred. Please check the logs for more details.",
+      "already_exists": "This API key is already configured in another integration."
     },
     "abort": {
-      "already_configured": "Device is already configured"
+      "already_configured": "This OpenAI integration is already configured",
+      "auth_failed": "Authentication failed. Please verify your API key."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "HA text AI Options",
+        "description": "Adjust your OpenAI integration settings",
         "data": {
-          "temperature": "Temperature",
-          "max_tokens": "Max Tokens",
-          "request_interval": "Request Interval (seconds)"
+          "temperature": {
+            "name": "Temperature",
+            "description": "Controls response creativity (0-2): lower values for focused responses, higher for more creative ones"
+          },
+          "max_tokens": {
+            "name": "Max Tokens",
+            "description": "Maximum length of responses (1-4096 tokens)"
+          },
+          "request_interval": {
+            "name": "Request Interval",
+            "description": "Minimum time between API requests in seconds (0.1 or higher)"
+          }
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "last_response": {
+        "name": "Last Response",
+        "state_attributes": {
+          "question": "Last Question",
+          "response": "AI Response",
+          "last_updated": "Last Updated"
         }
       }
     }
