@@ -2,6 +2,7 @@
 from typing import Any, Dict, Optional, Tuple
 import voluptuous as vol
 import asyncio
+import aiohttp
 from async_timeout import timeout
 from urllib.parse import urlparse
 
@@ -10,8 +11,7 @@ from homeassistant.const import CONF_API_KEY
 import homeassistant.helpers.config_validation as cv
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
-from openai import AsyncOpenAI
-from openai import OpenAIError, APIError, APIConnectionError, AuthenticationError, RateLimitError
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     DOMAIN,
@@ -57,17 +57,6 @@ STEP_USER_DATA_SCHEMA = vol.Schema({
     ),
 })
 
-async def async_create_client(
-    hass,
-    api_key: str,
-    endpoint: str,
-) -> AsyncOpenAI:
-    """Create AsyncOpenAI client."""
-    return AsyncOpenAI(
-        api_key=api_key,
-        base_url=endpoint
-    )
-
 async def validate_api_connection(
     hass,
     api_key: str,
@@ -77,21 +66,46 @@ async def validate_api_connection(
     retry_delay: float = 1.0
 ) -> Tuple[bool, str, list]:
     """Validate API connection with retry logic."""
+    session = async_get_clientsession(hass)
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+
+    models_url = f"{endpoint}/v1/models"
+
     for attempt in range(retry_count):
         try:
             async with timeout(10):
-                client = await async_create_client(hass, api_key, endpoint)
-                models = await client.models.list()
-                model_ids = [model.id for model in models.data]
+                async with session.get(models_url, headers=headers) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        model_ids = [m["id"] for m in data.get("data", [])]
 
-                if model not in model_ids:
-                    _LOGGER.warning(
-                        "Model %s not found in available models: %s",
-                        model,
-                        ", ".join(model_ids)
-                    )
-                    return False, "invalid_model", model_ids
-                return True, "", model_ids
+                        if model not in model_ids:
+                            _LOGGER.warning(
+                                "Model %s not found in available models: %s",
+                                model,
+                                ", ".join(model_ids)
+                            )
+                            return False, "invalid_model", model_ids
+                        return True, "", model_ids
+
+                    elif response.status == 401:
+                        _LOGGER.error("Authentication failed")
+                        return False, "invalid_auth", []
+
+                    elif response.status == 429:
+                        _LOGGER.error("Rate limit exceeded")
+                        return False, "rate_limit", []
+
+                    else:
+                        _LOGGER.error(
+                            "API error: %s - %s",
+                            response.status,
+                            await response.text()
+                        )
+                        return False, "api_error", []
 
         except asyncio.TimeoutError:
             _LOGGER.warning(
@@ -103,25 +117,15 @@ async def validate_api_connection(
                 return False, "timeout", []
             await asyncio.sleep(retry_delay)
 
-        except AuthenticationError as err:
-            _LOGGER.error("Authentication error: %s", str(err))
-            return False, "invalid_auth", []
-
-        except RateLimitError as err:
-            _LOGGER.error("Rate limit exceeded: %s", str(err))
-            return False, "rate_limit", []
-
-        except APIConnectionError as err:
-            _LOGGER.error("API connection error: %s", str(err))
+        except aiohttp.ClientError as err:
+            _LOGGER.error("Connection error: %s", str(err))
             return False, "cannot_connect", []
-
-        except APIError as err:
-            _LOGGER.error("API error: %s", str(err))
-            return False, "api_error", []
 
         except Exception as err:
             _LOGGER.exception("Unexpected error during validation: %s", str(err))
             return False, "unknown", []
+
+    return False, "unknown", []  
 
 class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for HA text AI."""
