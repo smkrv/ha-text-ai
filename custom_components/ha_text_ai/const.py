@@ -15,7 +15,7 @@ CONF_REQUEST_INTERVAL: Final = "request_interval"
 
 # Default values
 DEFAULT_MODEL: Final = "gpt-3.5-turbo"
-DEFAULT_TEMPERATURE: Final = 0.7
+DEFAULT_TEMPERATURE: Final = 0.1
 DEFAULT_MAX_TOKENS: Final = 1000
 DEFAULT_API_ENDPOINT: Final = "https://api.openai.com/v1"
 DEFAULT_REQUEST_INTERVAL: Final = 1.0

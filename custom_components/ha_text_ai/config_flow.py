@@ -3,14 +3,13 @@ from typing import Any, Dict, Optional, Tuple
 import voluptuous as vol
 import asyncio
 from async_timeout import timeout
-import aiohttp
 from urllib.parse import urlparse
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY
 import homeassistant.helpers.config_validation as cv
 from homeassistant.core import callback
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.data_entry_flow import FlowResult
 from openai import AsyncOpenAI
 from openai import OpenAIError, APIError, APIConnectionError, AuthenticationError, RateLimitError
 
@@ -63,12 +62,10 @@ async def async_create_client(
     api_key: str,
     endpoint: str,
 ) -> AsyncOpenAI:
-    """Create AsyncOpenAI client with proper session."""
-    session = async_get_clientsession(hass)
+    """Create AsyncOpenAI client."""
     return AsyncOpenAI(
         api_key=api_key,
-        base_url=endpoint,
-        http_client=session
+        base_url=endpoint
     )
 
 async def validate_api_connection(
@@ -134,7 +131,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(
         self,
         user_input: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    ) -> FlowResult:
         """Handle the initial step."""
         errors: Dict[str, str] = {}
 
@@ -161,29 +158,29 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     )
 
                 # Validate input data
-                user_input = STEP_USER_DATA_SCHEMA(user_input)
+                validated_input = STEP_USER_DATA_SCHEMA(user_input)
 
                 is_valid, error_code, available_models = await validate_api_connection(
                     self.hass,
-                    user_input[CONF_API_KEY],
+                    validated_input[CONF_API_KEY],
                     endpoint,
-                    user_input[CONF_MODEL]
+                    validated_input[CONF_MODEL]
                 )
 
                 if is_valid:
-                    await self.async_set_unique_id(user_input[CONF_API_KEY])
+                    await self.async_set_unique_id(validated_input[CONF_API_KEY])
                     self._abort_if_unique_id_configured()
 
                     return self.async_create_entry(
-                        title="HA text AI",
-                        data=user_input
+                        title="HA Text AI",
+                        data=validated_input
                     )
 
                 errors["base"] = error_code
                 if error_code == "invalid_model":
                     _LOGGER.warning(
                         "Selected model %s not found in available models: %s",
-                        user_input[CONF_MODEL],
+                        validated_input[CONF_MODEL],
                         ", ".join(available_models)
                     )
 
@@ -219,7 +216,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_init(
         self,
         user_input: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+    ) -> FlowResult:
         """Handle options flow."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
@@ -230,7 +227,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 default=self.config_entry.options.get(
                     CONF_TEMPERATURE, DEFAULT_TEMPERATURE
                 ),
-                description={"suggested_value": DEFAULT_TEMPERATURE},
             ): vol.All(
                 vol.Coerce(float),
                 vol.Range(min=0, max=2)
@@ -240,7 +236,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 default=self.config_entry.options.get(
                     CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS
                 ),
-                description={"suggested_value": DEFAULT_MAX_TOKENS},
             ): vol.All(
                 vol.Coerce(int),
                 vol.Range(min=1, max=4096)
@@ -250,7 +245,6 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 default=self.config_entry.options.get(
                     CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL
                 ),
-                description={"suggested_value": DEFAULT_REQUEST_INTERVAL},
             ): vol.All(
                 vol.Coerce(float),
                 vol.Range(min=0.1)
