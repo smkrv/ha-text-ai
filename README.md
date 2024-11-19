@@ -1,4 +1,3 @@
-```markdown
 # 🤖 HA Text AI for Home Assistant
 
 <div align="center">  
