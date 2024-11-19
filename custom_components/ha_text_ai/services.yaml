@@ -10,7 +10,6 @@ ask_question:
       selector:
         text:
           multiline: true
-          type: text
 
     model:
       name: Model
@@ -23,20 +22,14 @@ ask_question:
           options:
             - label: "GPT-3.5 Turbo"
               value: "gpt-3.5-turbo"
-              icon: "mdi:rocket-launch"
             - label: "GPT-4"
               value: "gpt-4"
-              icon: "mdi:brain"
             - label: "GPT-4 32K"
               value: "gpt-4-32k"
-              icon: "mdi:brain-circuit"
 
     temperature:
       name: Temperature
-      description: >-
-        Controls response creativity (0-2):
-        Lower values (0-0.7) for focused, consistent responses
-        Higher values (0.7-2.0) for more creative, varied responses
+      description: "Controls response creativity (0-2): Lower values for focused responses, higher for creative ones"
       required: false
       default: 0.7
       selector:
@@ -45,11 +38,10 @@ ask_question:
           max: 2.0
           step: 0.1
           mode: slider
-          unit_of_measurement: ""
 
     max_tokens:
       name: Max Tokens
-      description: Maximum length of the response (longer responses use more tokens)
+      description: Maximum length of the response
       required: false
       default: 1000
       selector:
@@ -61,12 +53,12 @@ ask_question:
 
 clear_history:
   name: Clear History
-  description: Delete all stored questions and responses from the conversation history
+  description: Delete all stored questions and responses
   fields: {}
 
 get_history:
   name: Get History
-  description: Retrieve recent conversation history between you and the AI
+  description: Retrieve recent conversation history
   fields:
     limit:
       name: Limit
@@ -82,22 +74,13 @@ get_history:
 
 set_system_prompt:
   name: Set System Prompt
-  description: >-
-    Configure the AI's behavior by setting a system prompt that will be used
-    for all future conversations until changed
+  description: Configure the AI's behavior by setting a system prompt
   fields:
     prompt:
       name: System Prompt
-      description: >-
-        Instructions that define how the AI should behave and respond.
-        This affects all future conversations.
+      description: Instructions that define how the AI should behave and respond
       required: true
-      example: >-
-        You are a home automation expert assistant. Provide practical advice
-        focused on smart home technology and automation. Use clear, concise
-        language and include specific product recommendations when relevant.
+      example: "You are a home automation expert assistant. Provide practical advice focused on smart home technology."
       selector:
         text:
           multiline: true
-          type: text
-          rows: 4

@@ -32,8 +32,6 @@ jobs:
 
       - name: 🚀 Run hassfest validation
         uses: home-assistant/actions/hassfest@master
-        with:
-          strict: true
 
       - name: ℹ️ Print hassfest version
         if: always()

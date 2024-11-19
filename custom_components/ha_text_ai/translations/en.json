@@ -5,30 +5,12 @@
         "title": "Set up HA text AI",
         "description": "Configure your OpenAI integration for smart home interactions",
         "data": {
-          "api_key": {
-            "name": "API Key",
-            "description": "Your OpenAI API key (starts with 'sk-')"
-          },
-          "model": {
-            "name": "AI Model",
-            "description": "Select the AI model to use (e.g., gpt-3.5-turbo)"
-          },
-          "temperature": {
-            "name": "Temperature",
-            "description": "Response creativity (0-2): lower for focused, higher for creative responses"
-          },
-          "max_tokens": {
-            "name": "Max Tokens",
-            "description": "Maximum response length (1-4096 tokens)"
-          },
-          "api_endpoint": {
-            "name": "API Endpoint",
-            "description": "OpenAI API endpoint URL (leave default if unsure)"
-          },
-          "request_interval": {
-            "name": "Request Interval",
-            "description": "Minimum time between API requests in seconds (0.1 or higher)"
-          }
+          "api_key": "OpenAI API Key",
+          "model": "AI Model",
+          "temperature": "Temperature",
+          "max_tokens": "Max Tokens",
+          "api_endpoint": "API Endpoint",
+          "request_interval": "Request Interval"
         }
       }
     },
@@ -49,18 +31,9 @@
         "title": "HA text AI Options",
         "description": "Adjust your OpenAI integration settings",
         "data": {
-          "temperature": {
-            "name": "Temperature",
-            "description": "Controls response creativity (0-2): lower values for focused responses, higher for more creative ones"
-          },
-          "max_tokens": {
-            "name": "Max Tokens",
-            "description": "Maximum length of responses (1-4096 tokens)"
-          },
-          "request_interval": {
-            "name": "Request Interval",
-            "description": "Minimum time between API requests in seconds (0.1 or higher)"
-          }
+          "temperature": "Temperature",
+          "max_tokens": "Max Tokens",
+          "request_interval": "Request Interval"
         }
       }
     }
@@ -70,9 +43,15 @@
       "last_response": {
         "name": "Last Response",
         "state_attributes": {
-          "question": "Last Question",
-          "response": "AI Response",
-          "last_updated": "Last Updated"
+          "last_updated": {
+            "name": "Last Updated"
+          },
+          "question": {
+            "name": "Last Question"
+          },
+          "response": {
+            "name": "AI Response"
+          }
         }
       }
     }

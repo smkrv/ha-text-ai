@@ -27,6 +27,23 @@ from .coordinator import HATextAICoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
+
+CONFIG_SCHEMA = vol.Schema(
+    {
+        DOMAIN: vol.Schema(
+            {
+                vol.Required(CONF_API_KEY): cv.string,
+                vol.Optional(CONF_MODEL, default="gpt-3.5-turbo"): cv.string,
+                vol.Optional(CONF_TEMPERATURE, default=0.7): vol.Coerce(float),
+                vol.Optional(CONF_MAX_TOKENS, default=1000): vol.Coerce(int),
+                vol.Optional(CONF_REQUEST_INTERVAL, default=1.0): vol.Coerce(float),
+                vol.Optional(CONF_API_ENDPOINT): cv.string,
+            }
+        )
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the HA text AI component."""
     hass.data.setdefault(DOMAIN, {})
@@ -39,7 +56,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         coordinator = next(iter(hass.data[DOMAIN].values()))
         question = call.data["question"]
 
- 
+
         original_params = {
             "model": coordinator.model,
             "temperature": coordinator.temperature,
