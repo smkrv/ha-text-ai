@@ -4,6 +4,6 @@
   "domains": ["sensor"],
   "homeassistant": "2024.11.0",
   "icon": "mdi:brain",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "documentation": "https://github.com/smkrv/ha-text-ai"
 }
