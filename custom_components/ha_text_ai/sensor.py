@@ -87,13 +87,14 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
     @property
     def state(self) -> StateType:
         """Return the state of the sensor."""
-        if not self.coordinator.data or not self.coordinator.last_update_success_time:
+        if not self.coordinator.data or not self.coordinator.last_update_success:
             return None
 
-        try:
-            if isinstance(self.coordinator.last_update_success_time, datetime):
-                return dt_util.as_local(self.coordinator.last_update_success_time)
-            return self.coordinator.last_update_success_time
+        try:  
+            last_update = self.coordinator.data.get("last_update")
+            if isinstance(last_update, datetime):
+                return dt_util.as_local(last_update)
+            return last_update
         except Exception as err:
             _LOGGER.error("Error getting state: %s", err, exc_info=True)
             return None
@@ -117,18 +118,15 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             return attributes
 
         try:
-            # Получаем историю ответов
             history = list(self.coordinator._responses.items())
             if history:
                 last_question, last_data = history[-1]
 
-                # Обработка формата ответа
                 if isinstance(last_data, dict):
                     last_response = last_data.get("response", "")
-                    last_updated = last_data.get("timestamp", self.coordinator.last_update_success_time)
+                    last_updated = last_data.get("timestamp") or self.coordinator.data.get("last_update")
                     response_time = last_data.get("response_time")
 
-                    # Добавляем новые метаданные
                     model = last_data.get("model", self.coordinator.model)
                     temperature = last_data.get("temperature", self.coordinator.temperature)
                     max_tokens = last_data.get("max_tokens", self.coordinator.max_tokens)
@@ -139,13 +137,12 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
                         self._state = STATE_ERROR
                 else:
                     last_response = str(last_data)
-                    last_updated = self.coordinator.last_update_success_time
+                    last_updated = self.coordinator.data.get("last_update")
                     response_time = None
                     model = self.coordinator.model
                     temperature = self.coordinator.temperature
                     max_tokens = self.coordinator.max_tokens
 
-                # Конвертация времени в локальный формат
                 if isinstance(last_updated, datetime):
                     last_updated = dt_util.as_local(last_updated)
 
@@ -198,4 +195,4 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             self._last_error = str(err)
             self._state = STATE_ERROR
 
-        self.async_write_ha_state()  # Исправлено лишнее двоеточие
+        self.async_write_ha_state()
