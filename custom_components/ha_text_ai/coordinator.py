@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 from openai import AsyncOpenAI, APIError, AuthenticationError, RateLimitError
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 import async_timeout
 
 from .const import DOMAIN
@@ -76,7 +77,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 params = question_data["params"]
 
                 try:
-                    response_content = await self._make_api_call(
+                    response_data = await self._make_api_call(
                         question,
                         model=params.get("model"),
                         temperature=params.get("temperature"),
@@ -86,12 +87,13 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
                     self._responses[question] = {
                         "question": question,
-                        "response": response_content,
+                        "response": response_data["response"],
                         "error": None,
-                        "timestamp": self.hass.loop.time(),
-                        "model": params.get("model", self.model),
+                        "timestamp": dt_util.utcnow(),
+                        "model": response_data["model"],
                         "temperature": params.get("temperature", self.temperature),
-                        "max_tokens": params.get("max_tokens", self.max_tokens)
+                        "max_tokens": params.get("max_tokens", self.max_tokens),
+                        "response_time": response_data.get("response_time")
                     }
                     self._error_count = 0
                     self._is_ready = True
@@ -126,7 +128,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
             "question": question,
             "response": None,
             "error": error_msg,
-            "timestamp": self.hass.loop.time(),
+            "timestamp": dt_util.utcnow(),
             "model": self.model,
             "temperature": self.temperature,
             "max_tokens": self.max_tokens
@@ -145,7 +147,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self._error_count += 1
         if not self._question_queue.empty():
             try:
-                # Clear the queue if we have timeout issues
                 while not self._question_queue.empty():
                     self._question_queue.get_nowait()
                     self._question_queue.task_done()
@@ -159,7 +160,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         system_prompt: Optional[str] = None
-    ) -> str:
+    ) -> Dict[str, Any]:
         """Make API call to OpenAI."""
         try:
             messages = []
@@ -168,13 +169,20 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 messages.append({"role": "system", "content": current_system_prompt})
             messages.append({"role": "user", "content": question})
 
+            start_time = dt_util.utcnow()
             completion = await self.client.chat.completions.create(
                 model=model or self.model,
                 messages=messages,
                 temperature=temperature if temperature is not None else self.temperature,
                 max_tokens=max_tokens if max_tokens is not None else self.max_tokens,
             )
-            return completion.choices[0].message.content
+            response_time = (dt_util.utcnow() - start_time).total_seconds()
+
+            return {
+                "response": completion.choices[0].message.content,
+                "model": completion.model,
+                "response_time": response_time
+            }
 
         except Exception as err:
             _LOGGER.error("Error in API call: %s", err)
@@ -209,7 +217,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
     async def async_shutdown(self) -> None:
         """Shutdown the coordinator."""
         try:
-            # Clear the queue
             while not self._question_queue.empty():
                 self._question_queue.get_nowait()
                 self._question_queue.task_done()
