@@ -30,6 +30,10 @@ from .const import (
     ATTR_ERROR_COUNT,
     ATTR_LAST_ERROR,
     ATTR_RESPONSE_TIME,
+    ATTR_API_VERSION,
+    ATTR_ENDPOINT_STATUS,
+    ATTR_REQUEST_COUNT,
+    ATTR_TOKENS_USED,
     ENTITY_ICON,
     ENTITY_ICON_ERROR,
     ENTITY_ICON_PROCESSING,
@@ -39,6 +43,7 @@ from .const import (
     STATE_DISCONNECTED,
     STATE_RATE_LIMITED,
     STATE_INITIALIZING,
+    STATE_MAINTENANCE,
 )
 from .coordinator import HATextAICoordinator
 
@@ -52,6 +57,7 @@ async def async_setup_entry(
     """Set up the HA text AI sensor."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([HATextAISensor(coordinator, entry)], True)
+
 
 class HATextAISensor(CoordinatorEntity, SensorEntity):
     """HA text AI Sensor."""
@@ -74,6 +80,13 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._error_count = 0
         self._last_error = None
         self._state = STATE_INITIALIZING
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, self._attr_unique_id)},
+            "name": "HA Text AI",
+            "manufacturer": "Community",
+            "model": coordinator.model,
+            "sw_version": coordinator.api_version,
+        }
 
     @property
     def icon(self) -> str:
@@ -114,6 +127,10 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             ATTR_API_STATUS: self._state,
             ATTR_ERROR_COUNT: self._error_count,
             ATTR_LAST_ERROR: self._last_error,
+            ATTR_API_VERSION: self.coordinator.api_version,
+            ATTR_ENDPOINT_STATUS: self.coordinator.endpoint_status,
+            ATTR_REQUEST_COUNT: self.coordinator.request_count,
+            ATTR_TOKENS_USED: self.coordinator.tokens_used,
         }
 
         if not self.coordinator.data:
@@ -186,15 +203,33 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         try:
             if self.coordinator.data:
                 if self.coordinator._is_ready:
-                    self._state = STATE_READY
+                    if self.coordinator._is_processing:
+                        self._state = STATE_PROCESSING
+                    elif self.coordinator._is_rate_limited:
+                        self._state = STATE_RATE_LIMITED
+                    elif self.coordinator._is_maintenance:
+                        self._state = STATE_MAINTENANCE
+                    else:
+                        self._state = STATE_READY
                 else:
                     self._state = STATE_DISCONNECTED
             else:
                 self._state = STATE_DISCONNECTED
+
+            # Обновляем счетчик ошибок только если статус изменился на ошибку
+            if self._state == STATE_ERROR:
+                self._error_count += 1
+
         except Exception as err:
             _LOGGER.error("Error handling update: %s", err, exc_info=True)
             self._error_count += 1
             self._last_error = str(err)
             self._state = STATE_ERROR
 
+        self.async_write_ha_state()
+
+    async def async_reset_error_count(self) -> None:
+        """Reset the error counter."""
+        self._error_count = 0
+        self._last_error = None
         self.async_write_ha_state()

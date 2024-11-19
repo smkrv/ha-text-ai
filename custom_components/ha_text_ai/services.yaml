@@ -4,6 +4,7 @@ ask_question:
     Send a question to the AI model and receive a detailed response.
     The response will be stored in the conversation history and can be retrieved later.
     Response time may vary based on model selection and server load.
+    Supports various AI models with different capabilities and pricing.
   fields:
     question:
       name: Question
@@ -11,6 +12,7 @@ ask_question:
         Your question or prompt for the AI assistant. Be specific and clear for better results.
         You can ask about home automation, technical advice, or general questions.
         For complex queries, consider breaking them into smaller parts.
+        The system will maintain conversation context for follow-up questions.
       required: true
       example: |
         What automations would you recommend for a smart kitchen?
@@ -28,8 +30,10 @@ ask_question:
       name: Model
       description: >-
         Select an AI model to use (optional, overrides default setting).
-        You can choose from predefined models or enter your own model identifier.
-        Different models have different capabilities and token limits.
+        Different models have different capabilities, context limits, and response characteristics:
+        - GPT-3.5 Turbo: Fast, efficient, good for most tasks
+        - GPT-4: More capable, better reasoning, slower
+        - Claude-3: Advanced capabilities, longer context
         Note: More capable models may have longer response times and higher API costs.
       required: false
       example: "gpt-3.5-turbo"
@@ -48,14 +52,16 @@ ask_question:
               value: "gpt-4-32k"
             - label: "GPT-4 Turbo (Latest)"
               value: "gpt-4-1106-preview"
-            - label: "Claude-3 Sonnet"
+            - label: "Claude-3 Sonnet (Balanced)"
               value: "claude-3-sonnet"
+            - label: "Claude-3 Opus (Most Advanced)"
+              value: "claude-3-opus"
           mode: dropdown
 
     temperature:
       name: Temperature
       description: >-
-        Controls response creativity (0-2):
+        Controls response creativity (0.0-2.0):
         0.0-0.3: Focused, consistent responses (best for technical/factual queries)
         0.4-0.7: Balanced responses (recommended for most uses)
         0.8-2.0: More creative, varied responses (best for brainstorming)
@@ -73,12 +79,12 @@ ask_question:
     max_tokens:
       name: Max Tokens
       description: >-
-        Maximum length of the response. Higher values allow longer responses but use more API tokens.
+        Maximum length of the response (1-4096 tokens).
         Recommended ranges:
-        - Short responses (256-512): Quick answers, status updates
-        - Medium responses (512-1024): Detailed explanations, instructions
-        - Long responses (1024-4096): Complex analysis, multiple examples
-        Note: Actual response length may be shorter based on content.
+        - Short (256-512): Quick answers, status updates
+        - Medium (512-1024): Detailed explanations
+        - Long (1024-4096): Complex analysis
+        Note: Token limits vary by model. Actual length may be shorter.
       required: false
       default: 1000
       selector:
@@ -93,8 +99,9 @@ ask_question:
       description: >-
         Optional system prompt to set context for this specific question.
         This will temporarily override the default system prompt.
+        Use this to specify expertise areas, response format, or special instructions.
       required: false
-      example: "You are a home automation expert focused on energy efficiency"
+      example: "You are a home automation expert focused on energy efficiency and security"
       selector:
         text:
           multiline: true
@@ -104,14 +111,18 @@ clear_history:
   description: >-
     Delete all stored questions and responses from the conversation history.
     This action cannot be undone. Consider using 'get_history' first if you need to backup the data.
-    System prompt settings will be preserved.
+    System prompt settings and configuration will be preserved.
   fields: {}
 
 get_history:
   name: Get History
   description: >-
-    Retrieve recent conversation history, including questions, responses, and timestamps.
-    Results are ordered from newest to oldest and include metadata like model used and response times.
+    Retrieve recent conversation history, including:
+    - Questions and responses
+    - Timestamps and response times
+    - Models used and token counts
+    - Temperature and other settings
+    Results are ordered from newest to oldest.
   fields:
     limit:
       name: Limit
@@ -144,22 +155,41 @@ get_history:
               value: "gpt-3.5-turbo"
             - label: "GPT-4"
               value: "gpt-4"
+            - label: "GPT-4 Turbo"
+              value: "gpt-4-1106-preview"
             - label: "Claude-3 Sonnet"
               value: "claude-3-sonnet"
+            - label: "Claude-3 Opus"
+              value: "claude-3-opus"
           mode: dropdown
+
+    start_date:
+      name: Start Date
+      description: >-
+        Optional start date for filtering history.
+        Format: YYYY-MM-DD
+      required: false
+      selector:
+        datetime:
+          type: date
 
 set_system_prompt:
   name: Set System Prompt
   description: >-
     Set default system behavior instructions for all future conversations.
     This defines how the AI should behave and respond to questions.
+    The prompt will be used for all models unless overridden per question.
   fields:
     prompt:
       name: System Prompt
       description: >-
         Instructions that define how the AI should behave and respond.
-        Be specific about the desired expertise, tone, and format of responses.
-        Maximum length: 1000 characters.
+        Be specific about:
+        - Desired expertise and knowledge areas
+        - Response tone and style
+        - Output format preferences
+        - Special handling instructions
+        Maximum length: 1000 characters
       required: true
       example: |
         You are a home automation expert assistant. Focus on:

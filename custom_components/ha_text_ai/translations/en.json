@@ -3,36 +3,48 @@
         "step": {
             "user": {
                 "title": "Set up HA Text AI",
-                "description": "Configure your AI integration (OpenAI, Anthropic, etc.)",
+                "description": "Configure your AI integration for various providers (OpenAI, Anthropic, etc.). Different models have different capabilities and pricing.",
                 "data": {
-                    "api_key": "Your API key",
-                    "model": "AI model to use for responses (e.g., gpt-3.5-turbo, claude-3-sonnet)",
-                    "temperature": "Temperature for response generation (0-2)",
-                    "max_tokens": "Maximum tokens in response (1-4096)",
-                    "api_endpoint": "API endpoint URL (optional, for custom endpoints)",
-                    "request_interval": "Minimum time between API requests (seconds)",
-                    "system_prompt": "Default system prompt for all conversations"
+                    "api_key": "API key for authentication (required)",
+                    "model": "AI model to use (e.g., gpt-3.5-turbo, gpt-4, claude-3-sonnet, claude-3-opus)",
+                    "temperature": "Response creativity (0-2, lower = more focused and consistent)",
+                    "max_tokens": "Maximum response length (1-4096 tokens)",
+                    "api_endpoint": "Custom API endpoint URL (default varies by provider)",
+                    "request_interval": "Minimum time between requests in seconds (min: 0.1)",
+                    "system_prompt": "Default instructions for AI behavior and expertise"
                 }
             }
         },
         "error": {
-            "invalid_api_key": "Invalid API key - please check your credentials",
-            "cannot_connect": "Failed to connect to API - check endpoint and network",
-            "invalid_model": "Selected model is not available or invalid",
-            "rate_limit": "API rate limit exceeded - please wait",
-            "unknown": "Unexpected error occurred - check logs for details"
+            "invalid_auth": "Authentication failed - check your API key",
+            "invalid_api_key": "Invalid API key - please verify your credentials",
+            "cannot_connect": "Connection failed - check endpoint and network status",
+            "invalid_model": "Model unavailable or not supported by the API",
+            "rate_limit": "Rate limit exceeded - please reduce request frequency",
+            "context_length": "Input exceeds maximum context length for model",
+            "api_error": "API service error - check provider status",
+            "timeout": "Request timeout - server not responding",
+            "queue_full": "Request queue full - try again later",
+            "invalid_prompt": "Invalid system prompt format or length",
+            "invalid_url_format": "Invalid API endpoint URL format",
+            "invalid_input": "Invalid configuration parameters",
+            "unknown": "Unexpected error - check logs for details"
         }
     },
     "options": {
         "step": {
             "init": {
-                "title": "HA Text AI Options",
+                "title": "HA Text AI Settings",
+                "description": "Adjust your AI integration parameters and behavior",
                 "data": {
-                    "model": "AI model selection",
-                    "temperature": "Response temperature (0-2)",
-                    "max_tokens": "Maximum response length",
-                    "request_interval": "Time between requests (seconds)",
-                    "system_prompt": "Default system instructions"
+                    "model": "Select AI model for responses (capabilities vary)",
+                    "temperature": "Response creativity (0-2, affects variation)",
+                    "max_tokens": "Maximum response length in tokens",
+                    "request_interval": "Minimum seconds between requests (rate limiting)",
+                    "system_prompt": "Default AI behavior and expertise instructions",
+                    "timeout": "Request timeout in seconds (default: 30)",
+                    "retry_count": "Number of retry attempts for failed requests",
+                    "queue_size": "Maximum pending requests in queue"
                 }
             }
         }
@@ -40,55 +52,94 @@
     "services": {
         "ask_question": {
             "name": "Ask Question",
-            "description": "Send a question to the AI model and receive a response",
+            "description": "Send a question to the AI model and get a detailed response. Supports context awareness for follow-up questions.",
             "fields": {
                 "question": {
                     "name": "Question",
-                    "description": "Your question or prompt for the AI"
+                    "description": "Your question or prompt for the AI model. Be specific for better results."
                 },
                 "system_prompt": {
                     "name": "System Prompt",
-                    "description": "Optional system prompt to override default for this question"
+                    "description": "Optional behavior instructions for this specific question"
                 },
                 "model": {
                     "name": "Model",
-                    "description": "Optional AI model to use for this question"
+                    "description": "Optional specific AI model for this request (overrides default)"
                 },
                 "temperature": {
                     "name": "Temperature",
-                    "description": "Optional temperature setting for this question (0-2)"
+                    "description": "Optional creativity setting (0-2, affects response variation)"
                 },
                 "max_tokens": {
                     "name": "Max Tokens",
-                    "description": "Optional maximum token limit for this response"
+                    "description": "Optional maximum response length (1-4096 tokens)"
                 }
             }
         },
         "clear_history": {
             "name": "Clear History",
-            "description": "Delete all stored conversation history"
+            "description": "Delete all stored conversation history, responses, and metadata"
         },
         "get_history": {
             "name": "Get History",
-            "description": "Retrieve conversation history with metadata",
+            "description": "Retrieve conversation history with detailed metadata including timestamps",
             "fields": {
                 "limit": {
                     "name": "Limit",
-                    "description": "Maximum number of conversations to return"
+                    "description": "Maximum number of conversations to return (1-100)"
                 },
                 "filter_model": {
                     "name": "Filter Model",
-                    "description": "Optional filter to show only specific model responses"
+                    "description": "Show only responses from a specific model"
+                },
+                "start_date": {
+                    "name": "Start Date",
+                    "description": "Filter conversations from this date (YYYY-MM-DD)"
                 }
             }
         },
         "set_system_prompt": {
             "name": "Set System Prompt",
-            "description": "Set default system behavior instructions",
+            "description": "Update default AI behavior and expertise instructions",
             "fields": {
                 "prompt": {
                     "name": "System Prompt",
-                    "description": "Instructions defining AI behavior and response style"
+                    "description": "Instructions for AI behavior, expertise, and response style"
+                }
+            }
+        }
+    },
+    "state": {
+        "ready": "Ready for requests",
+        "processing": "Processing request",
+        "error": "Error occurred",
+        "disconnected": "API disconnected",
+        "rate_limited": "Rate limit reached",
+        "initializing": "Starting up",
+        "retrying": "Retrying request",
+        "queued": "Request queued"
+    },
+    "entity": {
+        "sensor": {
+            "status": {
+                "name": "AI Status",
+                "state": {
+                    "ready": "Ready",
+                    "processing": "Processing",
+                    "error": "Error",
+                    "disconnected": "Disconnected",
+                    "rate_limited": "Rate Limited",
+                    "initializing": "Initializing",
+                    "retrying": "Retrying",
+                    "queued": "Queued"
+                }
+            },
+            "last_response": {
+                "name": "Last Response",
+                "state": {
+                    "success": "Success",
+                    "error": "Error",
+                    "timeout": "Timeout"
                 }
             }
         }

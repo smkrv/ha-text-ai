@@ -4,7 +4,7 @@ import voluptuous as vol
 import asyncio
 import aiohttp
 from async_timeout import timeout
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY
@@ -25,37 +25,56 @@ from .const import (
     DEFAULT_MAX_TOKENS,
     DEFAULT_API_ENDPOINT,
     DEFAULT_REQUEST_INTERVAL,
+    MIN_TEMPERATURE,
+    MAX_TEMPERATURE,
+    MIN_MAX_TOKENS,
+    MAX_MAX_TOKENS,
+    MIN_REQUEST_INTERVAL,
+    API_VERSION,
+    API_MODELS_PATH,
+    ERROR_INVALID_API_KEY,
+    ERROR_CANNOT_CONNECT,
+    ERROR_UNKNOWN,
+    ERROR_INVALID_MODEL,
+    ERROR_RATE_LIMIT,
+    ERROR_API_ERROR,
+    ERROR_TIMEOUT,
 )
 
 import logging
 _LOGGER = logging.getLogger(__name__)
 
-STEP_USER_DATA_SCHEMA = vol.Schema({
-    vol.Required(CONF_API_KEY): str,
-    vol.Optional(CONF_MODEL, default=DEFAULT_MODEL): str,
-    vol.Optional(
-        CONF_TEMPERATURE,
-        default=DEFAULT_TEMPERATURE
-    ): vol.All(
-        vol.Coerce(float),
-        vol.Range(min=0, max=2)
-    ),
-    vol.Optional(
-        CONF_MAX_TOKENS,
-        default=DEFAULT_MAX_TOKENS
-    ): vol.All(
-        vol.Coerce(int),
-        vol.Range(min=1, max=4096)
-    ),
-    vol.Optional(CONF_API_ENDPOINT, default=DEFAULT_API_ENDPOINT): str,
-    vol.Optional(
-        CONF_REQUEST_INTERVAL,
-        default=DEFAULT_REQUEST_INTERVAL
-    ): vol.All(
-        vol.Coerce(float),
-        vol.Range(min=0.1)
-    ),
-})
+STEP_USER_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_API_KEY): cv.string,
+        vol.Optional(CONF_MODEL, default=DEFAULT_MODEL): cv.string,
+        vol.Optional(
+            CONF_TEMPERATURE,
+            default=DEFAULT_TEMPERATURE
+        ): vol.All(
+            vol.Coerce(float),
+            vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
+        ),
+        vol.Optional(
+            CONF_MAX_TOKENS,
+            default=DEFAULT_MAX_TOKENS
+        ): vol.All(
+            vol.Coerce(int),
+            vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
+        ),
+        vol.Optional(
+            CONF_API_ENDPOINT,
+            default=DEFAULT_API_ENDPOINT
+        ): cv.string,
+        vol.Optional(
+            CONF_REQUEST_INTERVAL,
+            default=DEFAULT_REQUEST_INTERVAL
+        ): vol.All(
+            vol.Coerce(float),
+            vol.Range(min=MIN_REQUEST_INTERVAL)
+        ),
+    }
+)
 
 async def validate_api_connection(
     hass,
@@ -69,10 +88,17 @@ async def validate_api_connection(
     session = async_get_clientsession(hass)
     headers = {
         "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json"
+        "Content-Type": "application/json; charset=utf-8",
+        "Accept": "application/json; charset=utf-8",
+        "Accept-Charset": "utf-8"
     }
 
-    models_url = f"{endpoint}/v1/models"
+    base_url = endpoint.rstrip('/')
+    if not base_url.endswith(f"/{API_VERSION}"):
+        base_url = f"{base_url}/{API_VERSION}"
+
+    models_url = f"{base_url}/{API_MODELS_PATH}"
+    _LOGGER.debug("Attempting to connect to: %s", models_url)
 
     for attempt in range(retry_count):
         try:
@@ -82,30 +108,33 @@ async def validate_api_connection(
                         data = await response.json()
                         model_ids = [m["id"] for m in data.get("data", [])]
 
+                        _LOGGER.debug("Available models: %s", ", ".join(model_ids))
+
                         if model not in model_ids:
                             _LOGGER.warning(
                                 "Model %s not found in available models: %s",
                                 model,
                                 ", ".join(model_ids)
                             )
-                            return False, "invalid_model", model_ids
+                            return False, ERROR_INVALID_MODEL, model_ids
                         return True, "", model_ids
 
                     elif response.status == 401:
                         _LOGGER.error("Authentication failed")
-                        return False, "invalid_auth", []
+                        return False, ERROR_INVALID_API_KEY, []
 
                     elif response.status == 429:
                         _LOGGER.error("Rate limit exceeded")
-                        return False, "rate_limit", []
+                        return False, ERROR_RATE_LIMIT, []
 
                     else:
+                        response_text = await response.text()
                         _LOGGER.error(
                             "API error: %s - %s",
                             response.status,
-                            await response.text()
+                            response_text
                         )
-                        return False, "api_error", []
+                        return False, ERROR_API_ERROR, []
 
         except asyncio.TimeoutError:
             _LOGGER.warning(
@@ -114,18 +143,18 @@ async def validate_api_connection(
                 retry_count
             )
             if attempt == retry_count - 1:
-                return False, "timeout", []
+                return False, ERROR_TIMEOUT, []
             await asyncio.sleep(retry_delay)
 
         except aiohttp.ClientError as err:
             _LOGGER.error("Connection error: %s", str(err))
-            return False, "cannot_connect", []
+            return False, ERROR_CANNOT_CONNECT, []
 
         except Exception as err:
             _LOGGER.exception("Unexpected error during validation: %s", str(err))
-            return False, "unknown", []
+            return False, ERROR_UNKNOWN, []
 
-    return False, "unknown", []  
+    return False, ERROR_UNKNOWN, []
 
 class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for HA text AI."""
@@ -141,7 +170,6 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                # Validate URL format
                 endpoint = user_input.get(CONF_API_ENDPOINT, DEFAULT_API_ENDPOINT)
                 try:
                     result = urlparse(endpoint)
@@ -161,7 +189,6 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         errors=errors
                     )
 
-                # Validate input data
                 validated_input = STEP_USER_DATA_SCHEMA(user_input)
 
                 is_valid, error_code, available_models = await validate_api_connection(
@@ -181,7 +208,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     )
 
                 errors["base"] = error_code
-                if error_code == "invalid_model":
+                if error_code == ERROR_INVALID_MODEL:
                     _LOGGER.warning(
                         "Selected model %s not found in available models: %s",
                         validated_input[CONF_MODEL],
@@ -233,7 +260,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ),
             ): vol.All(
                 vol.Coerce(float),
-                vol.Range(min=0, max=2)
+                vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
             ),
             vol.Optional(
                 CONF_MAX_TOKENS,
@@ -242,7 +269,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ),
             ): vol.All(
                 vol.Coerce(int),
-                vol.Range(min=1, max=4096)
+                vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
             ),
             vol.Optional(
                 CONF_REQUEST_INTERVAL,
@@ -251,7 +278,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ),
             ): vol.All(
                 vol.Coerce(float),
-                vol.Range(min=0.1)
+                vol.Range(min=MIN_REQUEST_INTERVAL)
             ),
         })
 

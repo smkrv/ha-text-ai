@@ -13,15 +13,27 @@ CONF_MAX_TOKENS: Final = "max_tokens"
 CONF_API_ENDPOINT: Final = "api_endpoint"
 CONF_REQUEST_INTERVAL: Final = "request_interval"
 
+# Model constants
+SUPPORTED_MODELS: Final = [
+    "gpt-3.5-turbo",
+    "gpt-3.5-turbo-16k",
+    "gpt-4",
+    "gpt-4-32k",
+    "gpt-4-1106-preview",
+    "claude-3-sonnet",
+    "claude-3-opus"
+]
+
 # Default values
 DEFAULT_MODEL: Final = "gpt-3.5-turbo"
 DEFAULT_TEMPERATURE: Final = 0.1
 DEFAULT_MAX_TOKENS: Final = 1000
-DEFAULT_API_ENDPOINT: Final = "https://api.openai.com/v1"
+DEFAULT_API_ENDPOINT: Final = "https://api.openai.com"
 DEFAULT_REQUEST_INTERVAL: Final = 1.0
 DEFAULT_TIMEOUT: Final = 30
 DEFAULT_QUEUE_SIZE: Final = 100
 DEFAULT_HISTORY_LIMIT: Final = 50
+DEFAULT_RETRY_COUNT: Final = 3
 
 # Parameter constraints
 MIN_TEMPERATURE: Final = 0.0
@@ -31,6 +43,23 @@ MAX_MAX_TOKENS: Final = 4096
 MIN_REQUEST_INTERVAL: Final = 0.1
 MIN_TIMEOUT: Final = 5
 MAX_TIMEOUT: Final = 120
+MAX_PROMPT_LENGTH: Final = 1000
+MAX_HISTORY_LIMIT: Final = 100
+
+# API constants
+API_VERSION: Final = "v1"
+API_MODELS_PATH: Final = "models"
+API_CHAT_PATH: Final = "chat/completions"
+API_TIMEOUT: Final = 30
+API_RETRY_COUNT: Final = 3
+API_BACKOFF_FACTOR: Final = 1.5
+API_MAX_RETRIES: Final = 3
+
+# History constants
+HISTORY_FILTER_MODEL: Final = "filter_model"
+HISTORY_FILTER_DATE: Final = "start_date"
+HISTORY_SORT_ORDER: Final = "sort_order"
+HISTORY_INCLUDE_METADATA: Final = "include_metadata"
 
 # Service names
 SERVICE_ASK_QUESTION: Final = "ask_question"
@@ -58,6 +87,13 @@ ATTR_QUEUE_SIZE: Final = "queue_size"
 ATTR_API_STATUS: Final = "api_status"
 ATTR_ERROR_COUNT: Final = "error_count"
 ATTR_LAST_ERROR: Final = "last_error"
+ATTR_API_VERSION: Final = "api_version"
+ATTR_ENDPOINT_STATUS: Final = "endpoint_status"
+ATTR_REQUEST_COUNT: Final = "request_count"
+ATTR_TOKENS_USED: Final = "tokens_used"
+ATTR_RETRY_COUNT: Final = "retry_count"
+ATTR_QUEUE_POSITION: Final = "queue_position"
+ATTR_ESTIMATED_WAIT: Final = "estimated_wait"
 
 # Error messages
 ERROR_INVALID_API_KEY: Final = "invalid_api_key"
@@ -70,6 +106,8 @@ ERROR_API_ERROR: Final = "api_error"
 ERROR_TIMEOUT: Final = "timeout_error"
 ERROR_QUEUE_FULL: Final = "queue_full"
 ERROR_INVALID_PROMPT: Final = "invalid_prompt"
+ERROR_INVALID_PARAMETERS: Final = "invalid_parameters"
+ERROR_SERVICE_UNAVAILABLE: Final = "service_unavailable"
 
 # Configuration descriptions
 CONF_MODEL_DESCRIPTION: Final = "AI model to use for responses"
@@ -92,12 +130,18 @@ ATTR_QUEUE_SIZE_DESCRIPTION: Final = "Current size of question queue"
 ATTR_API_STATUS_DESCRIPTION: Final = "Current API connection status"
 ATTR_ERROR_COUNT_DESCRIPTION: Final = "Total number of errors"
 ATTR_LAST_ERROR_DESCRIPTION: Final = "Last error message"
+ATTR_API_VERSION_DESCRIPTION: Final = "Current API version"
+ATTR_ENDPOINT_STATUS_DESCRIPTION: Final = "Current endpoint status"
+ATTR_REQUEST_COUNT_DESCRIPTION: Final = "Total number of API requests"
+ATTR_TOKENS_USED_DESCRIPTION: Final = "Total tokens used"
 
 # Entity attributes
 ENTITY_NAME: Final = "HA Text AI"
 ENTITY_ICON: Final = "mdi:robot"
 ENTITY_ICON_ERROR: Final = "mdi:robot-dead"
 ENTITY_ICON_PROCESSING: Final = "mdi:robot-excited"
+ENTITY_ICON_OFFLINE: Final = "mdi:robot-off"
+ENTITY_ICON_QUEUE: Final = "mdi:robot-confused"
 
 # Translation keys
 TRANSLATION_KEY_CONFIG: Final = "config"
@@ -113,6 +157,10 @@ STATE_ERROR: Final = "error"
 STATE_DISCONNECTED: Final = "disconnected"
 STATE_RATE_LIMITED: Final = "rate_limited"
 STATE_INITIALIZING: Final = "initializing"
+STATE_MAINTENANCE: Final = "maintenance"
+STATE_RETRYING: Final = "retrying"
+STATE_QUEUED: Final = "queued"
+STATE_UPDATING: Final = "updating"
 
 # Logging
 LOGGER_NAME: Final = "custom_components.ha_text_ai"
@@ -121,11 +169,6 @@ LOG_LEVEL_DEFAULT: Final = "INFO"
 # Queue constants
 QUEUE_TIMEOUT: Final = 5
 QUEUE_MAX_SIZE: Final = 100
-
-# API constants
-API_TIMEOUT: Final = 30
-API_RETRY_COUNT: Final = 3
-API_BACKOFF_FACTOR: Final = 1.5
 
 # Service schema constants
 SCHEMA_QUESTION: Final = "question"
