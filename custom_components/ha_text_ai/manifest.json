@@ -1,26 +1,26 @@
 {
   "domain": "ha_text_ai",
   "name": "HA Text AI",
+  "after_dependencies": ["http"],
+  "bluetooth": [],
   "codeowners": ["@smkrv"],
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/smkrv/ha-text-ai",
+  "integration_type": "service",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/smkrv/ha-text-ai/issues",
+  "loggers": ["custom_components.ha_text_ai"],
+  "mqtt": [],
+  "quality_scale": "silver",
   "requirements": [
     "openai>=1.12.0",
     "anthropic>=0.8.0",
     "aiohttp>=3.8.0",
     "async-timeout>=4.0.0"
   ],
-  "version": "2.0.0",
-  "quality_scale": "silver",
-  "integration_type": "service",
-  "zeroconf": [],
   "ssdp": [],
   "usb": [],
-  "bluetooth": [],
-  "mqtt": [],
-  "loggers": ["custom_components.ha_text_ai"],
-  "after_dependencies": ["http"]
+  "version": "2.0.0",
+  "zeroconf": []
 }
