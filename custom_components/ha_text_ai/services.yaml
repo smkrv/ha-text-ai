@@ -1,35 +1,49 @@
 ask_question:
   name: Ask Question
-  description: Send a question to the AI model and receive a detailed response
+  description: >-
+    Send a question to the AI model and receive a detailed response.
+    The response will be stored in the conversation history and can be retrieved later.
   fields:
     question:
       name: Question
-      description: Your question or prompt for the AI assistant
+      description: >-
+        Your question or prompt for the AI assistant. Be specific and clear for better results.
+        You can ask about home automation, technical advice, or general questions.
       required: true
-      example: "What automations would you recommend for a smart kitchen?"
+      example: |
+        What automations would you recommend for a smart kitchen?
+        Consider energy efficiency and convenience.
       selector:
         text:
           multiline: true
+          type: text
 
     model:
       name: Model
-      description: Select an AI model to use (optional, overrides default setting)
+      description: >-
+        Select an AI model to use (optional, overrides default setting).
+        Different models have different capabilities and token limits.
       required: false
       example: "gpt-3.5-turbo"
       default: "gpt-3.5-turbo"
       selector:
         select:
           options:
-            - label: "GPT-3.5 Turbo"
+            - label: "GPT-3.5 Turbo (Fast & Efficient)"
               value: "gpt-3.5-turbo"
-            - label: "GPT-4"
+            - label: "GPT-4 (Most Capable)"
               value: "gpt-4"
-            - label: "GPT-4 32K"
+            - label: "GPT-4 32K (Extended Context)"
               value: "gpt-4-32k"
+          mode: dropdown
 
     temperature:
       name: Temperature
-      description: "Controls response creativity (0-2): Lower values for focused responses, higher for creative ones"
+      description: >-
+        Controls response creativity (0-2):
+        0.0-0.3: Focused, consistent responses
+        0.4-0.7: Balanced responses
+        0.8-2.0: More creative, varied responses
       required: false
       default: 0.7
       selector:
@@ -38,10 +52,16 @@ ask_question:
           max: 2.0
           step: 0.1
           mode: slider
+          unit_of_measurement: ""
 
     max_tokens:
       name: Max Tokens
-      description: Maximum length of the response
+      description: >-
+        Maximum length of the response. Higher values allow longer responses but use more API tokens.
+        Recommended ranges:
+        - Short responses: 256-512
+        - Medium responses: 512-1024
+        - Long responses: 1024-4096
       required: false
       default: 1000
       selector:
@@ -53,16 +73,22 @@ ask_question:
 
 clear_history:
   name: Clear History
-  description: Delete all stored questions and responses
+  description: >-
+    Delete all stored questions and responses from the conversation history.
+    This action cannot be undone.
   fields: {}
 
 get_history:
   name: Get History
-  description: Retrieve recent conversation history
+  description: >-
+    Retrieve recent conversation history, including questions, responses, and timestamps.
+    Results are ordered from newest to oldest.
   fields:
     limit:
       name: Limit
-      description: Number of most recent conversations to return
+      description: >-
+        Number of most recent conversations to return.
+        Higher values return more history but may take longer to process.
       required: false
       default: 10
       selector:
@@ -74,13 +100,24 @@ get_history:
 
 set_system_prompt:
   name: Set System Prompt
-  description: Configure the AI's behavior by setting a system prompt
+  description: >-
+    Configure the AI's behavior by setting a system prompt.
+    This affects how the AI interprets and responds to all future questions.
   fields:
     prompt:
       name: System Prompt
-      description: Instructions that define how the AI should behave and respond
+      description: >-
+        Instructions that define how the AI should behave and respond.
+        Be specific about the desired expertise, tone, and format of responses.
       required: true
-      example: "You are a home automation expert assistant. Provide practical advice focused on smart home technology."
+      example: |
+        You are a home automation expert assistant. Focus on:
+        1. Practical and efficient solutions
+        2. Energy-saving recommendations
+        3. Integration with popular smart home platforms
+        4. Security and privacy considerations
+        Provide detailed but concise responses with clear steps when applicable.
       selector:
         text:
           multiline: true
+          type: text

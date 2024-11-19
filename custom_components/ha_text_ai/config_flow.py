@@ -22,6 +22,9 @@ from .const import (
     DEFAULT_REQUEST_INTERVAL,
 )
 
+import logging
+_LOGGER = logging.getLogger(__name__)
+
 STEP_USER_DATA_SCHEMA = vol.Schema({
     vol.Required(CONF_API_KEY): str,
     vol.Optional(CONF_MODEL, default=DEFAULT_MODEL): str,
@@ -54,35 +57,50 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
- 
+                # Create OpenAI client
                 client = openai.OpenAI(
                     api_key=user_input[CONF_API_KEY],
                     base_url=user_input.get(CONF_API_ENDPOINT, DEFAULT_API_ENDPOINT)
                 )
-                await self.hass.async_add_executor_job(
-                    client.models.list
-                )
 
+                # Verify API connection and model availability
+                models = await self.hass.async_add_executor_job(client.models.list)
+                model_ids = [model.id for model in models.data]
 
-                await self.async_set_unique_id(user_input[CONF_API_KEY])
-                self._abort_if_unique_id_configured()
+                if user_input[CONF_MODEL] not in model_ids:
+                    _LOGGER.warning(
+                        "Selected model %s not found in available models: %s",
+                        user_input[CONF_MODEL],
+                        ", ".join(model_ids)
+                    )
+                    errors["base"] = "invalid_model"
+                else:
+                    await self.async_set_unique_id(user_input[CONF_API_KEY])
+                    self._abort_if_unique_id_configured()
 
-                return self.async_create_entry(
-                    title="HA text AI",
-                    data=user_input
-                )
+                    return self.async_create_entry(
+                        title="HA text AI",
+                        data=user_input
+                    )
 
-            except openai.AuthenticationError:
+            except openai.AuthenticationError as err:
+                _LOGGER.error("Authentication failed: %s", str(err))
                 errors["base"] = "invalid_auth"
-            except openai.APIError:
+            except openai.APIError as err:
+                _LOGGER.error("API connection failed: %s", str(err))
                 errors["base"] = "cannot_connect"
-            except Exception:  # pylint: disable=broad-except
+            except Exception as err:  # pylint: disable=broad-except
+                _LOGGER.exception("Unexpected error: %s", str(err))
                 errors["base"] = "unknown"
 
         return self.async_show_form(
             step_id="user",
             data_schema=STEP_USER_DATA_SCHEMA,
             errors=errors,
+            description_placeholders={
+                "default_model": DEFAULT_MODEL,
+                "default_endpoint": DEFAULT_API_ENDPOINT,
+            }
         )
 
     @staticmethod
@@ -114,21 +132,21 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 default=self.config_entry.options.get(
                     CONF_TEMPERATURE, DEFAULT_TEMPERATURE
                 ),
-                description="Temperature for response generation (0-2)",
+                description={"suggested_value": DEFAULT_TEMPERATURE},
             ): vol.All(vol.Coerce(float), vol.Range(min=0, max=2)),
             vol.Optional(
                 CONF_MAX_TOKENS,
                 default=self.config_entry.options.get(
                     CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS
                 ),
-                description="Maximum tokens in response (1-4096)",
+                description={"suggested_value": DEFAULT_MAX_TOKENS},
             ): vol.All(vol.Coerce(int), vol.Range(min=1, max=4096)),
             vol.Optional(
                 CONF_REQUEST_INTERVAL,
                 default=self.config_entry.options.get(
                     CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL
                 ),
-                description="Minimum time between API requests (seconds)",
+                description={"suggested_value": DEFAULT_REQUEST_INTERVAL},
             ): vol.All(vol.Coerce(float), vol.Range(min=0.1)),
         })
 

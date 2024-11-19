@@ -23,10 +23,13 @@ from .const import (
     CONF_API_ENDPOINT,
     CONF_REQUEST_INTERVAL,
 )
-from .coordinator import HATextAICoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
+def get_coordinator():
+    """Get coordinator class with lazy import to avoid circular deps."""
+    from .coordinator import HATextAICoordinator
+    return HATextAICoordinator
 
 CONFIG_SCHEMA = vol.Schema(
     {
@@ -56,7 +59,6 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         coordinator = next(iter(hass.data[DOMAIN].values()))
         question = call.data["question"]
 
-
         original_params = {
             "model": coordinator.model,
             "temperature": coordinator.temperature,
@@ -64,7 +66,6 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         }
 
         try:
-
             if "model" in call.data:
                 coordinator.model = call.data["model"]
             if "temperature" in call.data:
@@ -77,7 +78,6 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
             _LOGGER.error("Error asking question: %s", str(ex))
             raise HomeAssistantError(f"Failed to ask question: {str(ex)}") from ex
         finally:
-
             coordinator.model = original_params["model"]
             coordinator.temperature = original_params["temperature"]
             coordinator.max_tokens = original_params["max_tokens"]
@@ -117,7 +117,6 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
         coordinator = next(iter(hass.data[DOMAIN].values()))
         coordinator.system_prompt = call.data["prompt"]
-
 
     hass.services.async_register(
         DOMAIN,
@@ -166,6 +165,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up HA text AI from a config entry."""
+    HATextAICoordinator = get_coordinator()
     try:
         coordinator = HATextAICoordinator(
             hass,
@@ -186,11 +186,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
+    if entry.entry_id not in hass.data.get(DOMAIN, {}):
+        return True
+
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unload_ok:
         hass.data[DOMAIN].pop(entry.entry_id)
 
-
+        # Remove services only if this was the last instance
         if not hass.data[DOMAIN]:
             services = [
                 SERVICE_ASK_QUESTION,
@@ -199,7 +202,8 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 SERVICE_SET_SYSTEM_PROMPT
             ]
             for service in services:
-                if service in hass.services.async_services().get(DOMAIN, {}):
+                if DOMAIN in hass.services.async_services() and \
+                   service in hass.services.async_services()[DOMAIN]:
                     hass.services.async_remove(DOMAIN, service)
 
     return unload_ok

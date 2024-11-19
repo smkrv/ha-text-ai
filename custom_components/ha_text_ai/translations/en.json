@@ -3,14 +3,32 @@
     "step": {
       "user": {
         "title": "Set up HA text AI",
-        "description": "Configure your OpenAI integration for smart home interactions",
+        "description": "Configure your OpenAI integration for smart home interactions. You'll need an OpenAI API key to proceed.",
         "data": {
-          "api_key": "OpenAI API Key",
-          "model": "AI Model",
-          "temperature": "Temperature",
-          "max_tokens": "Max Tokens",
-          "api_endpoint": "API Endpoint",
-          "request_interval": "Request Interval"
+          "api_key": {
+            "name": "OpenAI API Key",
+            "description": "Your OpenAI API key from platform.openai.com"
+          },
+          "model": {
+            "name": "AI Model",
+            "description": "Select the AI model to use. GPT-3.5-Turbo is recommended for most uses."
+          },
+          "temperature": {
+            "name": "Temperature",
+            "description": "Controls response creativity (0-2). Lower values for focused responses, higher for creative ones."
+          },
+          "max_tokens": {
+            "name": "Max Tokens",
+            "description": "Maximum length of responses. Higher values allow longer responses but use more API tokens."
+          },
+          "api_endpoint": {
+            "name": "API Endpoint",
+            "description": "OpenAI API endpoint URL. Leave default unless using a custom endpoint."
+          },
+          "request_interval": {
+            "name": "Request Interval",
+            "description": "Minimum time between API requests in seconds. Increase if hitting rate limits."
+          }
         }
       }
     },
@@ -18,22 +36,36 @@
       "invalid_auth": "Invalid API key. Please check your OpenAI API key and try again.",
       "cannot_connect": "Failed to connect to API. Please check your internet connection and API endpoint.",
       "unknown": "Unexpected error occurred. Please check the logs for more details.",
-      "already_exists": "This API key is already configured in another integration."
+      "already_exists": "This API key is already configured in another integration.",
+      "invalid_model": "Selected model is not available. Please choose a different model.",
+      "rate_limit": "API rate limit exceeded. Please try again later or increase the request interval.",
+      "context_length": "Input too long for selected model. Try reducing max tokens or using a model with larger context.",
+      "api_error": "OpenAI API error. Please check the logs for details."
     },
     "abort": {
       "already_configured": "This OpenAI integration is already configured",
-      "auth_failed": "Authentication failed. Please verify your API key."
+      "auth_failed": "Authentication failed. Please verify your API key.",
+      "invalid_endpoint": "Invalid API endpoint URL provided"
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "HA text AI Options",
-        "description": "Adjust your OpenAI integration settings",
+        "description": "Adjust your OpenAI integration settings. Changes will apply to future requests.",
         "data": {
-          "temperature": "Temperature",
-          "max_tokens": "Max Tokens",
-          "request_interval": "Request Interval"
+          "temperature": {
+            "name": "Temperature",
+            "description": "Controls response creativity (0-2). Lower values for focused responses, higher for creative ones."
+          },
+          "max_tokens": {
+            "name": "Max Tokens",
+            "description": "Maximum length of responses. Higher values allow longer responses but use more API tokens."
+          },
+          "request_interval": {
+            "name": "Request Interval",
+            "description": "Minimum time between API requests in seconds. Increase if hitting rate limits."
+          }
         }
       }
     }
@@ -44,16 +76,67 @@
         "name": "Last Response",
         "state_attributes": {
           "last_updated": {
-            "name": "Last Updated"
+            "name": "Last Updated",
+            "description": "Time of the last AI response"
           },
           "question": {
-            "name": "Last Question"
+            "name": "Last Question",
+            "description": "Most recent question asked"
           },
           "response": {
-            "name": "AI Response"
+            "name": "AI Response",
+            "description": "Latest response from the AI"
+          },
+          "model": {
+            "name": "Current Model",
+            "description": "AI model currently in use"
+          },
+          "temperature": {
+            "name": "Temperature Setting",
+            "description": "Current temperature parameter"
+          },
+          "max_tokens": {
+            "name": "Max Tokens Setting",
+            "description": "Current maximum tokens limit"
+          },
+          "total_responses": {
+            "name": "Total Responses",
+            "description": "Number of responses since last reset"
+          },
+          "system_prompt": {
+            "name": "System Prompt",
+            "description": "Current system instructions for the AI"
+          },
+          "response_time": {
+            "name": "Response Time",
+            "description": "Time taken to generate last response"
           }
         }
       }
+    }
+  },
+  "services": {
+    "ask_question": {
+      "name": "Ask Question",
+      "description": "Send a question to the AI model",
+      "fields": {
+        "question": {
+          "name": "Question",
+          "description": "Your question for the AI"
+        }
+      }
+    },
+    "clear_history": {
+      "name": "Clear History",
+      "description": "Clear conversation history"
+    },
+    "get_history": {
+      "name": "Get History",
+      "description": "Retrieve conversation history"
+    },
+    "set_system_prompt": {
+      "name": "Set System Prompt",
+      "description": "Set AI behavior instructions"
     }
   }
 }
