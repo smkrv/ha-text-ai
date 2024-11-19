@@ -12,6 +12,5 @@ ha-text-ai/
 │       └── const.py
 │
 └── strings/
-    ├── en.json
-    └── ru.json
+    └── en.json
 ```
