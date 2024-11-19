@@ -3,16 +3,22 @@ ask_question:
   description: >-
     Send a question to the AI model and receive a detailed response.
     The response will be stored in the conversation history and can be retrieved later.
+    Response time may vary based on model selection and server load.
   fields:
     question:
       name: Question
       description: >-
         Your question or prompt for the AI assistant. Be specific and clear for better results.
         You can ask about home automation, technical advice, or general questions.
+        For complex queries, consider breaking them into smaller parts.
       required: true
       example: |
         What automations would you recommend for a smart kitchen?
-        Consider energy efficiency and convenience.
+        Consider energy efficiency, convenience, and integration with:
+        - Smart lighting
+        - Appliance control
+        - Temperature monitoring
+        - Voice commands
       selector:
         text:
           multiline: true
@@ -23,6 +29,7 @@ ask_question:
       description: >-
         Select an AI model to use (optional, overrides default setting).
         Different models have different capabilities and token limits.
+        Note: More capable models may have longer response times and higher API costs.
       required: false
       example: "gpt-3.5-turbo"
       default: "gpt-3.5-turbo"
@@ -31,19 +38,24 @@ ask_question:
           options:
             - label: "GPT-3.5 Turbo (Fast & Efficient)"
               value: "gpt-3.5-turbo"
+            - label: "GPT-3.5 Turbo 16K (Extended)"
+              value: "gpt-3.5-turbo-16k"
             - label: "GPT-4 (Most Capable)"
               value: "gpt-4"
             - label: "GPT-4 32K (Extended Context)"
               value: "gpt-4-32k"
+            - label: "GPT-4 Turbo (Latest)"
+              value: "gpt-4-1106-preview"
           mode: dropdown
 
     temperature:
       name: Temperature
       description: >-
         Controls response creativity (0-2):
-        0.0-0.3: Focused, consistent responses
-        0.4-0.7: Balanced responses
-        0.8-2.0: More creative, varied responses
+        0.0-0.3: Focused, consistent responses (best for technical/factual queries)
+        0.4-0.7: Balanced responses (recommended for most uses)
+        0.8-2.0: More creative, varied responses (best for brainstorming)
+        Note: Higher values may produce less predictable results.
       required: false
       default: 0.7
       selector:
@@ -59,9 +71,10 @@ ask_question:
       description: >-
         Maximum length of the response. Higher values allow longer responses but use more API tokens.
         Recommended ranges:
-        - Short responses: 256-512
-        - Medium responses: 512-1024
-        - Long responses: 1024-4096
+        - Short responses (256-512): Quick answers, status updates
+        - Medium responses (512-1024): Detailed explanations, instructions
+        - Long responses (1024-4096): Complex analysis, multiple examples
+        Note: Actual response length may be shorter based on content.
       required: false
       default: 1000
       selector:
@@ -75,20 +88,22 @@ clear_history:
   name: Clear History
   description: >-
     Delete all stored questions and responses from the conversation history.
-    This action cannot be undone.
+    This action cannot be undone. Consider using 'get_history' first if you need to backup the data.
+    System prompt settings will be preserved.
   fields: {}
 
 get_history:
   name: Get History
   description: >-
     Retrieve recent conversation history, including questions, responses, and timestamps.
-    Results are ordered from newest to oldest.
+    Results are ordered from newest to oldest and include metadata like model used and response times.
   fields:
     limit:
       name: Limit
       description: >-
-        Number of most recent conversations to return.
+        Number of most recent conversations to return (1-100).
         Higher values return more history but may take longer to process.
+        Default: 10 conversations
       required: false
       default: 10
       selector:
@@ -98,17 +113,36 @@ get_history:
           step: 1
           mode: box
 
+    filter_model:
+      name: Filter by Model
+      description: >-
+        Only return conversations using a specific AI model.
+        Leave empty to show all models.
+      required: false
+      selector:
+        select:
+          options:
+            - label: "All Models"
+              value: ""
+            - label: "GPT-3.5 Turbo"
+              value: "gpt-3.5-turbo"
+            - label: "GPT-4"
+              value: "gpt-4"
+          mode: dropdown
+
 set_system_prompt:
   name: Set System Prompt
   description: >-
     Configure the AI's behavior by setting a system prompt.
     This affects how the AI interprets and responds to all future questions.
+    The prompt will persist until changed or cleared.
   fields:
     prompt:
       name: System Prompt
       description: >-
         Instructions that define how the AI should behave and respond.
         Be specific about the desired expertise, tone, and format of responses.
+        Maximum length: 1000 characters.
       required: true
       example: |
         You are a home automation expert assistant. Focus on:
@@ -117,7 +151,20 @@ set_system_prompt:
         3. Integration with popular smart home platforms
         4. Security and privacy considerations
         Provide detailed but concise responses with clear steps when applicable.
+        Format complex responses with bullet points or numbered lists.
+        Include warnings about potential risks or limitations.
       selector:
         text:
           multiline: true
           type: text
+          max_length: 1000
+
+    clear_prompt:
+      name: Clear Existing Prompt
+      description: >-
+        Set to true to remove the current system prompt before applying the new one.
+        This ensures no conflicting instructions remain.
+      required: false
+      default: false
+      selector:
+        boolean: {}

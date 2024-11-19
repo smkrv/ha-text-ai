@@ -1,7 +1,7 @@
 """Sensor platform for HA text AI."""
 from datetime import datetime
 import logging
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Dict, Optional
 
 from homeassistant.components.sensor import (
     SensorEntity,
@@ -24,6 +24,21 @@ from .const import (
     ATTR_TEMPERATURE,
     ATTR_MAX_TOKENS,
     ATTR_TOTAL_RESPONSES,
+    ATTR_SYSTEM_PROMPT,
+    ATTR_QUEUE_SIZE,
+    ATTR_API_STATUS,
+    ATTR_ERROR_COUNT,
+    ATTR_LAST_ERROR,
+    ATTR_RESPONSE_TIME,
+    ENTITY_ICON,
+    ENTITY_ICON_ERROR,
+    ENTITY_ICON_PROCESSING,
+    STATE_READY,
+    STATE_PROCESSING,
+    STATE_ERROR,
+    STATE_DISCONNECTED,
+    STATE_RATE_LIMITED,
+    STATE_INITIALIZING,
 )
 from .coordinator import HATextAICoordinator
 
@@ -44,7 +59,6 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
     _attr_has_entity_name = True
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_device_class = SensorDeviceClass.TIMESTAMP
-    _attr_icon = "mdi:robot"
 
     def __init__(
         self,
@@ -57,6 +71,18 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"{config_entry.entry_id}"
         self._attr_name = "Last Response"
         self._attr_suggested_display_precision = 0
+        self._error_count = 0
+        self._last_error = None
+        self._state = STATE_INITIALIZING
+
+    @property
+    def icon(self) -> str:
+        """Return the icon based on the current state."""
+        if self._state == STATE_PROCESSING:
+            return ENTITY_ICON_PROCESSING
+        elif self._state in [STATE_ERROR, STATE_DISCONNECTED, STATE_RATE_LIMITED]:
+            return ENTITY_ICON_ERROR
+        return ENTITY_ICON
 
     @property
     def state(self) -> StateType:
@@ -64,75 +90,92 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         if not self.coordinator.data or not self.coordinator.last_update_success_time:
             return None
 
-        # Convert to local time
-        if isinstance(self.coordinator.last_update_success_time, datetime):
-            return dt_util.as_local(self.coordinator.last_update_success_time)
-        return self.coordinator.last_update_success_time
+        try:
+            if isinstance(self.coordinator.last_update_success_time, datetime):
+                return dt_util.as_local(self.coordinator.last_update_success_time)
+            return self.coordinator.last_update_success_time
+        except Exception as err:
+            _LOGGER.error("Error getting state: %s", err, exc_info=True)
+            return None
 
     @property
-    def extra_state_attributes(self) -> Optional[Dict[str, Any]]:
+    def extra_state_attributes(self) -> Dict[str, Any]:
         """Return entity specific state attributes."""
+        attributes = {
+            ATTR_TOTAL_RESPONSES: 0,
+            ATTR_MODEL: self.coordinator.model,
+            ATTR_TEMPERATURE: self.coordinator.temperature,
+            ATTR_MAX_TOKENS: self.coordinator.max_tokens,
+            ATTR_SYSTEM_PROMPT: self.coordinator.system_prompt,
+            ATTR_QUEUE_SIZE: self.coordinator._question_queue.qsize(),
+            ATTR_API_STATUS: self._state,
+            ATTR_ERROR_COUNT: self._error_count,
+            ATTR_LAST_ERROR: self._last_error,
+        }
+
         if not self.coordinator.data:
-            return {
-                ATTR_TOTAL_RESPONSES: 0,
-                ATTR_MODEL: self.coordinator.model,
-                ATTR_TEMPERATURE: self.coordinator.temperature,
-                ATTR_MAX_TOKENS: self.coordinator.max_tokens,
-            }
+            return attributes
 
         try:
             history = list(self.coordinator.data.items())
-            if not history:
-                return {
-                    ATTR_TOTAL_RESPONSES: 0,
-                    ATTR_MODEL: self.coordinator.model,
-                    ATTR_TEMPERATURE: self.coordinator.temperature,
-                    ATTR_MAX_TOKENS: self.coordinator.max_tokens,
-                }
+            if history:
+                last_question, last_data = history[-1]
 
-            last_question, last_data = history[-1]
+                # Handle different response formats
+                if isinstance(last_data, dict):
+                    last_response = last_data.get("response", "")
+                    last_updated = last_data.get("timestamp", self.coordinator.last_update_success_time)
+                    response_time = last_data.get("response_time")
+                else:
+                    last_response = str(last_data)
+                    last_updated = self.coordinator.last_update_success_time
+                    response_time = None
 
-            # Handle different response formats
-            if isinstance(last_data, dict):
-                last_response = last_data.get("response", "")
-                last_updated = last_data.get("timestamp", self.coordinator.last_update_success_time)
-            else:
-                last_response = str(last_data)
-                last_updated = self.coordinator.last_update_success_time
+                # Convert timestamp to local time if needed
+                if isinstance(last_updated, datetime):
+                    last_updated = dt_util.as_local(last_updated)
 
-            # Convert timestamp to local time if needed
-            if isinstance(last_updated, datetime):
-                last_updated = dt_util.as_local(last_updated)
+                attributes.update({
+                    ATTR_QUESTION: last_question,
+                    ATTR_RESPONSE: last_response,
+                    ATTR_LAST_UPDATED: last_updated,
+                    ATTR_TOTAL_RESPONSES: len(history),
+                })
 
-            return {
-                ATTR_QUESTION: last_question,
-                ATTR_RESPONSE: last_response,
-                ATTR_LAST_UPDATED: last_updated,
-                ATTR_TOTAL_RESPONSES: len(history),
-                ATTR_MODEL: self.coordinator.model,
-                ATTR_TEMPERATURE: self.coordinator.temperature,
-                ATTR_MAX_TOKENS: self.coordinator.max_tokens,
-            }
+                if response_time is not None:
+                    attributes[ATTR_RESPONSE_TIME] = response_time
+
+            return attributes
+
         except Exception as err:
             _LOGGER.error("Error getting attributes: %s", err, exc_info=True)
-            return {
-                ATTR_TOTAL_RESPONSES: 0,
-                ATTR_MODEL: self.coordinator.model,
-                ATTR_TEMPERATURE: self.coordinator.temperature,
-                ATTR_MAX_TOKENS: self.coordinator.max_tokens,
-            }
+            self._error_count += 1
+            self._last_error = str(err)
+            self._state = STATE_ERROR
+            return attributes
 
     @property
     def available(self) -> bool:
         """Return if entity is available."""
         return self.coordinator.last_update_success
 
-    @property
-    def should_poll(self) -> bool:
-        """No need to poll. Coordinator notifies entity of updates."""
-        return False
-
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
         await super().async_added_to_hass()
         self._handle_coordinator_update()
+        self._state = STATE_READY
+
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        try:
+            if self.coordinator.data:
+                self._state = STATE_READY
+            else:
+                self._state = STATE_DISCONNECTED
+        except Exception as err:
+            _LOGGER.error("Error handling update: %s", err, exc_info=True)
+            self._error_count += 1
+            self._last_error = str(err)
+            self._state = STATE_ERROR
+
+        self.async_write_ha_state()

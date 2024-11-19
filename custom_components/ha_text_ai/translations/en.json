@@ -2,32 +2,32 @@
   "config": {
     "step": {
       "user": {
-        "title": "Set up HA text AI",
-        "description": "Configure your OpenAI integration for smart home interactions. You'll need an OpenAI API key to proceed.",
+        "title": "Set up HA Text AI",
+        "description": "Configure your OpenAI integration for smart home interactions. You'll need an OpenAI API key from platform.openai.com to proceed.",
         "data": {
           "api_key": {
             "name": "OpenAI API Key",
-            "description": "Your OpenAI API key from platform.openai.com"
+            "description": "Your OpenAI API key from platform.openai.com. Keep this secure and never share it."
           },
           "model": {
             "name": "AI Model",
-            "description": "Select the AI model to use. GPT-3.5-Turbo is recommended for most uses."
+            "description": "Select the AI model to use. GPT-3.5-Turbo is recommended for most uses as it offers the best balance of capabilities and cost."
           },
           "temperature": {
             "name": "Temperature",
-            "description": "Controls response creativity (0-2). Lower values for focused responses, higher for creative ones."
+            "description": "Controls response creativity (0-2). Low values (0.1-0.3) for focused responses, high values (0.8-2.0) for creative ones."
           },
           "max_tokens": {
             "name": "Max Tokens",
-            "description": "Maximum length of responses. Higher values allow longer responses but use more API tokens."
+            "description": "Maximum length of responses. Higher values allow longer responses but consume more API tokens. Recommended: 512-1024."
           },
           "api_endpoint": {
             "name": "API Endpoint",
-            "description": "OpenAI API endpoint URL. Leave default unless using a custom endpoint."
+            "description": "OpenAI API endpoint URL. Leave default unless using a custom endpoint or proxy."
           },
           "request_interval": {
             "name": "Request Interval",
-            "description": "Minimum time between API requests in seconds. Increase if hitting rate limits."
+            "description": "Minimum time between API requests in seconds. Increase if experiencing rate limits."
           }
         }
       }
@@ -40,7 +40,9 @@
       "invalid_model": "Selected model is not available. Please choose a different model.",
       "rate_limit": "API rate limit exceeded. Please try again later or increase the request interval.",
       "context_length": "Input too long for selected model. Try reducing max tokens or using a model with larger context.",
-      "api_error": "OpenAI API error. Please check the logs for details."
+      "api_error": "OpenAI API error. Please check the logs for details.",
+      "timeout": "API response timeout. Request took too long to complete.",
+      "queue_full": "Request queue is full. Please try again later."
     },
     "abort": {
       "already_configured": "This OpenAI integration is already configured",
@@ -51,20 +53,20 @@
   "options": {
     "step": {
       "init": {
-        "title": "HA text AI Options",
-        "description": "Adjust your OpenAI integration settings. Changes will apply to future requests.",
+        "title": "HA Text AI Options",
+        "description": "Adjust your OpenAI integration settings. Changes will apply to future requests only.",
         "data": {
           "temperature": {
             "name": "Temperature",
-            "description": "Controls response creativity (0-2). Lower values for focused responses, higher for creative ones."
+            "description": "Controls response creativity (0-2). Low values for focused responses, high for creative ones."
           },
           "max_tokens": {
             "name": "Max Tokens",
-            "description": "Maximum length of responses. Higher values allow longer responses but use more API tokens."
+            "description": "Maximum length of responses. Higher values allow longer responses but consume more API tokens."
           },
           "request_interval": {
             "name": "Request Interval",
-            "description": "Minimum time between API requests in seconds. Increase if hitting rate limits."
+            "description": "Minimum time between API requests in seconds. Increase if experiencing rate limits."
           }
         }
       }
@@ -77,7 +79,7 @@
         "state_attributes": {
           "last_updated": {
             "name": "Last Updated",
-            "description": "Time of the last AI response"
+            "description": "Timestamp of the last AI response"
           },
           "question": {
             "name": "Last Question",
@@ -110,6 +112,22 @@
           "response_time": {
             "name": "Response Time",
             "description": "Time taken to generate last response"
+          },
+          "queue_size": {
+            "name": "Queue Size",
+            "description": "Current size of request queue"
+          },
+          "api_status": {
+            "name": "API Status",
+            "description": "Current API connection status"
+          },
+          "error_count": {
+            "name": "Error Count",
+            "description": "Number of errors since last reset"
+          },
+          "last_error": {
+            "name": "Last Error",
+            "description": "Description of the last error encountered"
           }
         }
       }
@@ -118,25 +136,57 @@
   "services": {
     "ask_question": {
       "name": "Ask Question",
-      "description": "Send a question to the AI model",
+      "description": "Send a question to the AI model and receive a detailed response. The response will be stored in conversation history.",
       "fields": {
         "question": {
           "name": "Question",
-          "description": "Your question for the AI"
+          "description": "Your question or prompt for the AI. Be specific for better results."
+        },
+        "model": {
+          "name": "Model",
+          "description": "AI model to use (optional, overrides default settings)."
+        },
+        "temperature": {
+          "name": "Temperature",
+          "description": "Response creativity level (0-2, optional)."
+        },
+        "max_tokens": {
+          "name": "Max Tokens",
+          "description": "Maximum response length (optional)."
         }
       }
     },
     "clear_history": {
       "name": "Clear History",
-      "description": "Clear conversation history"
+      "description": "Delete all stored conversation history. This action cannot be undone."
     },
     "get_history": {
       "name": "Get History",
-      "description": "Retrieve conversation history"
+      "description": "Retrieve conversation history, including questions, responses, and timestamps.",
+      "fields": {
+        "limit": {
+          "name": "Limit",
+          "description": "Number of recent conversations to return (default 10)."
+        },
+        "filter_model": {
+          "name": "Filter by Model",
+          "description": "Retrieve only conversations using a specific AI model."
+        }
+      }
     },
     "set_system_prompt": {
       "name": "Set System Prompt",
-      "description": "Set AI behavior instructions"
+      "description": "Configure AI behavior by setting a system prompt.",
+      "fields": {
+        "prompt": {
+          "name": "Prompt",
+          "description": "Instructions defining AI behavior and response style."
+        },
+        "clear_prompt": {
+          "name": "Clear Prompt",
+          "description": "Remove current system prompt before setting new one."
+        }
+      }
     }
   }
 }

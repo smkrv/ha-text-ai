@@ -1,12 +1,19 @@
 """Config flow for HA text AI integration."""
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, Tuple
 import voluptuous as vol
+import ssl
+import certifi
+import asyncio
+from async_timeout import timeout
+import aiohttp
+from urllib.parse import urlparse
 
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY
 import homeassistant.helpers.config_validation as cv
 from homeassistant.core import callback
-import openai
+from openai import AsyncOpenAI
+from openai import OpenAIError, APIError, APIConnectionError, AuthenticationError, RateLimitError
 
 from .const import (
     DOMAIN,
@@ -31,17 +38,125 @@ STEP_USER_DATA_SCHEMA = vol.Schema({
     vol.Optional(
         CONF_TEMPERATURE,
         default=DEFAULT_TEMPERATURE
-    ): vol.All(vol.Coerce(float), vol.Range(min=0, max=2)),
+    ): vol.All(
+        vol.Coerce(float),
+        vol.Range(min=0, max=2),
+        msg="Temperature must be between 0 and 2"
+    ),
     vol.Optional(
         CONF_MAX_TOKENS,
         default=DEFAULT_MAX_TOKENS
-    ): vol.All(vol.Coerce(int), vol.Range(min=1, max=4096)),
-    vol.Optional(CONF_API_ENDPOINT, default=DEFAULT_API_ENDPOINT): str,
+    ): vol.All(
+        vol.Coerce(int),
+        vol.Range(min=1, max=4096),
+        msg="Max tokens must be between 1 and 4096"
+    ),
+    vol.Optional(CONF_API_ENDPOINT, default=DEFAULT_API_ENDPOINT): vol.All(
+        str,
+        vol.URL(),
+        msg="Must be a valid URL"
+    ),
     vol.Optional(
         CONF_REQUEST_INTERVAL,
         default=DEFAULT_REQUEST_INTERVAL
-    ): vol.All(vol.Coerce(float), vol.Range(min=0.1)),
+    ): vol.All(
+        vol.Coerce(float),
+        vol.Range(min=0.1),
+        msg="Request interval must be at least 0.1 seconds"
+    ),
 })
+
+async def validate_endpoint(endpoint: str) -> Tuple[bool, str]:
+    """Validate API endpoint accessibility."""
+    try:
+        parsed_url = urlparse(endpoint)
+        if parsed_url.scheme not in ('http', 'https'):
+            return False, "invalid_endpoint_scheme"
+
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        async with timeout(5):
+            async with aiohttp.ClientSession() as session:
+                async with session.get(endpoint, ssl=ssl_context) as response:
+                    if response.status != 200:
+                        return False, "endpoint_not_available"
+        return True, ""
+    except Exception as e:
+        _LOGGER.error("Error validating endpoint: %s", str(e))
+        return False, "endpoint_error"
+
+async def validate_api_connection(
+    api_key: str,
+    endpoint: str,
+    model: str,
+    retry_count: int = 3,
+    retry_delay: float = 1.0
+) -> Tuple[bool, str, list]:
+    """Validate API connection with improved retry logic."""
+    ssl_context = ssl.create_default_context(cafile=certifi.where())
+
+    # Validate endpoint first
+    endpoint_valid, endpoint_error = await validate_endpoint(endpoint)
+    if not endpoint_valid:
+        return False, endpoint_error, []
+
+    for attempt in range(retry_count):
+        try:
+            async with timeout(10):
+                client = AsyncOpenAI(
+                    api_key=api_key,
+                    base_url=endpoint,
+                    http_client=aiohttp.ClientSession(
+                        connector=aiohttp.TCPConnector(
+                            ssl=ssl_context,
+                            enable_cleanup_closed=True
+                        )
+                    )
+                )
+
+                try:
+                    models = await client.models.list()
+                    model_ids = [model.id for model in models.data]
+                finally:
+                    await client.http_client.close()
+
+                if model not in model_ids:
+                    _LOGGER.warning(
+                        "Model %s not found in available models: %s",
+                        model,
+                        ", ".join(model_ids)
+                    )
+                    return False, "invalid_model", model_ids
+                return True, "", model_ids
+
+        except asyncio.TimeoutError:
+            _LOGGER.warning(
+                "Timeout during API validation (attempt %d/%d)",
+                attempt + 1,
+                retry_count
+            )
+            if attempt == retry_count - 1:
+                return False, "timeout", []
+            await asyncio.sleep(retry_delay)
+
+        except AuthenticationError as err:
+            _LOGGER.error("Authentication error: %s", str(err))
+            return False, "invalid_auth", []
+
+        except RateLimitError as err:
+            _LOGGER.error("Rate limit exceeded: %s", str(err))
+            return False, "rate_limit", []
+
+        except APIConnectionError as err:
+            _LOGGER.error("API connection error: %s", str(err))
+            return False, "cannot_connect", []
+
+        except APIError as err:
+            _LOGGER.error("API error: %s", str(err))
+            return False, "api_error", []
+
+        except Exception as err:
+            _LOGGER.exception("Unexpected error during validation: %s", str(err))
+            return False, "unknown", []
 
 class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for HA text AI."""
@@ -57,24 +172,16 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                # Create OpenAI client
-                client = openai.OpenAI(
-                    api_key=user_input[CONF_API_KEY],
-                    base_url=user_input.get(CONF_API_ENDPOINT, DEFAULT_API_ENDPOINT)
+                # Validate input data
+                user_input = STEP_USER_DATA_SCHEMA(user_input)
+
+                is_valid, error_code, available_models = await validate_api_connection(
+                    user_input[CONF_API_KEY],
+                    user_input.get(CONF_API_ENDPOINT, DEFAULT_API_ENDPOINT),
+                    user_input[CONF_MODEL]
                 )
 
-                # Verify API connection and model availability
-                models = await self.hass.async_add_executor_job(client.models.list)
-                model_ids = [model.id for model in models.data]
-
-                if user_input[CONF_MODEL] not in model_ids:
-                    _LOGGER.warning(
-                        "Selected model %s not found in available models: %s",
-                        user_input[CONF_MODEL],
-                        ", ".join(model_ids)
-                    )
-                    errors["base"] = "invalid_model"
-                else:
+                if is_valid:
                     await self.async_set_unique_id(user_input[CONF_API_KEY])
                     self._abort_if_unique_id_configured()
 
@@ -83,15 +190,17 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         data=user_input
                     )
 
-            except openai.AuthenticationError as err:
-                _LOGGER.error("Authentication failed: %s", str(err))
-                errors["base"] = "invalid_auth"
-            except openai.APIError as err:
-                _LOGGER.error("API connection failed: %s", str(err))
-                errors["base"] = "cannot_connect"
-            except Exception as err:  # pylint: disable=broad-except
-                _LOGGER.exception("Unexpected error: %s", str(err))
-                errors["base"] = "unknown"
+                errors["base"] = error_code
+                if error_code == "invalid_model":
+                    _LOGGER.warning(
+                        "Selected model %s not found in available models: %s",
+                        user_input[CONF_MODEL],
+                        ", ".join(available_models)
+                    )
+
+            except vol.Invalid as err:
+                _LOGGER.error("Validation error: %s", str(err))
+                errors["base"] = "invalid_input"
 
         return self.async_show_form(
             step_id="user",
@@ -133,21 +242,33 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     CONF_TEMPERATURE, DEFAULT_TEMPERATURE
                 ),
                 description={"suggested_value": DEFAULT_TEMPERATURE},
-            ): vol.All(vol.Coerce(float), vol.Range(min=0, max=2)),
+            ): vol.All(
+                vol.Coerce(float),
+                vol.Range(min=0, max=2),
+                msg="Temperature must be between 0 and 2"
+            ),
             vol.Optional(
                 CONF_MAX_TOKENS,
                 default=self.config_entry.options.get(
                     CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS
                 ),
                 description={"suggested_value": DEFAULT_MAX_TOKENS},
-            ): vol.All(vol.Coerce(int), vol.Range(min=1, max=4096)),
+            ): vol.All(
+                vol.Coerce(int),
+                vol.Range(min=1, max=4096),
+                msg="Max tokens must be between 1 and 4096"
+            ),
             vol.Optional(
                 CONF_REQUEST_INTERVAL,
                 default=self.config_entry.options.get(
                     CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL
                 ),
                 description={"suggested_value": DEFAULT_REQUEST_INTERVAL},
-            ): vol.All(vol.Coerce(float), vol.Range(min=0.1)),
+            ): vol.All(
+                vol.Coerce(float),
+                vol.Range(min=0.1),
+                msg="Request interval must be at least 0.1 seconds"
+            ),
         })
 
         return self.async_show_form(

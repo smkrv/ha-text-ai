@@ -1,209 +1,89 @@
-"""The HA text AI integration."""
+"""The HA Text AI integration."""
 import logging
 from typing import Any
 
-import voluptuous as vol
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY
-from homeassistant.core import HomeAssistant, ServiceCall
-import homeassistant.helpers.config_validation as cv
-from homeassistant.exceptions import HomeAssistantError, ConfigEntryNotReady
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import aiohttp_client
 
-from .const import (
-    DOMAIN,
-    PLATFORMS,
-    SERVICE_ASK_QUESTION,
-    SERVICE_CLEAR_HISTORY,
-    SERVICE_GET_HISTORY,
-    SERVICE_SET_SYSTEM_PROMPT,
-    CONF_MODEL,
-    CONF_TEMPERATURE,
-    CONF_MAX_TOKENS,
-    CONF_API_ENDPOINT,
-    CONF_REQUEST_INTERVAL,
-)
+from .const import DOMAIN, PLATFORMS
+from .coordinator import HATextAICoordinator
 
 _LOGGER = logging.getLogger(__name__)
 
-def get_coordinator():
-    """Get coordinator class with lazy import to avoid circular deps."""
-    from .coordinator import HATextAICoordinator
-    return HATextAICoordinator
-
-CONFIG_SCHEMA = vol.Schema(
-    {
-        DOMAIN: vol.Schema(
-            {
-                vol.Required(CONF_API_KEY): cv.string,
-                vol.Optional(CONF_MODEL, default="gpt-3.5-turbo"): cv.string,
-                vol.Optional(CONF_TEMPERATURE, default=0.7): vol.Coerce(float),
-                vol.Optional(CONF_MAX_TOKENS, default=1000): vol.Coerce(int),
-                vol.Optional(CONF_REQUEST_INTERVAL, default=1.0): vol.Coerce(float),
-                vol.Optional(CONF_API_ENDPOINT): cv.string,
-            }
-        )
-    },
-    extra=vol.ALLOW_EXTRA,
-)
-
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
-    """Set up the HA text AI component."""
+    """Set up the HA Text AI component."""
     hass.data.setdefault(DOMAIN, {})
-
-    async def async_ask_question(call: ServiceCall) -> None:
-        """Handle the ask_question service call."""
-        if not hass.data[DOMAIN]:
-            raise HomeAssistantError("No AI Text integration configured")
-
-        coordinator = next(iter(hass.data[DOMAIN].values()))
-        question = call.data["question"]
-
-        original_params = {
-            "model": coordinator.model,
-            "temperature": coordinator.temperature,
-            "max_tokens": coordinator.max_tokens
-        }
-
-        try:
-            if "model" in call.data:
-                coordinator.model = call.data["model"]
-            if "temperature" in call.data:
-                coordinator.temperature = call.data["temperature"]
-            if "max_tokens" in call.data:
-                coordinator.max_tokens = call.data["max_tokens"]
-
-            await coordinator.async_ask_question(question)
-        except Exception as ex:
-            _LOGGER.error("Error asking question: %s", str(ex))
-            raise HomeAssistantError(f"Failed to ask question: {str(ex)}") from ex
-        finally:
-            coordinator.model = original_params["model"]
-            coordinator.temperature = original_params["temperature"]
-            coordinator.max_tokens = original_params["max_tokens"]
-
-    async def async_clear_history(call: ServiceCall) -> None:
-        """Handle the clear_history service call."""
-        if not hass.data[DOMAIN]:
-            raise HomeAssistantError("No AI Text integration configured")
-
-        coordinator = next(iter(hass.data[DOMAIN].values()))
-        coordinator._responses.clear()
-        await coordinator.async_refresh()
-
-    async def async_get_history(call: ServiceCall) -> dict[str, list]:
-        """Handle the get_history service call."""
-        if not hass.data[DOMAIN]:
-            raise HomeAssistantError("No AI Text integration configured")
-
-        coordinator = next(iter(hass.data[DOMAIN].values()))
-        if not coordinator._responses:
-            return {"history": []}
-
-        limit = call.data.get("limit", 10)
-        history = list(coordinator._responses.items())
-        limited_history = history[-limit:] if len(history) > limit else history
-
-        return {
-            "history": [
-                {"question": q, "response": r} for q, r in limited_history
-            ]
-        }
-
-    async def async_set_system_prompt(call: ServiceCall) -> None:
-        """Handle the set_system_prompt service call."""
-        if not hass.data[DOMAIN]:
-            raise HomeAssistantError("No AI Text integration configured")
-
-        coordinator = next(iter(hass.data[DOMAIN].values()))
-        coordinator.system_prompt = call.data["prompt"]
-
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_ASK_QUESTION,
-        async_ask_question,
-        schema=vol.Schema({
-            vol.Required("question"): cv.string,
-            vol.Optional("model"): cv.string,
-            vol.Optional("temperature"): vol.All(
-                vol.Coerce(float), vol.Range(min=0, max=2)
-            ),
-            vol.Optional("max_tokens"): vol.All(
-                vol.Coerce(int), vol.Range(min=1, max=4096)
-            ),
-        })
-    )
-
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_CLEAR_HISTORY,
-        async_clear_history,
-        schema=vol.Schema({})
-    )
-
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_GET_HISTORY,
-        async_get_history,
-        schema=vol.Schema({
-            vol.Optional("limit", default=10): vol.All(
-                vol.Coerce(int), vol.Range(min=1)
-            ),
-        })
-    )
-
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_SET_SYSTEM_PROMPT,
-        async_set_system_prompt,
-        schema=vol.Schema({
-            vol.Required("prompt"): cv.string,
-        })
-    )
-
     return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Set up HA text AI from a config entry."""
-    HATextAICoordinator = get_coordinator()
+    """Set up HA Text AI from a config entry."""
     try:
+        session = aiohttp_client.async_get_clientsession(hass)
+
         coordinator = HATextAICoordinator(
             hass,
             api_key=entry.data[CONF_API_KEY],
-            endpoint=entry.data.get(CONF_API_ENDPOINT),
-            model=entry.data.get(CONF_MODEL),
-            temperature=entry.data.get(CONF_TEMPERATURE),
-            max_tokens=entry.data.get(CONF_MAX_TOKENS),
-            request_interval=entry.data.get(CONF_REQUEST_INTERVAL),
+            endpoint=entry.data.get("api_endpoint", "https://api.openai.com/v1"),
+            model=entry.data.get("model", "gpt-3.5-turbo"),
+            temperature=entry.data.get("temperature", 0.7),
+            max_tokens=entry.data.get("max_tokens", 1000),
+            request_interval=entry.data.get("request_interval", 1.0),
+            session=session,
         )
 
-        await coordinator.async_config_entry_first_refresh()
+        try:
+            await coordinator.async_config_entry_first_refresh()
+        except Exception as refresh_ex:
+            _LOGGER.error("Failed to refresh coordinator: %s", str(refresh_ex))
+            return False
+
+        if not coordinator.last_update_success:
+            _LOGGER.error("Failed to communicate with OpenAI API")
+            return False
+
         hass.data[DOMAIN][entry.entry_id] = coordinator
 
-        return await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        try:
+            await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        except Exception as setup_ex:
+            _LOGGER.error("Failed to setup platforms: %s", str(setup_ex))
+            return False
+
+        _LOGGER.info(
+            "Successfully set up HA Text AI with model: %s",
+            entry.data.get("model", "gpt-3.5-turbo")
+        )
+
+        return True
+
     except Exception as ex:
-        raise ConfigEntryNotReady(f"Failed to setup entry: {str(ex)}") from ex
+        _LOGGER.exception("Unexpected error setting up entry: %s", str(ex))
+        return False
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    if entry.entry_id not in hass.data.get(DOMAIN, {}):
-        return True
+    try:
+        if entry.entry_id not in hass.data.get(DOMAIN, {}):
+            return True
 
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unload_ok:
-        hass.data[DOMAIN].pop(entry.entry_id)
+        unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+        if unload_ok:
+            coordinator = hass.data[DOMAIN].pop(entry.entry_id)
+            await coordinator.async_shutdown()
 
-        # Remove services only if this was the last instance
-        if not hass.data[DOMAIN]:
-            services = [
-                SERVICE_ASK_QUESTION,
-                SERVICE_CLEAR_HISTORY,
-                SERVICE_GET_HISTORY,
-                SERVICE_SET_SYSTEM_PROMPT
-            ]
-            for service in services:
-                if DOMAIN in hass.services.async_services() and \
-                   service in hass.services.async_services()[DOMAIN]:
-                    hass.services.async_remove(DOMAIN, service)
+        return unload_ok
 
-    return unload_ok
+    except Exception as ex:
+        _LOGGER.exception("Error unloading entry: %s", str(ex))
+        return False
+
+async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload config entry."""
+    try:
+        await async_unload_entry(hass, entry)
+        await async_setup_entry(hass, entry)
+    except Exception as ex:
+        _LOGGER.exception("Error reloading entry: %s", str(ex))
