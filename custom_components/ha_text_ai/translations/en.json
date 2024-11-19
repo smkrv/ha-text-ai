@@ -1,36 +1,82 @@
 {
     "config": {
-        "option": {
-            "api_key": {
-                "name": "API Key",
-                "description": "Your OpenAI API key"
-            },
-            "model": {
-                "name": "Model",
-                "description": "AI model to use for responses"
-            },
-            "temperature": {
-                "name": "Temperature",
-                "description": "Temperature for response generation (0-2)"
-            },
-            "max_tokens": {
-                "name": "Max Tokens",
-                "description": "Maximum tokens in response (1-4096)"
-            },
-            "api_endpoint": {
-                "name": "API Endpoint",
-                "description": "API endpoint URL"
-            },
-            "request_interval": {
-                "name": "Request Interval",
-                "description": "Minimum time between API requests (seconds)"
+        "step": {
+            "user": {
+                "title": "Set up HA Text AI",
+                "description": "Configure your OpenAI integration",
+                "data": {
+                    "api_key": {
+                        "name": "API Key",
+                        "description": "Your OpenAI API key"
+                    },
+                    "model": {
+                        "name": "Model",
+                        "description": "AI model to use for responses"
+                    },
+                    "temperature": {
+                        "name": "Temperature",
+                        "description": "Temperature for response generation (0-2)"
+                    },
+                    "max_tokens": {
+                        "name": "Max Tokens",
+                        "description": "Maximum tokens in response (1-4096)"
+                    },
+                    "api_endpoint": {
+                        "name": "API Endpoint",
+                        "description": "API endpoint URL"
+                    },
+                    "request_interval": {
+                        "name": "Request Interval",
+                        "description": "Minimum time between API requests (seconds)"
+                    }
+                }
             }
         }
     },
     "options": {
-        "temperature": "Temperature",
-        "max_tokens": "Max Tokens",
-        "request_interval": "Request Interval"
+        "step": {
+            "init": {
+                "title": "HA Text AI Options",
+                "data": {
+                    "temperature": {
+                        "name": "Temperature",
+                        "description": "Response temperature (0-2)"
+                    },
+                    "max_tokens": {
+                        "name": "Max Tokens",
+                        "description": "Maximum response length"
+                    },
+                    "request_interval": {
+                        "name": "Request Interval",
+                        "description": "Time between requests"
+                    }
+                }
+            }
+        }
+    },
+    "services": {
+        "ask_question": {
+            "name": "Ask Question",
+            "description": "Send a question to the AI model",
+            "fields": {
+                "question": {
+                    "name": "Question",
+                    "description": "Your question for the AI"
+                }
+            }
+        },
+        "clear_history": {
+            "name": "Clear History",
+            "description": "Clear conversation history"
+        },
+        "get_history": {
+            "name": "Get History",
+            "description": "Retrieve conversation history"
+        },
+        "set_system_prompt": {
+            "name": "Set System Prompt",
+            "description": "Set system behavior instructions"
+        }
     },
     "error": {
         "invalid_api_key": "Invalid API key",
@@ -51,11 +97,5 @@
         "disconnected": "Disconnected",
         "rate_limited": "Rate limited",
         "initializing": "Initializing"
-    },
-    "services": {
-        "ask_question": "Ask Question",
-        "clear_history": "Clear History",
-        "get_history": "Get History",
-        "set_system_prompt": "Set System Prompt"
     }
 }

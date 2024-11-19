@@ -131,12 +131,7 @@ get_history:
           mode: dropdown
 
 set_system_prompt:
-  name: Set System Prompt
-  description: >-
-    Configure the AI's behavior by setting a system prompt.
-    This affects how the AI interprets and responds to all future questions.
-    The prompt will persist until changed or cleared.
-  fields:
+  fields:  
     prompt:
       name: System Prompt
       description: >-
@@ -157,14 +152,3 @@ set_system_prompt:
         text:
           multiline: true
           type: text
-          max_length: 1000
-
-    clear_prompt:
-      name: Clear Existing Prompt
-      description: >-
-        Set to true to remove the current system prompt before applying the new one.
-        This ensures no conflicting instructions remain.
-      required: false
-      default: false
-      selector:
-        boolean: {}
