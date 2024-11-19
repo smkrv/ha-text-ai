@@ -40,29 +40,22 @@ STEP_USER_DATA_SCHEMA = vol.Schema({
         default=DEFAULT_TEMPERATURE
     ): vol.All(
         vol.Coerce(float),
-        vol.Range(min=0, max=2),
-        msg="Temperature must be between 0 and 2"
+        vol.Range(min=0, max=2)
     ),
     vol.Optional(
         CONF_MAX_TOKENS,
         default=DEFAULT_MAX_TOKENS
     ): vol.All(
         vol.Coerce(int),
-        vol.Range(min=1, max=4096),
-        msg="Max tokens must be between 1 and 4096"
+        vol.Range(min=1, max=4096)
     ),
-    vol.Optional(CONF_API_ENDPOINT, default=DEFAULT_API_ENDPOINT): vol.All(
-        str,
-        vol.Url(),  # Заменено с URL на Url
-        msg="Must be a valid URL"
-    ),
+    vol.Optional(CONF_API_ENDPOINT, default=DEFAULT_API_ENDPOINT): str,
     vol.Optional(
         CONF_REQUEST_INTERVAL,
         default=DEFAULT_REQUEST_INTERVAL
     ): vol.All(
         vol.Coerce(float),
-        vol.Range(min=0.1),
-        msg="Request interval must be at least 0.1 seconds"
+        vol.Range(min=0.1)
     ),
 })
 
@@ -172,12 +165,32 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
+                # Validate URL format
+                endpoint = user_input.get(CONF_API_ENDPOINT, DEFAULT_API_ENDPOINT)
+                try:
+                    result = urlparse(endpoint)
+                    if not all([result.scheme, result.netloc]):
+                        errors["base"] = "invalid_url_format"
+                        return self.async_show_form(
+                            step_id="user",
+                            data_schema=STEP_USER_DATA_SCHEMA,
+                            errors=errors
+                        )
+                except Exception as e:
+                    _LOGGER.error("URL parsing error: %s", str(e))
+                    errors["base"] = "invalid_url_format"
+                    return self.async_show_form(
+                        step_id="user",
+                        data_schema=STEP_USER_DATA_SCHEMA,
+                        errors=errors
+                    )
+
                 # Validate input data
                 user_input = STEP_USER_DATA_SCHEMA(user_input)
 
                 is_valid, error_code, available_models = await validate_api_connection(
                     user_input[CONF_API_KEY],
-                    user_input.get(CONF_API_ENDPOINT, DEFAULT_API_ENDPOINT),
+                    endpoint,
                     user_input[CONF_MODEL]
                 )
 
@@ -244,8 +257,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 description={"suggested_value": DEFAULT_TEMPERATURE},
             ): vol.All(
                 vol.Coerce(float),
-                vol.Range(min=0, max=2),
-                msg="Temperature must be between 0 and 2"
+                vol.Range(min=0, max=2)
             ),
             vol.Optional(
                 CONF_MAX_TOKENS,
@@ -255,8 +267,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 description={"suggested_value": DEFAULT_MAX_TOKENS},
             ): vol.All(
                 vol.Coerce(int),
-                vol.Range(min=1, max=4096),
-                msg="Max tokens must be between 1 and 4096"
+                vol.Range(min=1, max=4096)
             ),
             vol.Optional(
                 CONF_REQUEST_INTERVAL,
@@ -266,8 +277,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 description={"suggested_value": DEFAULT_REQUEST_INTERVAL},
             ): vol.All(
                 vol.Coerce(float),
-                vol.Range(min=0.1),
-                msg="Request interval must be at least 0.1 seconds"
+                vol.Range(min=0.1)
             ),
         })
 
