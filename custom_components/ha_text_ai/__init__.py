@@ -7,11 +7,26 @@ from homeassistant.const import CONF_API_KEY
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import aiohttp_client
+from homeassistant.helpers import config_validation as cv
 
-from .const import DOMAIN, PLATFORMS
-from .coordinator import HATextAICoordinator
+from .const import (
+    DOMAIN,
+    PLATFORMS,
+    CONF_MODEL,
+    CONF_TEMPERATURE,
+    CONF_MAX_TOKENS,
+    CONF_API_ENDPOINT,
+    CONF_REQUEST_INTERVAL,
+    DEFAULT_MODEL,
+    DEFAULT_TEMPERATURE,
+    DEFAULT_MAX_TOKENS,
+    DEFAULT_API_ENDPOINT,
+    DEFAULT_REQUEST_INTERVAL,
+)
 
 _LOGGER = logging.getLogger(__name__)
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the HA Text AI component."""
@@ -26,11 +41,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator = HATextAICoordinator(
             hass,
             api_key=entry.data[CONF_API_KEY],
-            endpoint=entry.data.get("api_endpoint", "https://api.openai.com/v1"),
-            model=entry.data.get("model", "gpt-3.5-turbo"),
-            temperature=entry.data.get("temperature", 0.7),
-            max_tokens=entry.data.get("max_tokens", 1000),
-            request_interval=entry.data.get("request_interval", 1.0),
+            endpoint=entry.data.get(CONF_API_ENDPOINT, DEFAULT_API_ENDPOINT),
+            model=entry.data.get(CONF_MODEL, DEFAULT_MODEL),
+            temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
+            max_tokens=entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
+            request_interval=entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL),
             session=session,
         )
 
@@ -54,7 +69,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         _LOGGER.info(
             "Successfully set up HA Text AI with model: %s",
-            entry.data.get("model", "gpt-3.5-turbo")
+            entry.data.get(CONF_MODEL, DEFAULT_MODEL)
         )
 
         return True
