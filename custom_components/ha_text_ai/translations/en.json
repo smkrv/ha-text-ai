@@ -3,16 +3,24 @@
         "step": {
             "user": {
                 "title": "Set up HA Text AI",
-                "description": "Configure your OpenAI integration",
+                "description": "Configure your AI integration (OpenAI, Anthropic, etc.)",
                 "data": {
-                    "api_key": "Your OpenAI API key",
-                    "model": "AI model to use for responses",
+                    "api_key": "Your API key",
+                    "model": "AI model to use for responses (e.g., gpt-3.5-turbo, claude-3-sonnet)",
                     "temperature": "Temperature for response generation (0-2)",
                     "max_tokens": "Maximum tokens in response (1-4096)",
-                    "api_endpoint": "API endpoint URL",
-                    "request_interval": "Minimum time between API requests (seconds)"
+                    "api_endpoint": "API endpoint URL (optional, for custom endpoints)",
+                    "request_interval": "Minimum time between API requests (seconds)",
+                    "system_prompt": "Default system prompt for all conversations"
                 }
             }
+        },
+        "error": {
+            "invalid_api_key": "Invalid API key - please check your credentials",
+            "cannot_connect": "Failed to connect to API - check endpoint and network",
+            "invalid_model": "Selected model is not available or invalid",
+            "rate_limit": "API rate limit exceeded - please wait",
+            "unknown": "Unexpected error occurred - check logs for details"
         }
     },
     "options": {
@@ -20,9 +28,11 @@
             "init": {
                 "title": "HA Text AI Options",
                 "data": {
+                    "model": "AI model selection",
                     "temperature": "Response temperature (0-2)",
                     "max_tokens": "Maximum response length",
-                    "request_interval": "Time between requests"
+                    "request_interval": "Time between requests (seconds)",
+                    "system_prompt": "Default system instructions"
                 }
             }
         }
@@ -30,25 +40,57 @@
     "services": {
         "ask_question": {
             "name": "Ask Question",
-            "description": "Send a question to the AI model",
-            "fields": {  
+            "description": "Send a question to the AI model and receive a response",
+            "fields": {
                 "question": {
                     "name": "Question",
-                    "description": "Your question for the AI"
+                    "description": "Your question or prompt for the AI"
+                },
+                "system_prompt": {
+                    "name": "System Prompt",
+                    "description": "Optional system prompt to override default for this question"
+                },
+                "model": {
+                    "name": "Model",
+                    "description": "Optional AI model to use for this question"
+                },
+                "temperature": {
+                    "name": "Temperature",
+                    "description": "Optional temperature setting for this question (0-2)"
+                },
+                "max_tokens": {
+                    "name": "Max Tokens",
+                    "description": "Optional maximum token limit for this response"
                 }
             }
         },
         "clear_history": {
             "name": "Clear History",
-            "description": "Clear conversation history"
+            "description": "Delete all stored conversation history"
         },
         "get_history": {
             "name": "Get History",
-            "description": "Retrieve conversation history"
+            "description": "Retrieve conversation history with metadata",
+            "fields": {
+                "limit": {
+                    "name": "Limit",
+                    "description": "Maximum number of conversations to return"
+                },
+                "filter_model": {
+                    "name": "Filter Model",
+                    "description": "Optional filter to show only specific model responses"
+                }
+            }
         },
         "set_system_prompt": {
             "name": "Set System Prompt",
-            "description": "Set system behavior instructions"
+            "description": "Set default system behavior instructions",
+            "fields": {
+                "prompt": {
+                    "name": "System Prompt",
+                    "description": "Instructions defining AI behavior and response style"
+                }
+            }
         }
     }
 }

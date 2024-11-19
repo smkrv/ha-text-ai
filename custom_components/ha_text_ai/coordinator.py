@@ -71,14 +71,27 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
         try:
             async with async_timeout.timeout(30):
-                question = await self._question_queue.get()
+                question_data = await self._question_queue.get()
+                question = question_data["question"]
+                params = question_data["params"]
+
                 try:
-                    response_content = await self._make_api_call(question)
+                    response_content = await self._make_api_call(
+                        question,
+                        model=params.get("model"),
+                        temperature=params.get("temperature"),
+                        max_tokens=params.get("max_tokens"),
+                        system_prompt=params.get("system_prompt")
+                    )
+
                     self._responses[question] = {
                         "question": question,
                         "response": response_content,
                         "error": None,
-                        "timestamp": self.hass.loop.time()
+                        "timestamp": self.hass.loop.time(),
+                        "model": params.get("model", self.model),
+                        "temperature": params.get("temperature", self.temperature),
+                        "max_tokens": params.get("max_tokens", self.max_tokens)
                     }
                     self._error_count = 0
                     self._is_ready = True
@@ -113,7 +126,10 @@ class HATextAICoordinator(DataUpdateCoordinator):
             "question": question,
             "response": None,
             "error": error_msg,
-            "timestamp": self.hass.loop.time()
+            "timestamp": self.hass.loop.time(),
+            "model": self.model,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens
         }
 
         _LOGGER.error("API error (%s): %s", type(error).__name__, error_msg)
@@ -136,19 +152,27 @@ class HATextAICoordinator(DataUpdateCoordinator):
             except Exception as err:
                 _LOGGER.error("Error clearing question queue: %s", err)
 
-    async def _make_api_call(self, question: str) -> str:
+    async def _make_api_call(
+        self,
+        question: str,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        system_prompt: Optional[str] = None
+    ) -> str:
         """Make API call to OpenAI."""
         try:
             messages = []
-            if self.system_prompt:
-                messages.append({"role": "system", "content": self.system_prompt})
+            current_system_prompt = system_prompt if system_prompt is not None else self.system_prompt
+            if current_system_prompt:
+                messages.append({"role": "system", "content": current_system_prompt})
             messages.append({"role": "user", "content": question})
 
             completion = await self.client.chat.completions.create(
-                model=self.model,
+                model=model or self.model,
                 messages=messages,
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
+                temperature=temperature if temperature is not None else self.temperature,
+                max_tokens=max_tokens if max_tokens is not None else self.max_tokens,
             )
             return completion.choices[0].message.content
 
@@ -156,13 +180,30 @@ class HATextAICoordinator(DataUpdateCoordinator):
             _LOGGER.error("Error in API call: %s", err)
             raise
 
-    async def async_ask_question(self, question: str) -> None:
-        """Add question to queue."""
+    async def async_ask_question(
+        self,
+        question: str,
+        system_prompt: Optional[str] = None,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None
+    ) -> None:
+        """Add question to queue with optional parameters."""
         if not self._is_ready and self._error_count >= self._MAX_ERRORS:
             _LOGGER.warning("Coordinator is not ready due to previous errors")
             return
 
-        await self._question_queue.put(question)
+        question_data = {
+            "question": question,
+            "params": {
+                "system_prompt": system_prompt,
+                "model": model,
+                "temperature": temperature,
+                "max_tokens": max_tokens
+            }
+        }
+
+        await self._question_queue.put(question_data)
         await self.async_refresh()
 
     async def async_shutdown(self) -> None:

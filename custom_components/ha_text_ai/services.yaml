@@ -28,6 +28,7 @@ ask_question:
       name: Model
       description: >-
         Select an AI model to use (optional, overrides default setting).
+        You can choose from predefined models or enter your own model identifier.
         Different models have different capabilities and token limits.
         Note: More capable models may have longer response times and higher API costs.
       required: false
@@ -35,6 +36,7 @@ ask_question:
       default: "gpt-3.5-turbo"
       selector:
         select:
+          custom_value: true
           options:
             - label: "GPT-3.5 Turbo (Fast & Efficient)"
               value: "gpt-3.5-turbo"
@@ -46,6 +48,8 @@ ask_question:
               value: "gpt-4-32k"
             - label: "GPT-4 Turbo (Latest)"
               value: "gpt-4-1106-preview"
+            - label: "Claude-3 Sonnet"
+              value: "claude-3-sonnet"
           mode: dropdown
 
     temperature:
@@ -84,6 +88,17 @@ ask_question:
           step: 1
           mode: box
 
+    system_prompt:
+      name: System Prompt
+      description: >-
+        Optional system prompt to set context for this specific question.
+        This will temporarily override the default system prompt.
+      required: false
+      example: "You are a home automation expert focused on energy efficiency"
+      selector:
+        text:
+          multiline: true
+
 clear_history:
   name: Clear History
   description: >-
@@ -121,6 +136,7 @@ get_history:
       required: false
       selector:
         select:
+          custom_value: true
           options:
             - label: "All Models"
               value: ""
@@ -128,10 +144,16 @@ get_history:
               value: "gpt-3.5-turbo"
             - label: "GPT-4"
               value: "gpt-4"
+            - label: "Claude-3 Sonnet"
+              value: "claude-3-sonnet"
           mode: dropdown
 
 set_system_prompt:
-  fields:  
+  name: Set System Prompt
+  description: >-
+    Set default system behavior instructions for all future conversations.
+    This defines how the AI should behave and respond to questions.
+  fields:
     prompt:
       name: System Prompt
       description: >-
@@ -151,4 +173,3 @@ set_system_prompt:
       selector:
         text:
           multiline: true
-          type: text
