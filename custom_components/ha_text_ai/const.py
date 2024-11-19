@@ -170,6 +170,10 @@ LOG_LEVEL_DEFAULT: Final = "INFO"
 QUEUE_TIMEOUT: Final = 5
 QUEUE_MAX_SIZE: Final = 100
 
+# Retry constants
+MAX_RETRIES: Final = 3
+RETRY_DELAY: Final = 1.0
+
 # Service schema constants
 SCHEMA_QUESTION: Final = "question"
 SCHEMA_MODEL: Final = "model"
