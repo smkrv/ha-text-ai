@@ -146,24 +146,31 @@ data:
 ## 📘 FAQ
 
 **Q: Which AI providers are supported?**
+
 A: Currently OpenAI (GPT models) and Anthropic (Claude models) are supported, with more providers planned.
 
 **Q: How can I reduce API costs?**
+
 A: Use GPT-3.5-Turbo or Claude-3-Sonnet for most queries, implement caching, and optimize token usage.
 
 **Q: Can I use custom models?**
+
 A: Yes, you can configure custom endpoints and use any compatible model by specifying it in the configuration.
 
 **Q: How do I switch between different AI providers?**
+
 A: Simply change the model parameter in your configuration or service calls to use the desired provider's model.
 
 **Q: How can I reduce API costs?**
+
 A: Use GPT-3.5-Turbo for most queries, implement caching, and optimize token usage.
 
 **Q: Is my data secure?**
+
 A: Yes, API keys are stored securely and data is transmitted via encrypted connections.
 
 **Q: Can I use custom models?**
+
 A: Yes, configure custom endpoints and models via configuration options.
 
 ## 🤝 Contributing
