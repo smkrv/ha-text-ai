@@ -9,6 +9,8 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers import config_validation as cv
 
+from .coordinator import HATextAICoordinator  
+
 from .const import (
     DOMAIN,
     PLATFORMS,
