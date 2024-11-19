@@ -5,30 +5,12 @@
                 "title": "Настройка HA Text AI",
                 "description": "Настройка интеграции с OpenAI",
                 "data": {
-                    "api_key": {
-                        "name": "API Ключ",
-                        "description": "Ваш ключ API OpenAI"
-                    },
-                    "model": {
-                        "name": "Модель",
-                        "description": "Модель ИИ для генерации ответов"
-                    },
-                    "temperature": {
-                        "name": "Температура",
-                        "description": "Температура генерации ответов (0-2)"
-                    },
-                    "max_tokens": {
-                        "name": "Макс. токенов",
-                        "description": "Максимальное количество токенов в ответе (1-4096)"
-                    },
-                    "api_endpoint": {
-                        "name": "API Endpoint",
-                        "description": "URL конечной точки API"
-                    },
-                    "request_interval": {
-                        "name": "Интервал запросов",
-                        "description": "Минимальное время между запросами к API (секунды)"
-                    }
+                    "api_key": "Ваш ключ API OpenAI",
+                    "model": "Модель ИИ для генерации ответов",
+                    "temperature": "Температура генерации ответов (0-2)",
+                    "max_tokens": "Максимальное количество токенов в ответе (1-4096)",
+                    "api_endpoint": "URL конечной точки API",
+                    "request_interval": "Минимальное время между запросами к API (секунды)"
                 }
             }
         }
@@ -38,18 +20,9 @@
             "init": {
                 "title": "Настройки HA Text AI",
                 "data": {
-                    "temperature": {
-                        "name": "Температура",
-                        "description": "Температура ответов (0-2)"
-                    },
-                    "max_tokens": {
-                        "name": "Макс. токенов",
-                        "description": "Максимальная длина ответа"
-                    },
-                    "request_interval": {
-                        "name": "Интервал запросов",
-                        "description": "Время между запросами"
-                    }
+                    "temperature": "Температура ответов (0-2)",
+                    "max_tokens": "Максимальная длина ответа",
+                    "request_interval": "Время между запросами"
                 }
             }
         }
@@ -77,25 +50,5 @@
             "name": "Установить системный промпт",
             "description": "Установить инструкции поведения системы"
         }
-    },
-    "error": {
-        "invalid_api_key": "Недействительный API ключ",
-        "cannot_connect": "Не удается подключиться к API",
-        "unknown_error": "Неизвестная ошибка",
-        "invalid_model": "Недопустимая модель",
-        "rate_limit_exceeded": "Превышен лимит запросов",
-        "context_length_exceeded": "Превышена длина контекста",
-        "api_error": "Ошибка API",
-        "timeout_error": "Ошибка тайм-аута",
-        "queue_full": "Очередь заполнена",
-        "invalid_prompt": "Недопустимый промпт"
-    },
-    "state": {
-        "ready": "Готов",
-        "processing": "Обработка",
-        "error": "Ошибка",
-        "disconnected": "Отключено",
-        "rate_limited": "Превышен лимит",
-        "initializing": "Инициализация"
     }
 }

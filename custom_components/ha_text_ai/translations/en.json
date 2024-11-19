@@ -5,30 +5,12 @@
                 "title": "Set up HA Text AI",
                 "description": "Configure your OpenAI integration",
                 "data": {
-                    "api_key": {
-                        "name": "API Key",
-                        "description": "Your OpenAI API key"
-                    },
-                    "model": {
-                        "name": "Model",
-                        "description": "AI model to use for responses"
-                    },
-                    "temperature": {
-                        "name": "Temperature",
-                        "description": "Temperature for response generation (0-2)"
-                    },
-                    "max_tokens": {
-                        "name": "Max Tokens",
-                        "description": "Maximum tokens in response (1-4096)"
-                    },
-                    "api_endpoint": {
-                        "name": "API Endpoint",
-                        "description": "API endpoint URL"
-                    },
-                    "request_interval": {
-                        "name": "Request Interval",
-                        "description": "Minimum time between API requests (seconds)"
-                    }
+                    "api_key": "Your OpenAI API key",
+                    "model": "AI model to use for responses",
+                    "temperature": "Temperature for response generation (0-2)",
+                    "max_tokens": "Maximum tokens in response (1-4096)",
+                    "api_endpoint": "API endpoint URL",
+                    "request_interval": "Minimum time between API requests (seconds)"
                 }
             }
         }
@@ -38,18 +20,9 @@
             "init": {
                 "title": "HA Text AI Options",
                 "data": {
-                    "temperature": {
-                        "name": "Temperature",
-                        "description": "Response temperature (0-2)"
-                    },
-                    "max_tokens": {
-                        "name": "Max Tokens",
-                        "description": "Maximum response length"
-                    },
-                    "request_interval": {
-                        "name": "Request Interval",
-                        "description": "Time between requests"
-                    }
+                    "temperature": "Response temperature (0-2)",
+                    "max_tokens": "Maximum response length",
+                    "request_interval": "Time between requests"
                 }
             }
         }
@@ -58,7 +31,7 @@
         "ask_question": {
             "name": "Ask Question",
             "description": "Send a question to the AI model",
-            "fields": {
+            "fields": {  
                 "question": {
                     "name": "Question",
                     "description": "Your question for the AI"
@@ -77,25 +50,5 @@
             "name": "Set System Prompt",
             "description": "Set system behavior instructions"
         }
-    },
-    "error": {
-        "invalid_api_key": "Invalid API key",
-        "cannot_connect": "Cannot connect to the API",
-        "unknown_error": "Unknown error",
-        "invalid_model": "Invalid model",
-        "rate_limit_exceeded": "Rate limit exceeded",
-        "context_length_exceeded": "Context length exceeded",
-        "api_error": "API error",
-        "timeout_error": "Timeout error",
-        "queue_full": "Queue full",
-        "invalid_prompt": "Invalid prompt"
-    },
-    "state": {
-        "ready": "Ready",
-        "processing": "Processing",
-        "error": "Error",
-        "disconnected": "Disconnected",
-        "rate_limited": "Rate limited",
-        "initializing": "Initializing"
     }
 }
