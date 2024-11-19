@@ -53,7 +53,7 @@ STEP_USER_DATA_SCHEMA = vol.Schema({
     ),
     vol.Optional(CONF_API_ENDPOINT, default=DEFAULT_API_ENDPOINT): vol.All(
         str,
-        vol.URL(),
+        vol.Url(),  # Заменено с URL на Url
         msg="Must be a valid URL"
     ),
     vol.Optional(
