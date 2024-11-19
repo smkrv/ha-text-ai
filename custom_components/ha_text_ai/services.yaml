@@ -171,7 +171,6 @@ get_history:
       required: false
       selector:
         datetime:
-          type: date
 
 set_system_prompt:
   name: Set System Prompt

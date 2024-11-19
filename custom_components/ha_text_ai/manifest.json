@@ -5,7 +5,6 @@
   "config_flow": true,
   "dependencies": [],
   "documentation": "https://github.com/smkrv/ha-text-ai",
-  "homepage": "https://github.com/smkrv/ha-text-ai",
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/smkrv/ha-text-ai/issues",
   "requirements": [
@@ -15,28 +14,13 @@
     "async-timeout>=4.0.0"
   ],
   "version": "2.0.0",
-  "homeassistant": "2024.1.0",
   "quality_scale": "silver",
   "integration_type": "service",
-  "translations": [
-    "en"
-  ],
   "zeroconf": [],
   "ssdp": [],
   "usb": [],
   "bluetooth": [],
   "mqtt": [],
   "loggers": ["custom_components.ha_text_ai"],
-  "after_dependencies": ["http"],
-  "title": "Text AI Assistant",
-  "description": "AI-powered text assistant supporting multiple models including GPT and Claude",
-  "render_readme": true,
-  "tags": [
-    "ai",
-    "automation",
-    "chat",
-    "assistant",
-    "openai",
-    "claude"
-  ]
+  "after_dependencies": ["http"]
 }

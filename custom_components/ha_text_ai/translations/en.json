@@ -109,29 +109,19 @@
             }
         }
     },
-    "state": {
-        "ready": "Ready for requests",
-        "processing": "Processing request",
-        "error": "Error occurred",
-        "disconnected": "API disconnected",
-        "rate_limited": "Rate limit reached",
-        "initializing": "Starting up",
-        "retrying": "Retrying request",
-        "queued": "Request queued"
-    },
     "entity": {
         "sensor": {
             "status": {
                 "name": "AI Status",
                 "state": {
-                    "ready": "Ready",
-                    "processing": "Processing",
-                    "error": "Error",
-                    "disconnected": "Disconnected",
-                    "rate_limited": "Rate Limited",
-                    "initializing": "Initializing",
-                    "retrying": "Retrying",
-                    "queued": "Queued"
+                    "ready": "Ready for requests",
+                    "processing": "Processing request",
+                    "error": "Error occurred",
+                    "disconnected": "API disconnected",
+                    "rate_limited": "Rate limit reached",
+                    "initializing": "Starting up",
+                    "retrying": "Retrying request",
+                    "queued": "Request queued"
                 }
             },
             "last_response": {
