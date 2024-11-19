@@ -32,6 +32,9 @@ from .const import (
 import logging
 _LOGGER = logging.getLogger(__name__)
 
+# Create SSL context at module level
+SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
+
 STEP_USER_DATA_SCHEMA = vol.Schema({
     vol.Required(CONF_API_KEY): str,
     vol.Optional(CONF_MODEL, default=DEFAULT_MODEL): str,
@@ -66,10 +69,10 @@ async def validate_endpoint(endpoint: str) -> Tuple[bool, str]:
         if parsed_url.scheme not in ('http', 'https'):
             return False, "invalid_endpoint_scheme"
 
-        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        connector = aiohttp.TCPConnector(ssl=SSL_CONTEXT)
         async with timeout(5):
-            async with aiohttp.ClientSession() as session:
-                async with session.get(endpoint, ssl=ssl_context) as response:
+            async with aiohttp.ClientSession(connector=connector) as session:
+                async with session.get(endpoint) as response:
                     if response.status != 200:
                         return False, "endpoint_not_available"
         return True, ""
@@ -85,71 +88,63 @@ async def validate_api_connection(
     retry_delay: float = 1.0
 ) -> Tuple[bool, str, list]:
     """Validate API connection with improved retry logic."""
-    ssl_context = ssl.create_default_context(cafile=certifi.where())
-
     # Validate endpoint first
     endpoint_valid, endpoint_error = await validate_endpoint(endpoint)
     if not endpoint_valid:
         return False, endpoint_error, []
 
-    for attempt in range(retry_count):
-        try:
-            async with timeout(10):
-                client = AsyncOpenAI(
-                    api_key=api_key,
-                    base_url=endpoint,
-                    http_client=aiohttp.ClientSession(
-                        connector=aiohttp.TCPConnector(
-                            ssl=ssl_context,
-                            enable_cleanup_closed=True
-                        )
+    connector = aiohttp.TCPConnector(ssl=SSL_CONTEXT)
+    async with aiohttp.ClientSession(connector=connector) as session:
+        for attempt in range(retry_count):
+            try:
+                async with timeout(10):
+                    client = AsyncOpenAI(
+                        api_key=api_key,
+                        base_url=endpoint,
+                        http_client=session
                     )
-                )
 
-                try:
                     models = await client.models.list()
                     model_ids = [model.id for model in models.data]
-                finally:
-                    await client.http_client.close()
 
-                if model not in model_ids:
-                    _LOGGER.warning(
-                        "Model %s not found in available models: %s",
-                        model,
-                        ", ".join(model_ids)
-                    )
-                    return False, "invalid_model", model_ids
-                return True, "", model_ids
+                    if model not in model_ids:
+                        _LOGGER.warning(
+                            "Model %s not found in available models: %s",
+                            model,
+                            ", ".join(model_ids)
+                        )
+                        return False, "invalid_model", model_ids
+                    return True, "", model_ids
 
-        except asyncio.TimeoutError:
-            _LOGGER.warning(
-                "Timeout during API validation (attempt %d/%d)",
-                attempt + 1,
-                retry_count
-            )
-            if attempt == retry_count - 1:
-                return False, "timeout", []
-            await asyncio.sleep(retry_delay)
+            except asyncio.TimeoutError:
+                _LOGGER.warning(
+                    "Timeout during API validation (attempt %d/%d)",
+                    attempt + 1,
+                    retry_count
+                )
+                if attempt == retry_count - 1:
+                    return False, "timeout", []
+                await asyncio.sleep(retry_delay)
 
-        except AuthenticationError as err:
-            _LOGGER.error("Authentication error: %s", str(err))
-            return False, "invalid_auth", []
+            except AuthenticationError as err:
+                _LOGGER.error("Authentication error: %s", str(err))
+                return False, "invalid_auth", []
 
-        except RateLimitError as err:
-            _LOGGER.error("Rate limit exceeded: %s", str(err))
-            return False, "rate_limit", []
+            except RateLimitError as err:
+                _LOGGER.error("Rate limit exceeded: %s", str(err))
+                return False, "rate_limit", []
 
-        except APIConnectionError as err:
-            _LOGGER.error("API connection error: %s", str(err))
-            return False, "cannot_connect", []
+            except APIConnectionError as err:
+                _LOGGER.error("API connection error: %s", str(err))
+                return False, "cannot_connect", []
 
-        except APIError as err:
-            _LOGGER.error("API error: %s", str(err))
-            return False, "api_error", []
+            except APIError as err:
+                _LOGGER.error("API error: %s", str(err))
+                return False, "api_error", []
 
-        except Exception as err:
-            _LOGGER.exception("Unexpected error during validation: %s", str(err))
-            return False, "unknown", []
+            except Exception as err:
+                _LOGGER.exception("Unexpected error during validation: %s", str(err))
+                return False, "unknown", []  
 
 class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for HA text AI."""
