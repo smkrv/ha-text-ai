@@ -90,11 +90,13 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         if not self.coordinator.data or not self.coordinator.last_update_success:
             return None
 
-        try:  
-            last_update = self.coordinator.data.get("last_update")
-            if isinstance(last_update, datetime):
-                return dt_util.as_local(last_update)
-            return last_update
+        try:
+            if self.coordinator.data and isinstance(self.coordinator.data, dict):
+                last_update = self.coordinator.data.get("last_update")
+                if isinstance(last_update, datetime):
+                    return dt_util.as_local(last_update)
+                return last_update
+            return None
         except Exception as err:
             _LOGGER.error("Error getting state: %s", err, exc_info=True)
             return None
