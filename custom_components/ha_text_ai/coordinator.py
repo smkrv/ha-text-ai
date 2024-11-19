@@ -15,7 +15,7 @@ import async_timeout
 from .const import (
     DOMAIN,
     DEFAULT_TIMEOUT,
-    MAX_QUEUE_SIZE,
+    QUEUE_MAX_SIZE,
     MAX_RETRIES,
     RETRY_DELAY,
     SUPPORTED_MODELS,
@@ -65,7 +65,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self.model = model
         self.temperature = float(temperature)
         self.max_tokens = int(max_tokens)
-        self._question_queue = asyncio.PriorityQueue(maxsize=MAX_QUEUE_SIZE)
+        self._question_queue = asyncio.PriorityQueue(maxsize=QUEUE_MAX_SIZE)
         self._responses: Dict[str, Any] = {}
         self.system_prompt: Optional[str] = None
         self._is_ready = False
@@ -600,7 +600,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
             return
 
         seen_questions = set()
-        optimized_queue = asyncio.PriorityQueue(maxsize=MAX_QUEUE_SIZE)
+        optimized_queue = asyncio.PriorityQueue(maxsize=QUEUE_MAX_SIZE)  
 
         while not self._question_queue.empty():
             try:
