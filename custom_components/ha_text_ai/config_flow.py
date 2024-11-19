@@ -1,8 +1,6 @@
 """Config flow for HA text AI integration."""
 from typing import Any, Dict, Optional, Tuple
 import voluptuous as vol
-import ssl
-import certifi
 import asyncio
 from async_timeout import timeout
 import aiohttp
@@ -12,6 +10,7 @@ from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY
 import homeassistant.helpers.config_validation as cv
 from homeassistant.core import callback
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from openai import AsyncOpenAI
 from openai import OpenAIError, APIError, APIConnectionError, AuthenticationError, RateLimitError
 
@@ -31,9 +30,6 @@ from .const import (
 
 import logging
 _LOGGER = logging.getLogger(__name__)
-
-# Create SSL context at module level
-SSL_CONTEXT = ssl.create_default_context(cafile=certifi.where())
 
 STEP_USER_DATA_SCHEMA = vol.Schema({
     vol.Required(CONF_API_KEY): str,
@@ -62,7 +58,21 @@ STEP_USER_DATA_SCHEMA = vol.Schema({
     ),
 })
 
+async def async_create_client(
+    hass,
+    api_key: str,
+    endpoint: str,
+) -> AsyncOpenAI:
+    """Create AsyncOpenAI client with proper session."""
+    session = async_get_clientsession(hass)
+    return AsyncOpenAI(
+        api_key=api_key,
+        base_url=endpoint,
+        http_client=session
+    )
+
 async def validate_api_connection(
+    hass,
     api_key: str,
     endpoint: str,
     model: str,
@@ -73,11 +83,7 @@ async def validate_api_connection(
     for attempt in range(retry_count):
         try:
             async with timeout(10):
-                client = AsyncOpenAI(
-                    api_key=api_key,
-                    base_url=endpoint,
-                )
-
+                client = await async_create_client(hass, api_key, endpoint)
                 models = await client.models.list()
                 model_ids = [model.id for model in models.data]
 
@@ -158,6 +164,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 user_input = STEP_USER_DATA_SCHEMA(user_input)
 
                 is_valid, error_code, available_models = await validate_api_connection(
+                    self.hass,
                     user_input[CONF_API_KEY],
                     endpoint,
                     user_input[CONF_MODEL]
