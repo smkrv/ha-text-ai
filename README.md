@@ -7,159 +7,257 @@
 ![GitHub stars](https://img.shields.io/github/stars/smkrv/ha-text-ai.svg?style=social)
 ![GitHub last commit](https://img.shields.io/github/last-commit/smkrv/ha-text-ai.svg?style=flat-square)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg?style=flat-square)](https://github.com/hacs/integration)
+[![Community Forum](https://img.shields.io/badge/Community-Forum-blue.svg?style=flat-square)](https://community.home-assistant.io/t/ha-text-ai-integration)
 
 </div>
 
 <p align="center">
-Transform your smart home experience with powerful AI assistance powered by OpenAI's GPT models
+Transform your smart home experience with powerful AI assistance powered by OpenAI's GPT models. Get intelligent responses, automate complex scenarios, and enhance your home automation with natural language processing.
 </p>
 
 ---
 
 ## 🌟 Features
 
-- 🧠 **Advanced AI Integration**: Leverage OpenAI's powerful models (GPT-3.5, GPT-4) for smart home interactions
-- 💬 **Natural Language Control**: Control your home and get information using everyday language
-- 📝 **Conversation Memory**: Maintain context with conversation history tracking
-- ⚡ **Real-time Responses**: Get quick, contextual responses to your queries
-- 🎯 **Customizable Behavior**: Fine-tune AI responses with adjustable parameters
-- 🔒 **Secure Integration**: Your API key and data are handled securely
-- 🎨 **Flexible Configuration**: Easy setup with multiple configuration options
-- 🔄 **Automation Ready**: Integrate AI responses into your automations
+- 🧠 **Advanced AI Integration**:
+  - Support for latest GPT models
+  - Context-aware responses
+  - Multi-turn conversations
+- 💬 **Natural Language Control**:
+  - Control devices using everyday language
+  - Get detailed explanations and recommendations
+  - Natural conversation flow
+- 📝 **Smart Memory Management**:
+  - Persistent conversation history
+  - Context-aware responses
+  - Customizable history limits
+- ⚡ **Performance Optimized**:
+  - Efficient token usage
+  - Rate limit handling
+  - Response caching
+- 🎯 **Advanced Customization**:
+  - Adjustable response parameters
+  - Custom system prompts
+  - Model selection per request
+- 🔒 **Enhanced Security**:
+  - Secure API key storage
+  - Rate limiting protection
+  - Error handling
+- 🎨 **User Experience**:
+  - Intuitive configuration UI
+  - Detailed sensor attributes
+  - Rich service interface
+- 🔄 **Automation Integration**:
+  - Event-driven responses
+  - Conditional logic support
+  - Template compatibility
 
 ## 📋 Prerequisites
 
-- Home Assistant installation (Core, OS, Container, or Supervised)
+- Home Assistant 2023.8.0 or newer
 - OpenAI API key ([Get one here](https://platform.openai.com/account/api-keys))
 - Python 3.9 or newer
+- Stable internet connection
 
-## ⚡ Quick Start
+## ⚡ Installation
+
+### HACS Installation (Recommended)
+1. Open HACS in Home Assistant
+2. Click the "+" button
+3. Search for "HA Text AI"
+4. Click "Install"
+5. Restart Home Assistant
 
 ### Manual Installation
-1. Download the repository
-2. Copy `custom_components/ha_text_ai` to your `custom_components` directory
+1. Download the latest release
+2. Extract and copy `custom_components/ha_text_ai` to your `custom_components` directory
 3. Restart Home Assistant
-4. Add configuration to `configuration.yaml`:
+4. Add configuration via UI or YAML
+
+## ⚙️ Configuration
+
+### Via UI (Recommended)
+1. Go to Settings → Devices & Services
+2. Click "Add Integration"
+3. Search for "HA Text AI"
+4. Follow the configuration steps
+
+### Via YAML
 ```yaml
 ha_text_ai:
   api_key: !secret openai_api_key
+  model: gpt-3.5-turbo
+  temperature: 0.7
+  max_tokens: 1000
+  request_interval: 1.0
+  api_endpoint: https://api.openai.com/v1  # optional
 ```
-
-## ⚙️ Configuration Options
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `api_key` | string | Required | Your OpenAI API key |
-| `model` | string | `gpt-3.5-turbo` | AI model to use |
-| `temperature` | float | `0.7` | Response creativity (0-2) |
-| `max_tokens` | integer | `1000` | Maximum response length |
-| `request_interval` | float | `1.0` | Minimum seconds between requests |
-| `api_endpoint` | string | OpenAI default | Custom API endpoint URL |
 
 ## 🛠️ Available Services
 
 ### ask_question
-Ask the AI assistant a question:
 ```yaml
 service: ha_text_ai.ask_question
 data:
   question: "What's the optimal temperature for sleeping?"
-  model: "gpt-4"  # optional
+  model: "gpt-4o"  # optional
   temperature: 0.5  # optional
   max_tokens: 500  # optional
 ```
 
 ### set_system_prompt
-Configure AI behavior:
 ```yaml
 service: ha_text_ai.set_system_prompt
 data:
-  prompt: "You are a home automation expert focused on energy efficiency"
+  prompt: |
+    You are a home automation expert focused on:
+    1. Energy efficiency
+    2. Comfort optimization
+    3. Security considerations
+    Provide practical, actionable advice.
 ```
 
 ### clear_history
-Reset conversation history:
 ```yaml
 service: ha_text_ai.clear_history
 ```
 
 ### get_history
-Retrieve conversation history:
 ```yaml
 service: ha_text_ai.get_history
 data:
   limit: 5  # optional
 ```
 
-## 🔧 Practical Examples
+## 🔧 Advanced Examples
 
-### Smart Temperature Management
+### Smart Energy Management
 ```yaml
 automation:
+  alias: "AI Energy Optimization"
   trigger:
     platform: time_pattern
-    hours: "/1"
+    hours: "/2"
   action:
-    service: ha_text_ai.ask_question
-    data:
-      question: >
-        Current temperature is {{ states('sensor.living_room_temperature') }}°C.
-        Should I adjust the thermostat for optimal comfort and energy savings?
+    - service: ha_text_ai.ask_question
+      data:
+        question: >
+          Current power usage: {{ states('sensor.total_power') }}W
+          Temperature: {{ states('sensor.indoor_temperature') }}°C
+          Time: {{ now().strftime('%H:%M') }}
+          Occupancy: {{ states('binary_sensor.occupancy') }}
+
+          Analyze current energy usage and suggest optimizations
+          considering comfort and efficiency.
+        temperature: 0.3
+        max_tokens: 200
+    - service: notify.mobile_app
+      data:
+        message: "{{ states.sensor.ha_text_ai.attributes.response }}"
 ```
 
-### Smart Lighting Assistant
+### Contextual Lighting Control
 ```yaml
 automation:
+  alias: "AI Lighting Assistant"
   trigger:
     platform: state
-    entity_id: binary_sensor.living_room_motion
-    to: 'on'
-  condition:
-    condition: template
-    value_template: "{{ states('sensor.illuminance') | float < 10 }}"
+    entity_id: binary_sensor.motion
+  variables:
+    context: >
+      Time: {{ now().strftime('%H:%M') }}
+      Light Level: {{ states('sensor.illuminance') }}
+      Room: {{ trigger.to_state.attributes.room }}
+      Activity: {{ states('input_select.current_activity') }}
+      Weather: {{ states('weather.home') }}
   action:
-    service: ha_text_ai.ask_question
-    data:
-      question: >
-        Motion detected in living room with low light levels.
-        What's the best lighting scene to set based on the time of day?
+    - service: ha_text_ai.ask_question
+      data:
+        question: >
+          Based on this context:
+          {{ context }}
+
+          Suggest optimal lighting settings for current conditions.
+        model: gpt-3.5-turbo
+        temperature: 0.4
+    - service: scene.turn_on
+      data:
+        entity_id: >
+          {{ states.sensor.ha_text_ai.attributes.response | regex_findall('scene\.[a-z_]+') | first }}
 ```
 
-## ❗ Common Issues
+## 📊 Performance Optimization
 
-### API Rate Limits
-- Increase `request_interval` if hitting rate limits
-- Consider upgrading your OpenAI plan
-- Use caching for frequent queries
-
-### High Token Usage
-- Reduce `max_tokens` parameter
-- Clear conversation history regularly
+### Token Usage
 - Use focused system prompts
+- Implement response caching
+- Clear history periodically
+- Monitor token usage
 
-### Connection Issues
-- Check internet connectivity
+### Response Time
+- Adjust request_interval
+- Use faster models for simple queries
+- Implement timeout handling
+- Cache frequent responses
+
+### Memory Management
+- Set appropriate history limits
+- Clear unused contexts
+- Monitor memory usage
+- Use efficient data structures
+
+## ❗ Troubleshooting
+
+### API Issues
 - Verify API key validity
-- Ensure endpoint accessibility
+- Check rate limits
+- Monitor usage quotas
+- Test endpoint accessibility
+
+### Performance Issues
+- Reduce max_tokens
+- Increase request_interval
+- Clear conversation history
+- Check network connectivity
+
+### Integration Issues
+- Verify HA version compatibility
+- Check component dependencies
+- Review log files
+- Update configuration
+
+## 📘 FAQ
+
+**Q: How can I reduce API costs?**
+A: Use GPT-3.5-Turbo for most queries, implement caching, and optimize token usage.
+
+**Q: Is my data secure?**
+A: Yes, API keys are stored securely and data is transmitted via encrypted connections.
+
+**Q: Can I use custom models?**
+A: Yes, configure custom endpoints and models via configuration options.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions welcome! Please read our [Contributing Guide](CONTRIBUTING.md).
 
 1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+2. Create feature branch (`git checkout -b feature/Enhancement`)
+3. Commit changes (`git commit -m 'Add Enhancement'`)
+4. Push branch (`git push origin feature/Enhancement`)
+5. Open Pull Request
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
 <div align="center">
 
 Made with ❤️ for the Home Assistant Community
+
+[Report Bug](https://github.com/smkrv/ha-text-ai/issues) · [Request Feature](https://github.com/smkrv/ha-text-ai/issues)
 
 </div>
