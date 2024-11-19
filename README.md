@@ -8,7 +8,6 @@
 ![GitHub last commit](https://img.shields.io/github/last-commit/smkrv/ha-text-ai.svg?style=flat-square)  
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)  
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration)  
-[![Community Forum](https://img.shields.io/badge/Community-Forum-blue.svg?style=flat-square)](https://community.home-assistant.io/t/ha-text-ai-integration)  
 
 </div>
 
