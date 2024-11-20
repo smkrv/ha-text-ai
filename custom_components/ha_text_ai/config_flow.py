@@ -86,38 +86,69 @@ async def validate_api_connection(
 ) -> Tuple[bool, str, list]:
     """Validate API connection with retry logic."""
     session = async_get_clientsession(hass)
+
+    # Determine API type and configure headers
     headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json; charset=utf-8",
-        "Accept": "application/json; charset=utf-8",
-        "Accept-Charset": "utf-8"
+        "Content-Type": "application/json",
+        "Accept": "application/json"
     }
 
-    base_url = endpoint.rstrip('/')
-    if not base_url.endswith(f"/{API_VERSION}"):
-        base_url = f"{base_url}/{API_VERSION}"
-
-    models_url = f"{base_url}/{API_MODELS_PATH}"
-    _LOGGER.debug("Attempting to connect to: %s", models_url)
+    # Configure endpoint and headers based on service type
+    if "vsegpt" in endpoint.lower():
+        headers["Authorization"] = f"Bearer {api_key}"
+        base_url = endpoint.rstrip('/')
+        models_url = f"{base_url}/models"
+        _LOGGER.debug("Using VSE GPT endpoint: %s", models_url)
+    elif any(m in model.lower() for m in ["claude", "anthropic"]):
+        headers["x-api-key"] = api_key
+        headers["anthropic-version"] = "2023-06-01"
+        base_url = endpoint.rstrip('/')
+        if not base_url.endswith("/v1"):
+            base_url = f"{base_url}/v1"
+        models_url = f"{base_url}/models"
+        _LOGGER.debug("Using Anthropic endpoint: %s", models_url)
+    else:
+        headers["Authorization"] = f"Bearer {api_key}"
+        base_url = endpoint.rstrip('/')
+        if not base_url.endswith(f"/{API_VERSION}"):
+            base_url = f"{base_url}/{API_VERSION}"
+        models_url = f"{base_url}/{API_MODELS_PATH}"
+        _LOGGER.debug("Using OpenAI endpoint: %s", models_url)
 
     for attempt in range(retry_count):
         try:
             async with timeout(10):
                 async with session.get(models_url, headers=headers) as response:
+                    _LOGGER.debug("API response status: %s", response.status)
+
                     if response.status == 200:
                         data = await response.json()
-                        model_ids = [m["id"] for m in data.get("data", [])]
 
-                        _LOGGER.debug("Available models: %s", ", ".join(model_ids))
+                        # Handle different API response formats
+                        if "vsegpt" in endpoint.lower():
+                            model_ids = [m["id"] for m in data.get("data", [])]
+                            # Add VSE GPT specific model handling if needed
+                            return True, "", model_ids
 
-                        if model not in model_ids:
-                            _LOGGER.warning(
-                                "Model %s not found in available models: %s",
-                                model,
-                                ", ".join(model_ids)
-                            )
-                            return False, ERROR_INVALID_MODEL, model_ids
-                        return True, "", model_ids
+                        elif any(m in model.lower() for m in ["claude", "anthropic"]):
+                            model_ids = [m["id"] for m in data.get("models", [])]
+                            # Support for custom Anthropic model names
+                            if model.startswith("anthropic/"):
+                                model = model.split("/")[1]
+                            if model in model_ids or any(m.endswith(model) for m in model_ids):
+                                return True, "", model_ids
+
+                        else:  # OpenAI format
+                            model_ids = [m["id"] for m in data.get("data", [])]
+                            if model in model_ids:
+                                return True, "", model_ids
+
+                        _LOGGER.warning(
+                            "Model %s not found in available models: %s",
+                            model,
+                            ", ".join(model_ids)
+                        )
+                        return False, ERROR_INVALID_MODEL, model_ids
 
                     elif response.status == 401:
                         _LOGGER.error("Authentication failed")
@@ -125,6 +156,9 @@ async def validate_api_connection(
 
                     elif response.status == 429:
                         _LOGGER.error("Rate limit exceeded")
+                        if attempt < retry_count - 1:
+                            await asyncio.sleep(retry_delay * (2 ** attempt))
+                            continue
                         return False, ERROR_RATE_LIMIT, []
 
                     else:
@@ -134,6 +168,9 @@ async def validate_api_connection(
                             response.status,
                             response_text
                         )
+                        if attempt < retry_count - 1:
+                            await asyncio.sleep(retry_delay)
+                            continue
                         return False, ERROR_API_ERROR, []
 
         except asyncio.TimeoutError:
@@ -142,9 +179,10 @@ async def validate_api_connection(
                 attempt + 1,
                 retry_count
             )
-            if attempt == retry_count - 1:
-                return False, ERROR_TIMEOUT, []
-            await asyncio.sleep(retry_delay)
+            if attempt < retry_count - 1:
+                await asyncio.sleep(retry_delay)
+                continue
+            return False, ERROR_TIMEOUT, []
 
         except aiohttp.ClientError as err:
             _LOGGER.error("Connection error: %s", str(err))

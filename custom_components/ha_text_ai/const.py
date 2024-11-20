@@ -15,17 +15,19 @@ CONF_REQUEST_INTERVAL: Final = "request_interval"
 
 # Model constants
 SUPPORTED_MODELS: Final = [
-    "gpt-3.5-turbo",
-    "gpt-3.5-turbo-16k",
-    "gpt-4",
-    "gpt-4-32k",
-    "gpt-4-1106-preview",
-    "claude-3-sonnet",
-    "claude-3-opus"
+    "o1-preview",
+    "o1-mini",
+    "gpt-4o-mini",
+    "gpt-4o",
+    "claude-3-5-haiku",
+    "claude-3.5-sonnet",
+    "claude-3-haiku",
+    "anthropic/claude-3-5-haiku",
+    "anthropic/claude-3.5-sonnet",   
 ]
 
 # Default values
-DEFAULT_MODEL: Final = "gpt-3.5-turbo"
+DEFAULT_MODEL: Final = "gpt-4o-mini"
 DEFAULT_TEMPERATURE: Final = 0.1
 DEFAULT_MAX_TOKENS: Final = 1000
 DEFAULT_API_ENDPOINT: Final = "https://api.openai.com"
@@ -170,7 +172,7 @@ LOG_LEVEL_DEFAULT: Final = "INFO"
 QUEUE_TIMEOUT: Final = 5
 QUEUE_MAX_SIZE: Final = 100
 
-# Retry constants 
+# Retry constants
 MAX_RETRIES: Final = 3
 RETRY_DELAY: Final = 1.0
 

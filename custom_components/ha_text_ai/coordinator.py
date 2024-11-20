@@ -4,6 +4,9 @@ import logging
 from datetime import timedelta
 from typing import Any, Dict, Optional, List
 import time
+import ssl
+import certifi
+import aiohttp
 
 from openai import AsyncOpenAI, APIError, AuthenticationError, RateLimitError
 from anthropic import AsyncAnthropic
@@ -38,19 +41,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         session: Optional[Any] = None,
         is_anthropic: bool = False,
     ) -> None:
-        """Initialize coordinator.
-
-        Args:
-            hass: HomeAssistant instance
-            api_key: API key for the service
-            endpoint: API endpoint URL
-            model: Model name to use
-            temperature: Temperature parameter for generation
-            max_tokens: Maximum tokens to generate
-            request_interval: Interval between requests
-            session: Optional session object
-            is_anthropic: Whether to use Anthropic API
-        """
+        """Initialize coordinator."""
         super().__init__(
             hass,
             _LOGGER,
@@ -86,15 +77,36 @@ class HATextAICoordinator(DataUpdateCoordinator):
         }
         self._last_request_time = 0
         self._is_anthropic = is_anthropic
+        self._session = session or aiohttp_client.async_get_clientsession(hass)
 
-        if is_anthropic:
-            self.client = AsyncAnthropic(api_key=self.api_key)
-        else:
-            self.client = AsyncOpenAI(
-                api_key=self.api_key,
-                base_url=self.endpoint,
-                http_client=session,
-            )
+        self._init_client()
+
+    async def _create_ssl_context(self):
+        """Create an async SSL context."""
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        return ssl_context
+
+    async def _init_client(self):
+        """Initialize API client with proper SSL context."""
+        try:
+            ssl_context = await self._create_ssl_context()
+            connector = aiohttp.TCPConnector(ssl=ssl_context)
+            client_session = aiohttp.ClientSession(connector=connector)
+
+            if self._is_anthropic:
+                self.client = AsyncAnthropic(
+                    api_key=self.api_key,
+                    http_client=client_session
+                )
+            else:
+                self.client = AsyncOpenAI(
+                    api_key=self.api_key,
+                    base_url=self.endpoint,
+                    http_client=client_session,
+                )
+        except Exception as e:
+            _LOGGER.error("Error initializing API client: %s", str(e))
+            raise
 
     def _validate_params(self, api_key: str, temperature: float, max_tokens: int) -> None:
         """Validate initialization parameters."""
@@ -600,7 +612,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
             return
 
         seen_questions = set()
-        optimized_queue = asyncio.PriorityQueue(maxsize=QUEUE_MAX_SIZE)  
+        optimized_queue = asyncio.PriorityQueue(maxsize=QUEUE_MAX_SIZE)
 
         while not self._question_queue.empty():
             try:
