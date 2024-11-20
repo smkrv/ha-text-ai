@@ -107,15 +107,7 @@ async def async_check_api(session, endpoint: str, headers: dict, is_anthropic: b
 
 async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the HA Text AI component."""
-    hass.data.setdefault(DOMAIN, {
-        "coordinators": {},
-        "metrics": {
-            "total_requests": 0,
-            "total_tokens": 0,
-            "errors": {},
-            "model_usage": {},
-        }
-    })
+    hass.data.setdefault(DOMAIN, {})
     return True
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -125,7 +117,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # Determine API type based on model
         model = entry.data.get(CONF_MODEL, DEFAULT_MODEL)
-        is_anthropic = any(model.startswith("claude") for model in SUPPORTED_MODELS)
+        is_anthropic = any(m in model.lower() for m in ["claude", "anthropic"])
 
         api_key = entry.data[CONF_API_KEY]
         endpoint = entry.data.get(CONF_API_ENDPOINT, DEFAULT_API_ENDPOINT).rstrip('/')
@@ -152,7 +144,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             else:
                 raise ConfigEntryNotReady("Failed to connect to API")
 
-        # Create and initialize coordinator
+        # Create coordinator
         coordinator = HATextAICoordinator(
             hass,
             api_key=api_key,
@@ -165,7 +157,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             is_anthropic=is_anthropic
         )
 
-        # Initialize coordinator
+        # Initialize the coordinator
+        await coordinator.async_initialize()
+
+        # Perform first refresh
         await coordinator.async_config_entry_first_refresh()
 
         # Check coordinator status
@@ -182,6 +177,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         hass.data[DOMAIN][entry.entry_id] = coordinator
 
+        # Set up platforms
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
         # Register event handlers
@@ -208,8 +204,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             try:
                 await coordinator.async_ask_question(question, **request_params)
-            except Exception as err:
-                _LOGGER.error("Error asking question: %s", str(err))
+                except Exception as err:
+                    _LOGGER.error("Error asking question: %s", str(err))
 
         async def async_clear_history(call: ServiceCall) -> None:
             """Handle the clear_history service call."""
@@ -340,6 +336,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                     coordinator._question_queue.task_done()
                 except Exception:
                     pass
+
+            # Properly close the client
+            if hasattr(coordinator, 'client'):
+                await coordinator.client.aclose()
 
             # Close connection
             await coordinator.async_shutdown()
