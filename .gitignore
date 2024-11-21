@@ -36,3 +36,4 @@ wheels/
 .DS_Store
 Thumbs.db
 *.psd
+*.zip
