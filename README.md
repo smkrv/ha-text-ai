@@ -1,4 +1,5 @@
-# 🤖 HA Text AI for Home Assistant (Advanced AI Integration for Home Assistant with multi-provider support)
+# 🤖 HA Text AI for Home Assistant
+### Advanced AI Integration for Home Assistant with multi-provider support
 
 <div align="center">  
 
@@ -104,7 +105,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 ha_text_ai:
   api_provider: openai  # or anthropic
   api_key: !secret ai_api_key
-  model: gpt-4o-mini  # Updated model name
+  model: gpt-4o-mini
   temperature: 0.7
   max_tokens: 1000
   request_interval: 1.0
