@@ -3,7 +3,6 @@
   "render_readme": true,
   "domains": ["sensor"],
   "homeassistant": "2024.11.0",
-  "icon": "mdi:brain",
   "version": "2.0.0",
   "documentation": "https://github.com/smkrv/ha-text-ai"
 }
