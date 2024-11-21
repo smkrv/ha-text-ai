@@ -44,38 +44,28 @@ from .const import (
 import logging
 _LOGGER = logging.getLogger(__name__)
 
-STEP_USER_DATA_SCHEMA = vol.Schema({
-    vol.Required(CONF_API_KEY): cv.string,
-    vol.Optional(CONF_MODEL, default=DEFAULT_MODEL): cv.string,
-    vol.Optional(
-        CONF_TEMPERATURE,
-        default=DEFAULT_TEMPERATURE
-    ): vol.All(
-        vol.Coerce(float),
-        vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
-    ),
-    vol.Optional(
-        CONF_MAX_TOKENS,
-        default=DEFAULT_MAX_TOKENS
-    ): vol.All(
-        vol.Coerce(int),
-        vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
-    ),
-    vol.Optional(
-        CONF_API_ENDPOINT,
-        default=DEFAULT_API_ENDPOINT
-    ): vol.All(
-        cv.string,
-        vol.Match(r'^https?://.+', msg="Must be a valid HTTP(S) URL")
-    ),
-    vol.Optional(
-        CONF_REQUEST_INTERVAL,
-        default=DEFAULT_REQUEST_INTERVAL
-    ): vol.All(
-        vol.Coerce(float),
-        vol.Range(min=MIN_REQUEST_INTERVAL)
-    )
-})
+STEP_USER_DATA_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_API_KEY): cv.string,
+        vol.Optional(CONF_MODEL, default=DEFAULT_MODEL): cv.string,
+        vol.Optional(CONF_TEMPERATURE, default=DEFAULT_TEMPERATURE): vol.All(
+            vol.Coerce(float),
+            vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
+        ),
+        vol.Optional(CONF_MAX_TOKENS, default=DEFAULT_MAX_TOKENS): vol.All(
+            vol.Coerce(int),
+            vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
+        ),
+        vol.Optional(CONF_API_ENDPOINT, default=DEFAULT_API_ENDPOINT): vol.All(
+            cv.string,
+            vol.Match(r'^https?://.+', msg="Must be a valid HTTP(S) URL")
+        ),
+        vol.Optional(CONF_REQUEST_INTERVAL, default=DEFAULT_REQUEST_INTERVAL): vol.All(
+            vol.Coerce(float),
+            vol.Range(min=MIN_REQUEST_INTERVAL)
+        )
+    }
+)
 
 async def validate_api_connection(
     hass,
