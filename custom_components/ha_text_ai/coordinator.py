@@ -22,7 +22,6 @@ from .const import (
     QUEUE_MAX_SIZE,
     MAX_RETRIES,
     RETRY_DELAY,
-    SUPPORTED_MODELS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -41,13 +40,11 @@ class HATextAICoordinator(DataUpdateCoordinator):
         session: Optional[Any] = None,
         is_anthropic: bool = False,
     ) -> None:
-        request_interval = float(request_interval)
-
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(seconds=request_interval),
+            update_interval=timedelta(seconds=float(request_interval)),
         )
         """Initialize coordinator."""
         super().__init__(
@@ -684,13 +681,8 @@ class HATextAICoordinator(DataUpdateCoordinator):
             }
         }
 
-    async def validate_model(self, model: str) -> bool:
-        """Validate if model is supported."""
-        return model in SUPPORTED_MODELS
-
     async def estimate_tokens(self, text: str) -> int:
         """Estimate token count for text."""
-        # Простая оценка: примерно 4 символа на токен
         return len(text) // 4
 
     def get_rate_limit_info(self) -> Dict[str, Any]:

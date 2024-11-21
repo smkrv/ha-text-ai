@@ -3,24 +3,11 @@ ask_question:
   description: >-
     Send a question to the AI model and receive a detailed response.
     The response will be stored in the conversation history and can be retrieved later.
-    Response time may vary based on model selection and server load.
-    Supports various AI models with different capabilities and pricing.
   fields:
     question:
       name: Question
-      description: >-
-        Your question or prompt for the AI assistant. Be specific and clear for better results.
-        You can ask about home automation, technical advice, or general questions.
-        For complex queries, consider breaking them into smaller parts.
-        The system will maintain conversation context for follow-up questions.
+      description: Your question or prompt for the AI assistant.
       required: true
-      example: |
-        What automations would you recommend for a smart kitchen?
-        Consider energy efficiency, convenience, and integration with:
-        - Smart lighting
-        - Appliance control
-        - Temperature monitoring
-        - Voice commands
       selector:
         text:
           multiline: true
@@ -28,43 +15,15 @@ ask_question:
 
     model:
       name: Model
-      description: "Select an AI model to use (optional, overrides default setting)."
+      description: "Select AI model to use (optional, overrides default setting)."
       required: false
-      example: "gpt-4o-mini"
-      default: "gpt-4o-mini"
       selector:
-        select:
-          custom_value: true
-          options:
-            - label: "o1-preview"
-              value: "o1-preview"
-            - label: "o1-mini"
-              value: "o1-mini"
-            - label: "gpt-4o-mini"
-              value: "gpt-4o-mini"
-            - label: "gpt-4o"
-              value: "gpt-4o"
-            - label: "claude-3-5-haiku"
-              value: "claude-3-5-haiku"
-            - label: "claude-3.5-sonnet"
-              value: "claude-3.5-sonnet"
-            - label: "claude-3-haiku"
-              value: "claude-3-haiku"
-            - label: "anthropic/claude-3-5-haiku"
-              value: "anthropic/claude-3-5-haiku"
-            - label: "anthropic/claude-3.5-sonnet"
-              value: "anthropic/claude-3.5-sonnet"
-          mode: dropdown
-
+        text:
+          multiline: false
 
     temperature:
       name: Temperature
-      description: >-
-        Controls response creativity (0.0-2.0):
-        0.0-0.3: Focused, consistent responses (best for technical/factual queries)
-        0.4-0.7: Balanced responses (recommended for most uses)
-        0.8-2.0: More creative, varied responses (best for brainstorming)
-        Note: Higher values may produce less predictable results.
+      description: Controls response creativity (0.0-2.0).
       required: false
       default: 0.7
       selector:
@@ -73,17 +32,10 @@ ask_question:
           max: 2.0
           step: 0.1
           mode: slider
-          unit_of_measurement: ""
 
     max_tokens:
       name: Max Tokens
-      description: >-
-        Maximum length of the response (1-4096 tokens).
-        Recommended ranges:
-        - Short (256-512): Quick answers, status updates
-        - Medium (512-1024): Detailed explanations
-        - Long (1024-4096): Complex analysis
-        Note: Token limits vary by model. Actual length may be shorter.
+      description: Maximum length of the response (1-4096 tokens).
       required: false
       default: 1000
       selector:
@@ -95,40 +47,24 @@ ask_question:
 
     system_prompt:
       name: System Prompt
-      description: >-
-        Optional system prompt to set context for this specific question.
-        This will temporarily override the default system prompt.
-        Use this to specify expertise areas, response format, or special instructions.
+      description: Optional system prompt to set context for this specific question.
       required: false
-      example: "You are a home automation expert focused on energy efficiency and security"
       selector:
         text:
           multiline: true
 
 clear_history:
   name: Clear History
-  description: >-
-    Delete all stored questions and responses from the conversation history.
-    This action cannot be undone. Consider using 'get_history' first if you need to backup the data.
-    System prompt settings and configuration will be preserved.
+  description: Delete all stored questions and responses from the conversation history.
   fields: {}
 
 get_history:
   name: Get History
-  description: >-
-    Retrieve recent conversation history, including:
-    - Questions and responses
-    - Timestamps and response times
-    - Models used and token counts
-    - Temperature and other settings
-    Results are ordered from newest to oldest.
+  description: Retrieve recent conversation history.
   fields:
     limit:
       name: Limit
-      description: >-
-        Number of most recent conversations to return (1-100).
-        Higher values return more history but may take longer to process.
-        Default: 10 conversations
+      description: Number of most recent conversations to return (1-100).
       required: false
       default: 10
       selector:
@@ -138,66 +74,21 @@ get_history:
           step: 1
           mode: box
 
-    filter_model:
-      name: Filter by Model
-      description: >-
-        Only return conversations using a specific AI model.
-        Leave empty to show all models.
-      required: false
-      selector:
-        select:
-          custom_value: true
-          options:
-            - label: "All Models"
-              value: ""
-            - label: "GPT-3.5 Turbo"
-              value: "gpt-3.5-turbo"
-            - label: "GPT-4"
-              value: "gpt-4"
-            - label: "GPT-4 Turbo"
-              value: "gpt-4-1106-preview"
-            - label: "Claude-3 Sonnet"
-              value: "claude-3-sonnet"
-            - label: "Claude-3 Opus"
-              value: "claude-3-opus"
-          mode: dropdown
-
     start_date:
       name: Start Date
-      description: >-
-        Optional start date for filtering history.
-        Format: YYYY-MM-DD
+      description: Optional start date for filtering history.
       required: false
       selector:
         datetime:
 
 set_system_prompt:
   name: Set System Prompt
-  description: >-
-    Set default system behavior instructions for all future conversations.
-    This defines how the AI should behave and respond to questions.
-    The prompt will be used for all models unless overridden per question.
+  description: Set default system behavior instructions for all future conversations.
   fields:
     prompt:
       name: System Prompt
-      description: >-
-        Instructions that define how the AI should behave and respond.
-        Be specific about:
-        - Desired expertise and knowledge areas
-        - Response tone and style
-        - Output format preferences
-        - Special handling instructions
-        Maximum length: 1000 characters
+      description: Instructions that define how the AI should behave and respond.
       required: true
-      example: |
-        You are a home automation expert assistant. Focus on:
-        1. Practical and efficient solutions
-        2. Energy-saving recommendations
-        3. Integration with popular smart home platforms
-        4. Security and privacy considerations
-        Provide detailed but concise responses with clear steps when applicable.
-        Format complex responses with bullet points or numbered lists.
-        Include warnings about potential risks or limitations.
       selector:
         text:
           multiline: true

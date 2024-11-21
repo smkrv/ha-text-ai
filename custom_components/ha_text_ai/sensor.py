@@ -17,6 +17,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
+    CONF_API_PROVIDER,  # Новый импорт
     ATTR_QUESTION,
     ATTR_RESPONSE,
     ATTR_LAST_UPDATED,
@@ -80,11 +81,13 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._error_count = 0
         self._last_error = None
         self._state = STATE_INITIALIZING
+
+        # Добавляем провайдера в device_info
         self._attr_device_info = {
             "identifiers": {(DOMAIN, self._attr_unique_id)},
             "name": "HA Text AI",
             "manufacturer": "Community",
-            "model": coordinator.model,
+            "model": f"{coordinator.model} ({self._config_entry.data.get(CONF_API_PROVIDER, 'Unknown')} provider)",
             "sw_version": coordinator.api_version,
         }
 
@@ -216,7 +219,6 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             else:
                 self._state = STATE_DISCONNECTED
 
-            # Обновляем счетчик ошибок только если статус изменился на ошибку
             if self._state == STATE_ERROR:
                 self._error_count += 1
 

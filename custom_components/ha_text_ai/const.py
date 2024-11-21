@@ -8,6 +8,20 @@ from homeassistant.helpers import config_validation as cv
 DOMAIN: Final = "ha_text_ai"
 PLATFORMS: Final = [Platform.SENSOR]
 
+# New constants for providers
+CONF_API_PROVIDER: Final = "api_provider"
+API_PROVIDER_OPENAI: Final = "openai"
+API_PROVIDER_ANTHROPIC: Final = "anthropic"
+
+API_PROVIDERS: Final = [
+    API_PROVIDER_OPENAI,
+    API_PROVIDER_ANTHROPIC
+]
+
+# Default endpoints
+DEFAULT_OPENAI_ENDPOINT: Final = "https://api.openai.com/v1"
+DEFAULT_ANTHROPIC_ENDPOINT: Final = "https://api.anthropic.com/v1"
+
 # Configuration constants
 CONF_MODEL: Final = "model"
 CONF_TEMPERATURE: Final = "temperature"
@@ -15,29 +29,13 @@ CONF_MAX_TOKENS: Final = "max_tokens"
 CONF_API_ENDPOINT: Final = "api_endpoint"
 CONF_REQUEST_INTERVAL: Final = "request_interval"
 
-# Model constants
-SUPPORTED_MODELS: Final = [
-    "o1-preview",
-    "o1-mini",
-    "gpt-4o-mini",
-    "gpt-4o",
-    "claude-3-5-haiku",
-    "claude-3.5-sonnet",
-    "claude-3-haiku",
-    "anthropic/claude-3-5-haiku",
-    "anthropic/claude-3.5-sonnet",
-]
-
 # Default values
 DEFAULT_MODEL: Final = "gpt-4o-mini"
 DEFAULT_TEMPERATURE: Final = 0.1
 DEFAULT_MAX_TOKENS: Final = 1000
-DEFAULT_API_ENDPOINT: Final = "https://api.openai.com"
+DEFAULT_API_ENDPOINT: Final = DEFAULT_OPENAI_ENDPOINT
 DEFAULT_REQUEST_INTERVAL: Final = 1.0
 DEFAULT_TIMEOUT: Final = 30
-DEFAULT_QUEUE_SIZE: Final = 100
-DEFAULT_HISTORY_LIMIT: Final = 50
-DEFAULT_RETRY_COUNT: Final = 3
 
 # Parameter constraints
 MIN_TEMPERATURE: Final = 0.0
@@ -45,19 +43,11 @@ MAX_TEMPERATURE: Final = 2.0
 MIN_MAX_TOKENS: Final = 1
 MAX_MAX_TOKENS: Final = 4096
 MIN_REQUEST_INTERVAL: Final = 0.1
-MIN_TIMEOUT: Final = 5
-MAX_TIMEOUT: Final = 120
-MAX_PROMPT_LENGTH: Final = 1000
-MAX_HISTORY_LIMIT: Final = 100
 
 # API constants
-API_VERSION: Final = "v1"
-API_MODELS_PATH: Final = "models"
 API_CHAT_PATH: Final = "chat/completions"
 API_TIMEOUT: Final = 30
 API_RETRY_COUNT: Final = 3
-API_BACKOFF_FACTOR: Final = 1.5
-API_MAX_RETRIES: Final = 3
 
 # History constants
 HISTORY_FILTER_MODEL: Final = "filter_model"
@@ -195,7 +185,7 @@ EVENT_STATE_CHANGED: Final = f"{DOMAIN}_state_changed"
 SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
     vol.Required("question"): cv.string,
     vol.Optional("system_prompt"): cv.string,
-    vol.Optional("model"): vol.In(SUPPORTED_MODELS),
+    vol.Optional("model"): cv.string, 
     vol.Optional("temperature"): vol.All(
         vol.Coerce(float),
         vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
@@ -207,7 +197,13 @@ SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
     vol.Optional("priority"): cv.boolean,
 })
 
-SERVICE_SCHEMA_GET_HISTORY = {
+# set_system_prompt
+SERVICE_SCHEMA_SET_SYSTEM_PROMPT = vol.Schema({
+    vol.Required("prompt"): cv.string,
+})
+
+# get_history
+SERVICE_SCHEMA_GET_HISTORY = vol.Schema({
     vol.Optional("limit", default=10): vol.All(
         vol.Coerce(int),
         vol.Range(min=1, max=100)
@@ -215,16 +211,4 @@ SERVICE_SCHEMA_GET_HISTORY = {
     vol.Optional("filter_model"): vol.In(SUPPORTED_MODELS),
     vol.Optional("start_date"): cv.datetime,
     vol.Optional("include_metadata"): cv.boolean,
-}
-
-SERVICE_SCHEMA_SET_SYSTEM_PROMPT = {
-    vol.Required("prompt"): cv.string,
-}
-
-# VSE GPT specific constants
-VSE_GPT_ENDPOINT = "https://api.vsegpt.ru"
-VSE_GPT_API_VERSION = "2023-06-01"
-VSE_GPT_MODELS = [
-    "anthropic/claude-3-5-haiku",
-    "anthropic/claude-3.5-sonnet",
-]
+})

@@ -3,15 +3,15 @@
         "step": {
             "user": {
                 "title": "Set up HA Text AI",
-                "description": "Configure your AI integration for various providers (OpenAI, Anthropic, etc.). Different models have different capabilities and pricing.",
+                "description": "Configure your AI integration with OpenAI or Anthropic providers.",
                 "data": {
+                    "api_provider": "Select API Provider",
                     "api_key": "API key for authentication (required)",
-                    "model": "AI model to use (e.g., gpt-3.5-turbo, gpt-4, claude-3-sonnet, claude-3-opus)",
+                    "model": "AI model to use (provider-specific)",
                     "temperature": "Response creativity (0-2, lower = more focused and consistent)",
                     "max_tokens": "Maximum response length (1-4096 tokens)",
-                    "api_endpoint": "Custom API endpoint URL (default varies by provider)",
-                    "request_interval": "Minimum time between requests in seconds (min: 0.1)",
-                    "system_prompt": "Default instructions for AI behavior and expertise"
+                    "api_endpoint": "Custom API endpoint URL (optional)",
+                    "request_interval": "Minimum time between requests in seconds (min: 0.1)"
                 }
             }
         },
@@ -19,13 +19,11 @@
             "invalid_auth": "Authentication failed - check your API key",
             "invalid_api_key": "Invalid API key - please verify your credentials",
             "cannot_connect": "Connection failed - check endpoint and network status",
-            "invalid_model": "Model unavailable or not supported by the API",
+            "invalid_model": "Model unavailable or not supported by the selected provider",
             "rate_limit": "Rate limit exceeded - please reduce request frequency",
-            "context_length": "Input exceeds maximum context length for model",
             "api_error": "API service error - check provider status",
             "timeout": "Request timeout - server not responding",
             "queue_full": "Request queue full - try again later",
-            "invalid_prompt": "Invalid system prompt format or length",
             "invalid_url_format": "Invalid API endpoint URL format",
             "invalid_input": "Invalid configuration parameters",
             "unknown": "Unexpected error - check logs for details"
@@ -35,16 +33,12 @@
         "step": {
             "init": {
                 "title": "HA Text AI Settings",
-                "description": "Adjust your AI integration parameters and behavior",
+                "description": "Adjust your AI integration parameters",
                 "data": {
-                    "model": "Select AI model for responses (capabilities vary)",
-                    "temperature": "Response creativity (0-2, affects variation)",
+                    "model": "Select AI model (provider-specific)",
+                    "temperature": "Response creativity (0-2)",
                     "max_tokens": "Maximum response length in tokens",
-                    "request_interval": "Minimum seconds between requests (rate limiting)",
-                    "system_prompt": "Default AI behavior and expertise instructions",
-                    "timeout": "Request timeout in seconds (default: 30)",
-                    "retry_count": "Number of retry attempts for failed requests",
-                    "queue_size": "Maximum pending requests in queue"
+                    "request_interval": "Minimum seconds between requests"
                 }
             }
         }
@@ -52,84 +46,23 @@
     "services": {
         "ask_question": {
             "name": "Ask Question",
-            "description": "Send a question to the AI model and get a detailed response. Supports context awareness for follow-up questions.",
+            "description": "Send a question to the AI model and get a detailed response.",
             "fields": {
                 "question": {
                     "name": "Question",
-                    "description": "Your question or prompt for the AI model. Be specific for better results."
-                },
-                "system_prompt": {
-                    "name": "System Prompt",
-                    "description": "Optional behavior instructions for this specific question"
+                    "description": "Your question or prompt for the AI model"
                 },
                 "model": {
                     "name": "Model",
-                    "description": "Optional specific AI model for this request (overrides default)"
+                    "description": "Optional specific AI model for this request"
                 },
                 "temperature": {
                     "name": "Temperature",
-                    "description": "Optional creativity setting (0-2, affects response variation)"
+                    "description": "Optional creativity setting (0-2)"
                 },
                 "max_tokens": {
                     "name": "Max Tokens",
                     "description": "Optional maximum response length (1-4096 tokens)"
-                }
-            }
-        },
-        "clear_history": {
-            "name": "Clear History",
-            "description": "Delete all stored conversation history, responses, and metadata"
-        },
-        "get_history": {
-            "name": "Get History",
-            "description": "Retrieve conversation history with detailed metadata including timestamps",
-            "fields": {
-                "limit": {
-                    "name": "Limit",
-                    "description": "Maximum number of conversations to return (1-100)"
-                },
-                "filter_model": {
-                    "name": "Filter Model",
-                    "description": "Show only responses from a specific model"
-                },
-                "start_date": {
-                    "name": "Start Date",
-                    "description": "Filter conversations from this date (YYYY-MM-DD)"
-                }
-            }
-        },
-        "set_system_prompt": {
-            "name": "Set System Prompt",
-            "description": "Update default AI behavior and expertise instructions",
-            "fields": {
-                "prompt": {
-                    "name": "System Prompt",
-                    "description": "Instructions for AI behavior, expertise, and response style"
-                }
-            }
-        }
-    },
-    "entity": {
-        "sensor": {
-            "status": {
-                "name": "AI Status",
-                "state": {
-                    "ready": "Ready for requests",
-                    "processing": "Processing request",
-                    "error": "Error occurred",
-                    "disconnected": "API disconnected",
-                    "rate_limited": "Rate limit reached",
-                    "initializing": "Starting up",
-                    "retrying": "Retrying request",
-                    "queued": "Request queued"
-                }
-            },
-            "last_response": {
-                "name": "Last Response",
-                "state": {
-                    "success": "Success",
-                    "error": "Error",
-                    "timeout": "Timeout"
                 }
             }
         }

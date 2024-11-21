@@ -24,13 +24,15 @@ from .const import (
     CONF_MAX_TOKENS,
     CONF_API_ENDPOINT,
     CONF_REQUEST_INTERVAL,
+    CONF_API_PROVIDER,
+    API_PROVIDER_OPENAI,
+    API_PROVIDER_ANTHROPIC,
     DEFAULT_MODEL,
     DEFAULT_TEMPERATURE,
     DEFAULT_MAX_TOKENS,
-    DEFAULT_API_ENDPOINT,
+    DEFAULT_OPENAI_ENDPOINT,
+    DEFAULT_ANTHROPIC_ENDPOINT,
     DEFAULT_REQUEST_INTERVAL,
-    API_VERSION,
-    API_MODELS_PATH,
     API_TIMEOUT,
     API_RETRY_COUNT,
     API_BACKOFF_FACTOR,
@@ -131,27 +133,17 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
 
     return True
 
-async def async_check_api(session, endpoint: str, headers: dict, is_anthropic: bool = False) -> bool:
+async def async_check_api(session, endpoint: str, headers: dict, provider: str) -> bool:
     """Check API availability for different providers."""
     try:
-        # Определяем, является ли это VSE GPT endpoint
-        is_vsegpt = "vsegpt" in endpoint.lower()
-
-        if is_vsegpt:
-            # Для VSE GPT используем специальный endpoint
-            check_url = f"{endpoint.rstrip('/')}/v1/models"
-            headers["Authorization"] = f"Bearer {headers.get('x-api-key', '')}"
-        elif is_anthropic:
+        if provider == API_PROVIDER_ANTHROPIC:
             check_url = f"{endpoint}/v1/models"
-        else:
-            check_url = f"{endpoint}/{API_VERSION}/{API_MODELS_PATH}"
+        else:  # OpenAI
+            check_url = f"{endpoint}/models"
 
         async with timeout(API_TIMEOUT):
             async with session.get(check_url, headers=headers) as response:
-                if response.status == 200:
-                    return True
-                elif response.status == 404 and is_vsegpt:
-                    # VSE GPT может возвращать 404 для /models endpoint
+                if response.status in [200, 404]:
                     return True
                 elif response.status == 401:
                     raise ConfigEntryNotReady("Invalid API key")
@@ -168,35 +160,39 @@ async def async_check_api(session, endpoint: str, headers: dict, is_anthropic: b
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up HA Text AI from a config entry."""
     try:
+        # Проверка наличия провайдера
+        if CONF_API_PROVIDER not in entry.data:
+            _LOGGER.error("API provider not specified")
+            raise ConfigEntryNotReady("API provider is required")
+
         session = aiohttp_client.async_get_clientsession(hass)
 
-        # Determine API type based on model and endpoint
+        # Получаем провайдера из конфигурации
+        api_provider = entry.data.get(CONF_API_PROVIDER)
         model = entry.data.get(CONF_MODEL, DEFAULT_MODEL)
-        endpoint = entry.data.get(CONF_API_ENDPOINT, DEFAULT_API_ENDPOINT).rstrip('/')
+        endpoint = entry.data.get(CONF_API_ENDPOINT,
+            DEFAULT_OPENAI_ENDPOINT if api_provider == API_PROVIDER_OPENAI
+            else DEFAULT_ANTHROPIC_ENDPOINT).rstrip('/')
         api_key = entry.data[CONF_API_KEY]
 
-        is_vsegpt = "vsegpt" in endpoint.lower()
-        is_anthropic = any(m in model.lower() for m in ["claude", "anthropic"]) or is_vsegpt
+        # Определяем параметры подключения в зависимости от провайдера
+        is_anthropic = api_provider == API_PROVIDER_ANTHROPIC
 
-        # Configure headers based on API type
+        # Конфигурация headers
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json"
         }
 
-        if is_vsegpt:
-            headers["Authorization"] = f"Bearer {api_key}"
-            if is_anthropic:
-                headers["anthropic-version"] = "2023-06-01"
-        elif is_anthropic:
+        if is_anthropic:
             headers["x-api-key"] = api_key
             headers["anthropic-version"] = "2023-06-01"
-        else:
+        else:  # OpenAI
             headers["Authorization"] = f"Bearer {api_key}"
 
-        # Check API with retries
+        # Проверка API с повторами
         for attempt in range(API_RETRY_COUNT):
-            if await async_check_api(session, endpoint, headers, is_anthropic):
+            if await async_check_api(session, endpoint, headers, api_provider):
                 break
             if attempt < API_RETRY_COUNT - 1:
                 delay = API_BACKOFF_FACTOR * (2 ** attempt)
