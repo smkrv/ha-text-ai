@@ -328,23 +328,41 @@ class HATextAICoordinator(DataUpdateCoordinator):
         system_prompt: Optional[str]
     ) -> Dict[str, Any]:
         """Make API call to OpenAI."""
-        messages = []
-        if system_prompt:
-            messages.append({"role": "system", "content": system_prompt})
-        messages.append({"role": "user", "content": question})
+        try:
+            messages = []
+            if system_prompt:
+                messages.append({"role": "system", "content": system_prompt})
+            messages.append({"role": "user", "content": question})
 
-        completion = await self.client.chat.completions.create(
-            model=model or self.model,
-            messages=messages,
-            temperature=temperature if temperature is not None else self.temperature,
-            max_tokens=max_tokens if max_tokens is not None else self.max_tokens,
-        )
+            _LOGGER.debug("Making API call with parameters: model=%s, messages=%s",
+                         model or self.model, messages)
 
-        return {
-            "response": completion.choices[0].message.content,
-            "model": completion.model,
-            "tokens": completion.usage.total_tokens if hasattr(completion, 'usage') else 0
-        }
+            completion = await self.client.chat.completions.create(
+                model=model or self.model,
+                messages=messages,
+                temperature=temperature if temperature is not None else self.temperature,
+                max_tokens=max_tokens if max_tokens is not None else self.max_tokens,
+            )
+
+            _LOGGER.debug("Received API response: %s", completion)
+
+            if not completion or not hasattr(completion, 'choices') or not completion.choices:
+                raise ValueError("Invalid or empty response from API")
+
+            # Безопасное извлечение сообщения
+            message = completion.choices[0].message
+            if not message or not hasattr(message, 'content'):
+                raise ValueError("No content in API response message")
+
+            return {
+                "response": message.content,
+                "model": getattr(completion, 'model', model or self.model),
+                "tokens": completion.usage.total_tokens if hasattr(completion, 'usage') else 0
+            }
+
+        except Exception as e:
+            _LOGGER.error("OpenAI API call error: %s", str(e))
+            raise
 
     async def async_ask_question(
         self,
