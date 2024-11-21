@@ -8,9 +8,11 @@ import ssl
 import certifi
 import aiohttp
 
+from homeassistant.helpers import aiohttp_client
 from openai import AsyncOpenAI, APIError, AuthenticationError, RateLimitError
 from anthropic import AsyncAnthropic
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 import async_timeout
@@ -28,7 +30,44 @@ _LOGGER = logging.getLogger(__name__)
 
 class HATextAICoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
-
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        api_key: str,
+        endpoint: str,
+        model: str,
+        temperature: float,
+        max_tokens: int,
+        request_interval: float,
+        session: Optional[Any] = None,
+        is_anthropic: bool = False,
+    ) -> None:
+        """Initialize coordinator."""
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=DOMAIN,
+            update_interval=timedelta(seconds=request_interval),
+        )
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        api_key: str,
+        endpoint: str,
+        model: str,
+        temperature: float,
+        max_tokens: int,
+        request_interval: float,
+        session: Optional[Any] = None,
+        is_anthropic: bool = False,
+    ) -> None:
+        """Initialize coordinator."""
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=DOMAIN,
+            update_interval=timedelta(seconds=request_interval),
+        )
     def __init__(
         self,
         hass: HomeAssistant,
@@ -394,13 +433,17 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
     def _update_final_metrics(self) -> None:
         """Update final metrics before shutdown."""
-        if self._request_count > 0:
-            self._performance_metrics["final_success_rate"] = (
-                (self._request_count - self._performance_metrics["total_errors"]) /
-                self._request_count * 100
-            )
-            self._performance_metrics["total_requests"] = self._request_count
-            self._performance_metrics["total_tokens"] = self._tokens_used
+        self._performance_metrics["final_success_rate"] = (
+            (self._request_count - self._performance_metrics["total_errors"]) /
+            self._request_count * 100 if self._request_count > 0 else 0
+        )
+        self._performance_metrics["total_requests"] = self._request_count
+        self._performance_metrics["total_tokens"] = self._tokens_used
+
+    async def async_initialize(self) -> None:
+        """Initialize coordinator."""
+        self._is_ready = True
+        await self.async_refresh()
 
     @property
     def performance_metrics(self) -> Dict[str, Any]:

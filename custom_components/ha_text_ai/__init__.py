@@ -204,8 +204,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             try:
                 await coordinator.async_ask_question(question, **request_params)
-                except Exception as err:
-                    _LOGGER.error("Error asking question: %s", str(err))
+            except Exception as err:
+                _LOGGER.error("Error asking question: %s", str(err))
 
         async def async_clear_history(call: ServiceCall) -> None:
             """Handle the clear_history service call."""

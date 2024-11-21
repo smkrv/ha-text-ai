@@ -28,35 +28,34 @@ ask_question:
 
     model:
       name: Model
-      description: >-
-        Select an AI model to use (optional, overrides default setting).
-        Different models have different capabilities, context limits, and response characteristics:
-        - GPT-3.5 Turbo: Fast, efficient, good for most tasks
-        - GPT-4: More capable, better reasoning, slower
-        - Claude-3: Advanced capabilities, longer context
-        Note: More capable models may have longer response times and higher API costs.
+      description: "Select an AI model to use (optional, overrides default setting)."
       required: false
-      example: "gpt-3.5-turbo"
-      default: "gpt-3.5-turbo"
+      example: "gpt-4o-mini"
+      default: "gpt-4o-mini"
       selector:
         select:
           custom_value: true
           options:
-            - label: "GPT-3.5 Turbo (Fast & Efficient)"
-              value: "gpt-3.5-turbo"
-            - label: "GPT-3.5 Turbo 16K (Extended)"
-              value: "gpt-3.5-turbo-16k"
-            - label: "GPT-4 (Most Capable)"
-              value: "gpt-4"
-            - label: "GPT-4 32K (Extended Context)"
-              value: "gpt-4-32k"
-            - label: "GPT-4 Turbo (Latest)"
-              value: "gpt-4-1106-preview"
-            - label: "Claude-3 Sonnet (Balanced)"
-              value: "claude-3-sonnet"
-            - label: "Claude-3 Opus (Most Advanced)"
-              value: "claude-3-opus"
+            - label: "o1-preview"
+              value: "o1-preview"
+            - label: "o1-mini"
+              value: "o1-mini"
+            - label: "gpt-4o-mini"
+              value: "gpt-4o-mini"
+            - label: "gpt-4o"
+              value: "gpt-4o"
+            - label: "claude-3-5-haiku"
+              value: "claude-3-5-haiku"
+            - label: "claude-3.5-sonnet"
+              value: "claude-3.5-sonnet"
+            - label: "claude-3-haiku"
+              value: "claude-3-haiku"
+            - label: "anthropic/claude-3-5-haiku"
+              value: "anthropic/claude-3-5-haiku"
+            - label: "anthropic/claude-3.5-sonnet"
+              value: "anthropic/claude-3.5-sonnet"
           mode: dropdown
+
 
     temperature:
       name: Temperature
