@@ -41,6 +41,14 @@ class HATextAICoordinator(DataUpdateCoordinator):
         session: Optional[Any] = None,
         is_anthropic: bool = False,
     ) -> None:
+        request_interval = float(request_interval)
+
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=DOMAIN,
+            update_interval=timedelta(seconds=request_interval),
+        )
         """Initialize coordinator."""
         super().__init__(
             hass,
