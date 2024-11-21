@@ -1,3 +1,50 @@
+"""The HA Text AI integration."""
+from __future__ import annotations
+
+import logging
+from typing import Any, Dict, Optional
+import asyncio
+import voluptuous as vol
+from datetime import datetime
+
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_API_KEY
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import aiohttp_client
+from async_timeout import timeout
+
+from .coordinator import HATextAICoordinator
+from .const import (
+    DOMAIN,
+    PLATFORMS,
+    CONF_MODEL,
+    CONF_TEMPERATURE,
+    CONF_MAX_TOKENS,
+    CONF_API_ENDPOINT,
+    CONF_REQUEST_INTERVAL,
+    DEFAULT_MODEL,
+    DEFAULT_TEMPERATURE,
+    DEFAULT_MAX_TOKENS,
+    DEFAULT_API_ENDPOINT,
+    DEFAULT_REQUEST_INTERVAL,
+    API_VERSION,
+    API_MODELS_PATH,
+    API_TIMEOUT,
+    API_RETRY_COUNT,
+    API_BACKOFF_FACTOR,
+)
+
+_LOGGER = logging.getLogger(__name__)
+
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+
+async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
+    """Set up the HA Text AI component."""
+    hass.data.setdefault(DOMAIN, {})
+    return True
+
 async def async_check_api(session, endpoint: str, headers: dict, is_anthropic: bool = False) -> bool:
     """Check API availability for different providers."""
     try:
@@ -103,3 +150,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             raise ConfigEntryNotReady("Failed to initialize coordinator")
 
         hass.data[DOMAIN][entry.entry_id] = coordinator
+
+        # Set up platforms
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+        return True
+
+    except Exception as ex:
+        _LOGGER.exception("Setup error: %s", str(ex))
+        raise ConfigEntryNotReady from ex
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Unload a config entry."""
+    try:
+        coordinator = hass.data[DOMAIN].get(entry.entry_id)
+        if coordinator:
+            await coordinator.async_shutdown()
+
+        unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+        if unload_ok:
+            hass.data[DOMAIN].pop(entry.entry_id)
+
+        return unload_ok
+
+    except Exception as ex:
+        _LOGGER.exception("Error unloading entry: %s", str(ex))
+        return False
