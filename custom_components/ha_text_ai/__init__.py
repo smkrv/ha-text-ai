@@ -35,7 +35,6 @@ from .const import (
     DEFAULT_REQUEST_INTERVAL,
     API_TIMEOUT,
     API_RETRY_COUNT,
-    API_BACKOFF_FACTOR,
     SERVICE_ASK_QUESTION,
     SERVICE_CLEAR_HISTORY,
     SERVICE_SET_SYSTEM_PROMPT,
@@ -195,7 +194,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if await async_check_api(session, endpoint, headers, api_provider):
                 break
             if attempt < API_RETRY_COUNT - 1:
-                delay = API_BACKOFF_FACTOR * (2 ** attempt)
+                delay = 1.5 * (2 ** attempt)
                 await asyncio.sleep(delay)
             else:
                 raise ConfigEntryNotReady("Failed to connect to API")
