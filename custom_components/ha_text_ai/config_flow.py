@@ -47,10 +47,19 @@ _LOGGER = logging.getLogger(__name__)
 STEP_USER_DATA_SCHEMA = vol.Schema({
     vol.Required(CONF_API_KEY): str,
     vol.Optional(CONF_MODEL, default=DEFAULT_MODEL): str,
-    vol.Optional(CONF_TEMPERATURE, default=str(DEFAULT_TEMPERATURE)): str,
-    vol.Optional(CONF_MAX_TOKENS, default=str(DEFAULT_MAX_TOKENS)): str,
+    vol.Optional(CONF_TEMPERATURE, default=str(DEFAULT_TEMPERATURE)): vol.All(
+        vol.Coerce(float),
+        vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
+    ),
+    vol.Optional(CONF_MAX_TOKENS, default=str(DEFAULT_MAX_TOKENS)): vol.All(
+        vol.Coerce(int),
+        vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
+    ),
     vol.Optional(CONF_API_ENDPOINT, default=DEFAULT_API_ENDPOINT): str,
-    vol.Optional(CONF_REQUEST_INTERVAL, default=str(DEFAULT_REQUEST_INTERVAL)): str,
+    vol.Optional(CONF_REQUEST_INTERVAL, default=str(DEFAULT_REQUEST_INTERVAL)): vol.All(
+        vol.Coerce(float),
+        vol.Range(min=MIN_REQUEST_INTERVAL)
+    ),
 })
 
 async def async_step_user(
