@@ -22,7 +22,6 @@
   ],
   "ssdp": [],
   "usb": [],
-  "version": "2.0.0",
-  "zeroconf": [],
-  "supported_api_providers": ["openai", "anthropic"]
+  "version": "2.1.0",
+  "zeroconf": []
 }
