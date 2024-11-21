@@ -1,4 +1,4 @@
-# 🤖 HA Text AI for Home Assistant
+# 🤖 HA Text AI for Home Assistant (Advanced AI Integration for Home Assistant with multi-provider support)
 
 <div align="center">  
 
@@ -57,25 +57,33 @@ Transform your smart home experience with powerful AI assistance powered by mult
 
 ## 📋 Prerequisites
 
-- Home Assistant 2023.8.0 or newer
-- API key from supported providers:
+- Home Assistant 2023.11 or later
+- Active API key from:
   - OpenAI ([Get key](https://platform.openai.com/account/api-keys))
   - Anthropic ([Get key](https://console.anthropic.com/))
 - Python 3.9 or newer
 - Stable internet connection
 
+### Configuration Options
+- API Provider (OpenAI/Anthropic)
+- API Key (provider-specific)
+- Model Selection (flexible, provider-specific models)
+- Temperature (Creativity control, 0.0-2.0)
+- Max Tokens (Response length limit)
+- Request Interval (API call throttling)
+- Custom API Endpoint (optional)
+
 ## ⚡ Installation
 
-### HACS Installation (Recommended)  
-1. Open HACS in Home Assistant  
-2. Click on the three dots in the top right corner  
-3. Select "Custom repositories"  
-4. Add `https://github.com/smkrv/ha-text-ai` as Integration  
-5. Click "Add"  
-6. Click on "Integrations" in HACS  
-7. Search for "HA Text AI"  
-8. Click "Download"  
-9. Restart Home Assistant  
+### HACS Installation (Recommended)
+1. Open HACS in Home Assistant
+2. Click on "Integrations"
+3. Click "..." in top right corner
+4. Select "Custom repositories"
+5. Add repository URL: `https://github.com/smkrv/ha-text-ai`
+6. Choose "Integration" as category
+7. Click "Download"
+8. Restart Home Assistant
 
 ### Manual Installation
 1. Download the latest release
@@ -94,8 +102,9 @@ Transform your smart home experience with powerful AI assistance powered by mult
 ### Via YAML
 ```yaml
 ha_text_ai:
+  api_provider: openai  # or anthropic
   api_key: !secret ai_api_key
-  model: gpt-3.5-turbo  # or claude-3-sonnet
+  model: gpt-4o-mini  # Updated model name
   temperature: 0.7
   max_tokens: 1000
   request_interval: 1.0
@@ -146,32 +155,25 @@ data:
 ## 📘 FAQ
 
 **Q: Which AI providers are supported?**
-
 A: Currently OpenAI (GPT models) and Anthropic (Claude models) are supported, with more providers planned.
 
 **Q: How can I reduce API costs?**
-
 A: Use GPT-3.5-Turbo or Claude-3-Sonnet for most queries, implement caching, and optimize token usage.
 
-**Q: Can I use custom models?**
+**Q: Are there limitations on the number of requests?**
+A: Depends on your API provider's plan. We recommend monitoring usage and implementing request throttling via `request_interval` configuration.
 
+**Q: Can I use custom models?**
 A: Yes, you can configure custom endpoints and use any compatible model by specifying it in the configuration.
 
 **Q: How do I switch between different AI providers?**
-
 A: Simply change the model parameter in your configuration or service calls to use the desired provider's model.
 
 **Q: How can I reduce API costs?**
-
 A: Use GPT-3.5-Turbo for most queries, implement caching, and optimize token usage.
 
 **Q: Is my data secure?**
-
 A: Yes, API keys are stored securely and data is transmitted via encrypted connections.
-
-**Q: Can I use custom models?**
-
-A: Yes, configure custom endpoints and models via configuration options.
 
 ## 🤝 Contributing
 
