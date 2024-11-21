@@ -352,51 +352,74 @@ class HATextAICoordinator(DataUpdateCoordinator):
         system_prompt: Optional[str]
     ) -> Dict[str, Any]:
         """Make API call to OpenAI."""
+        completion = None
         try:
+            # Input validation
+            if not question:
+                raise ValueError("Question cannot be empty")
+
             messages = []
             if system_prompt:
                 messages.append({"role": "system", "content": system_prompt})
             messages.append({"role": "user", "content": question})
 
-            _LOGGER.debug("Making API call with parameters: model=%s, messages=%s",
-                         model or self.model, messages)
+            # Prepare API parameters
+            api_params = {
+                "model": model or self.model,
+                "messages": messages,
+                "temperature": temperature if temperature is not None else self.temperature,
+                "max_tokens": max_tokens if max_tokens is not None else self.max_tokens,
+            }
 
-            completion = await self.client.chat.completions.create(
-                model=model or self.model,
-                messages=messages,
-                temperature=temperature if temperature is not None else self.temperature,
-                max_tokens=max_tokens if max_tokens is not None else self.max_tokens,
-            )
+            _LOGGER.debug("Making OpenAI API call with parameters: %s", api_params)
+
+            # Make API call
+            completion = await self.client.chat.completions.create(**api_params)
 
             _LOGGER.debug("Raw API response: %s", completion)
 
+            # Validate response
             if completion is None:
                 raise ValueError("Received null response from API")
 
             if not hasattr(completion, 'choices') or not completion.choices:
-                raise ValueError("No choices in API response")
+                raise ValueError(f"No choices in API response: {completion}")
 
-            if not hasattr(completion.choices[0], 'message'):
-                raise ValueError("No message in API response choice")
+            if not completion.choices[0] or not hasattr(completion.choices[0], 'message'):
+                raise ValueError(f"Invalid choice structure in response: {completion.choices}")
 
             message = completion.choices[0].message
-            if not hasattr(message, 'content'):
-                raise ValueError("No content in message")
+            if not hasattr(message, 'content') or not message.content:
+                raise ValueError(f"No content in message: {message}")
 
-            response_text = message.content
+            response_text = message.content.strip()
 
-            return {
+            # Prepare response
+            response = {
                 "response": response_text,
-                "model": getattr(completion, 'model', model or self.model),
+                "model": getattr(completion, 'model', api_params['model']),
                 "tokens": completion.usage.total_tokens if hasattr(completion, 'usage') else 0
             }
 
+            _LOGGER.debug("Processed OpenAI response: %s", response)
+            return response
+
         except Exception as e:
             _LOGGER.error("OpenAI API call error: %s", str(e))
-            # Добавим более подробное логирование
             if completion:
                 _LOGGER.debug("Failed response structure: %s", str(completion))
-            raise
+            _LOGGER.debug("Error details:", exc_info=True)
+
+            # Добавляем контекст к ошибке
+            error_context = {
+                "question": question,
+                "model": model or self.model,
+                "error_type": type(e).__name__,
+                "error_message": str(e)
+            }
+            _LOGGER.debug("Error context: %s", error_context)
+
+            raise RuntimeError(f"OpenAI API call failed: {str(e)}") from e
 
     async def async_ask_question(
         self,
