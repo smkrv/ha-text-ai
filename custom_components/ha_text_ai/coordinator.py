@@ -12,7 +12,6 @@ from homeassistant.helpers import aiohttp_client
 from openai import AsyncOpenAI, APIError, AuthenticationError, RateLimitError
 from anthropic import AsyncAnthropic
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import aiohttp_client
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 import async_timeout
@@ -30,44 +29,6 @@ _LOGGER = logging.getLogger(__name__)
 
 class HATextAICoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        api_key: str,
-        endpoint: str,
-        model: str,
-        temperature: float,
-        max_tokens: int,
-        request_interval: float,
-        session: Optional[Any] = None,
-        is_anthropic: bool = False,
-    ) -> None:
-        """Initialize coordinator."""
-        super().__init__(
-            hass,
-            _LOGGER,
-            name=DOMAIN,
-            update_interval=timedelta(seconds=request_interval),
-        )
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        api_key: str,
-        endpoint: str,
-        model: str,
-        temperature: float,
-        max_tokens: int,
-        request_interval: float,
-        session: Optional[Any] = None,
-        is_anthropic: bool = False,
-    ) -> None:
-        """Initialize coordinator."""
-        super().__init__(
-            hass,
-            _LOGGER,
-            name=DOMAIN,
-            update_interval=timedelta(seconds=request_interval),
-        )
     def __init__(
         self,
         hass: HomeAssistant,
@@ -117,8 +78,18 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self._last_request_time = 0
         self._is_anthropic = is_anthropic
         self._session = session or aiohttp_client.async_get_clientsession(hass)
+        self.client = None  # Initialize client as None
 
-        self._init_client()
+    async def async_initialize(self) -> None:
+        """Initialize coordinator."""
+        try:
+            await self._init_client()
+            self._is_ready = True
+            await self.async_refresh()
+        except Exception as e:
+            _LOGGER.error("Failed to initialize coordinator: %s", str(e))
+            self._is_ready = False
+            self._endpoint_status = "error"
 
     async def _create_ssl_context(self):
         """Create an async SSL context."""

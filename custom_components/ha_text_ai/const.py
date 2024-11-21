@@ -1,6 +1,8 @@
 """Constants for the HA text AI integration."""
 from typing import Final
+import voluptuous as vol
 from homeassistant.const import Platform
+from homeassistant.helpers import config_validation as cv
 
 # Domain and platforms
 DOMAIN: Final = "ha_text_ai"
@@ -23,7 +25,7 @@ SUPPORTED_MODELS: Final = [
     "claude-3.5-sonnet",
     "claude-3-haiku",
     "anthropic/claude-3-5-haiku",
-    "anthropic/claude-3.5-sonnet",   
+    "anthropic/claude-3.5-sonnet",
 ]
 
 # Default values
@@ -188,3 +190,41 @@ SCHEMA_LIMIT: Final = "limit"
 EVENT_RESPONSE_RECEIVED: Final = f"{DOMAIN}_response_received"
 EVENT_ERROR_OCCURRED: Final = f"{DOMAIN}_error_occurred"
 EVENT_STATE_CHANGED: Final = f"{DOMAIN}_state_changed"
+
+# Service schema constants
+SERVICE_SCHEMA_ASK_QUESTION = {
+    vol.Required("question"): cv.string,
+    vol.Optional("system_prompt"): cv.string,
+    vol.Optional("model"): vol.In(SUPPORTED_MODELS),
+    vol.Optional("temperature"): vol.All(
+        vol.Coerce(float),
+        vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
+    ),
+    vol.Optional("max_tokens"): vol.All(
+        vol.Coerce(int),
+        vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
+    ),
+    vol.Optional("priority"): cv.boolean,
+}
+
+SERVICE_SCHEMA_GET_HISTORY = {
+    vol.Optional("limit", default=10): vol.All(
+        vol.Coerce(int),
+        vol.Range(min=1, max=100)
+    ),
+    vol.Optional("filter_model"): vol.In(SUPPORTED_MODELS),
+    vol.Optional("start_date"): cv.datetime,
+    vol.Optional("include_metadata"): cv.boolean,
+}
+
+SERVICE_SCHEMA_SET_SYSTEM_PROMPT = {
+    vol.Required("prompt"): cv.string,
+}
+
+# VSE GPT specific constants
+VSE_GPT_ENDPOINT = "https://api.vsegpt.ru"
+VSE_GPT_API_VERSION = "2023-06-01"
+VSE_GPT_MODELS = [
+    "anthropic/claude-3-5-haiku",
+    "anthropic/claude-3.5-sonnet",
+]
