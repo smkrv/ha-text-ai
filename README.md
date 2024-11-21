@@ -20,36 +20,43 @@ Transform your smart home experience with powerful AI assistance powered by mult
   - Anthropic Claude integration
   - Custom API endpoints
   - Flexible model selection
+
 - 💬 **Advanced Language Processing**:
   - Context-aware responses
   - Multi-turn conversations
   - Custom system instructions
   - Natural conversation flow
+
 - 📝 **Enhanced Memory Management**:
   - Persistent conversation history
   - Context-aware responses
   - Customizable history limits
   - Model-specific filtering
+
 - ⚡ **Performance Optimization**:
   - Efficient token usage
   - Smart rate limiting
   - Response caching
   - Request interval control
+
 - 🎯 **Advanced Customization**:
   - Per-request model selection
   - Adjustable parameters
   - Custom system prompts
   - Temperature control
+
 - 🔒 **Enhanced Security**:
   - Secure API key storage
   - Rate limiting protection
   - Error handling
   - Usage monitoring
+
 - 🎨 **Improved User Experience**:
   - Intuitive configuration UI
   - Detailed sensor attributes
   - Rich service interface
   - Model selection UI
+
 - 🔄 **Automation Integration**:
   - Event-driven responses
   - Conditional logic support
@@ -174,7 +181,7 @@ A: Simply change the model parameter in your configuration or service calls to u
 A: Use GPT-3.5-Turbo for most queries, implement caching, and optimize token usage.
 
 **Q: Is my data secure?**
-A: Yes, API keys are stored securely and data is transmitted via encrypted connections.
+A: Yes, your data is secure. The system operates entirely on your local machine, keeping your data under your control. API keys are stored securely and all external communications use encrypted connections.
 
 ## 🤝 Contributing
 
