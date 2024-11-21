@@ -204,7 +204,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             else:
                 raise ConfigEntryNotReady("Failed to connect to API")
 
-        # Create coordinator
         try:
             # Create coordinator
             coordinator = HATextAICoordinator(
@@ -236,6 +235,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except Exception as ex:
             _LOGGER.exception("Error initializing coordinator: %s", str(ex))
             raise ConfigEntryNotReady(f"Error initializing coordinator: {str(ex)}") from ex
+
+    except Exception as ex:
+        _LOGGER.exception("Setup error: %s", str(ex))
+        raise ConfigEntryNotReady(f"Setup error: {str(ex)}") from ex
+
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
