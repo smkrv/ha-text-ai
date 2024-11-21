@@ -129,17 +129,20 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Update data via API."""
+        if not self._is_ready:
+            return self._responses
+
         if self._question_queue.empty():
             return self._responses
 
         try:
             async with async_timeout.timeout(DEFAULT_TIMEOUT):
                 self._is_processing = True
-                priority, question_data = await self._question_queue.get()
-                question = question_data["question"]
-                params = question_data["params"]
-
                 try:
+                    priority, question_data = await self._question_queue.get()
+                    question = question_data["question"]
+                    params = question_data["params"]
+
                     response_data = await self._make_api_call(
                         question,
                         model=params.get("model"),
@@ -148,42 +151,63 @@ class HATextAICoordinator(DataUpdateCoordinator):
                         system_prompt=params.get("system_prompt")
                     )
 
-                    self._update_metrics(response_data)
-                    self._responses[question] = {
-                        "question": question,
-                        "response": response_data["response"],
-                        "error": None,
-                        "timestamp": dt_util.utcnow(),
-                        "model": response_data["model"],
-                        "temperature": params.get("temperature", self.temperature),
-                        "max_tokens": params.get("max_tokens", self.max_tokens),
-                        "response_time": response_data.get("response_time"),
-                        "tokens": response_data.get("tokens", 0),
-                        "priority": priority
-                    }
-                    self._error_count = 0
-                    self._is_ready = True
-                    self._endpoint_status = "connected"
-                    self._request_count += 1
-                    self._tokens_used += response_data.get("tokens", 0)
-                    self._last_request_time = time.time()
+                    await self._handle_successful_response(
+                        question, response_data, params, priority
+                    )
 
-                    # Fire event for successful response
-                    self.hass.bus.async_fire(f"{DOMAIN}_response_received", {
-                        "question": question,
-                        "model": response_data["model"],
-                        "tokens": response_data.get("tokens", 0)
-                    })
+                except asyncio.TimeoutError:
+                    _LOGGER.error("Timeout while processing API request")
+                    await self._handle_api_error(question, "Request timeout")
 
-                    _LOGGER.debug("Response received for question: %s", question)
+                except KeyError as ke:
+                    _LOGGER.error("Invalid question data format: %s", str(ke))
+                    await self._handle_api_error(question, f"Invalid data format: {ke}")
 
                 except Exception as err:
+                    _LOGGER.error("Error processing question: %s", str(err))
                     await self._handle_api_error(question, err)
+
                 finally:
                     self._is_processing = False
                     self._question_queue.task_done()
 
-                return self._responses
+        except Exception as e:
+            _LOGGER.error("Critical error in _async_update_data: %s", str(e))
+            self._is_ready = False
+            self._endpoint_status = "error"
+
+        return self._responses
+
+    async def _handle_successful_response(self, question, response_data, params, priority):
+        """Handle successful API response."""
+        self._responses[question] = {
+            "question": question,
+            "response": response_data["response"],
+            "error": None,
+            "timestamp": dt_util.utcnow(),
+            "model": response_data["model"],
+            "temperature": params.get("temperature", self.temperature),
+            "max_tokens": params.get("max_tokens", self.max_tokens),
+            "response_time": response_data.get("response_time"),
+            "tokens": response_data.get("tokens", 0),
+            "priority": priority
+        }
+
+        self._error_count = 0
+        self._is_ready = True
+        self._endpoint_status = "connected"
+        self._request_count += 1
+        self._tokens_used += response_data.get("tokens", 0)
+        self._last_request_time = time.time()
+
+        # Fire event for successful response
+        self.hass.bus.async_fire(f"{DOMAIN}_response_received", {
+            "question": question,
+            "model": response_data["model"],
+            "tokens": response_data.get("tokens", 0)
+        })
+
+        _LOGGER.debug("Response received for question: %s", question)
 
         except asyncio.TimeoutError as err:
             _LOGGER.error("Timeout while processing question")
@@ -344,24 +368,34 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 max_tokens=max_tokens if max_tokens is not None else self.max_tokens,
             )
 
-            _LOGGER.debug("Received API response: %s", completion)
+            _LOGGER.debug("Raw API response: %s", completion)
 
-            if not completion or not hasattr(completion, 'choices') or not completion.choices:
-                raise ValueError("Invalid or empty response from API")
+            if completion is None:
+                raise ValueError("Received null response from API")
 
-            # Безопасное извлечение сообщения
+            if not hasattr(completion, 'choices') or not completion.choices:
+                raise ValueError("No choices in API response")
+
+            if not hasattr(completion.choices[0], 'message'):
+                raise ValueError("No message in API response choice")
+
             message = completion.choices[0].message
-            if not message or not hasattr(message, 'content'):
-                raise ValueError("No content in API response message")
+            if not hasattr(message, 'content'):
+                raise ValueError("No content in message")
+
+            response_text = message.content
 
             return {
-                "response": message.content,
+                "response": response_text,
                 "model": getattr(completion, 'model', model or self.model),
                 "tokens": completion.usage.total_tokens if hasattr(completion, 'usage') else 0
             }
 
         except Exception as e:
             _LOGGER.error("OpenAI API call error: %s", str(e))
+            # Добавим более подробное логирование
+            if completion:
+                _LOGGER.debug("Failed response structure: %s", str(completion))
             raise
 
     async def async_ask_question(
@@ -374,29 +408,36 @@ class HATextAICoordinator(DataUpdateCoordinator):
         priority: bool = False
     ) -> None:
         """Add question to queue with priority support."""
-        if not self._is_ready and self._error_count >= self._MAX_ERRORS:
-            _LOGGER.warning("Coordinator is not ready due to previous errors")
-            return
-
-        question_data = {
-            "question": question,
-            "params": {
-                "system_prompt": system_prompt,
-                "model": model,
-                "temperature": temperature,
-                "max_tokens": max_tokens
-            }
-        }
-
-        # Priority: 0 for high priority, 1 for normal
-        priority_level = 0 if priority else 1
-
         try:
+            if not self._is_ready and self._error_count >= self._MAX_ERRORS:
+                _LOGGER.warning("Coordinator is not ready due to previous errors")
+                return
+
+            _LOGGER.debug("Processing question: %s with model: %s", question, model or self.model)
+
+            question_data = {
+                "question": question,
+                "params": {
+                    "system_prompt": system_prompt,
+                    "model": model,
+                    "temperature": temperature,
+                    "max_tokens": max_tokens
+                }
+            }
+
+            # Priority: 0 for high priority, 1 for normal
+            priority_level = 0 if priority else 1
+
             await self._question_queue.put((priority_level, question_data))
+            _LOGGER.debug("Question added to queue with priority %d", priority_level)
             await self.async_refresh()
+
         except asyncio.QueueFull:
             _LOGGER.error("Question queue is full. Try again later.")
             raise RuntimeError("Queue is full")
+        except Exception as e:
+            _LOGGER.error("Error in async_ask_question: %s", str(e))
+            raise
 
     async def async_shutdown(self) -> None:
         """Shutdown the coordinator."""
