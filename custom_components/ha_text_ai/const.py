@@ -192,7 +192,7 @@ EVENT_ERROR_OCCURRED: Final = f"{DOMAIN}_error_occurred"
 EVENT_STATE_CHANGED: Final = f"{DOMAIN}_state_changed"
 
 # Service schema constants
-SERVICE_SCHEMA_ASK_QUESTION = {
+SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
     vol.Required("question"): cv.string,
     vol.Optional("system_prompt"): cv.string,
     vol.Optional("model"): vol.In(SUPPORTED_MODELS),
@@ -205,7 +205,7 @@ SERVICE_SCHEMA_ASK_QUESTION = {
         vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
     ),
     vol.Optional("priority"): cv.boolean,
-}
+})
 
 SERVICE_SCHEMA_GET_HISTORY = {
     vol.Optional("limit", default=10): vol.All(
