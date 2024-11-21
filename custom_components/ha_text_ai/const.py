@@ -185,7 +185,7 @@ EVENT_STATE_CHANGED: Final = f"{DOMAIN}_state_changed"
 SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
     vol.Required("question"): cv.string,
     vol.Optional("system_prompt"): cv.string,
-    vol.Optional("model"): cv.string, 
+    vol.Optional("model"): cv.string,
     vol.Optional("temperature"): vol.All(
         vol.Coerce(float),
         vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
@@ -208,7 +208,7 @@ SERVICE_SCHEMA_GET_HISTORY = vol.Schema({
         vol.Coerce(int),
         vol.Range(min=1, max=100)
     ),
-    vol.Optional("filter_model"): vol.In(SUPPORTED_MODELS),
+#    vol.Optional("filter_model"): vol.In(SUPPORTED_MODELS),
     vol.Optional("start_date"): cv.datetime,
     vol.Optional("include_metadata"): cv.boolean,
 })
