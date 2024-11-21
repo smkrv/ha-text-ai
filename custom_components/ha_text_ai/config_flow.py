@@ -65,6 +65,10 @@ STEP_USER_DATA_SCHEMA = vol.Schema(
         vol.Optional(
             CONF_API_ENDPOINT,
             default=DEFAULT_API_ENDPOINT
+        ): vol.All(
+            cv.string,
+            vol.Match(r'^https?://.+', msg="Must be a valid HTTP(S) URL")
+        ),
         ): cv.string,
         vol.Optional(
             CONF_REQUEST_INTERVAL,

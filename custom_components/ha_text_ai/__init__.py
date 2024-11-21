@@ -9,8 +9,8 @@ from datetime import datetime
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY
-from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.exceptions import ConfigEntryNotReady
+from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import aiohttp_client
 from async_timeout import timeout
@@ -45,83 +45,88 @@ _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
+@callback
+def get_coordinator(hass: HomeAssistant) -> Optional[HATextAICoordinator]:
+    """Get the first available coordinator."""
+    if DOMAIN in hass.data and hass.data[DOMAIN]:
+        return next(iter(hass.data[DOMAIN].values()), None)
+    return None
+
 async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
     """Set up the HA Text AI component."""
     hass.data.setdefault(DOMAIN, {})
 
-    # Register services at component setup
     async def async_ask_question(call: ServiceCall) -> None:
         """Handle ask_question service."""
-        coordinator = None
-        # Get the first available coordinator
-        for entry_id, coord in hass.data[DOMAIN].items():
-            coordinator = coord
-            break
-
+        coordinator = get_coordinator(hass)
         if not coordinator:
-            _LOGGER.error("No coordinator available")
-            return
+            raise HomeAssistantError("No coordinator available")
 
-        question = call.data.get("question", "")
+        question = call.data.get("question")
         if not question:
-            _LOGGER.error("No question provided")
-            return
-
-        params = {
-            "system_prompt": call.data.get("system_prompt"),
-            "model": call.data.get("model"),
-            "temperature": call.data.get("temperature"),
-            "max_tokens": call.data.get("max_tokens"),
-            "priority": call.data.get("priority", False)
-        }
+            raise HomeAssistantError("No question provided")
 
         try:
+            params = {
+                "system_prompt": call.data.get("system_prompt"),
+                "model": call.data.get("model"),
+                "temperature": call.data.get("temperature"),
+                "max_tokens": call.data.get("max_tokens"),
+                "priority": call.data.get("priority", False)
+            }
             await coordinator.async_ask_question(question, **params)
         except Exception as err:
             _LOGGER.error("Error asking question: %s", str(err))
+            raise HomeAssistantError(f"Failed to process question: {str(err)}")
 
     async def async_clear_history(call: ServiceCall) -> None:
         """Handle clear_history service."""
-        coordinator = next(iter(hass.data[DOMAIN].values()), None)
-        if coordinator:
-            try:
-                await coordinator.clear_history()
-            except Exception as err:
-                _LOGGER.error("Error clearing history: %s", str(err))
-        else:
-            _LOGGER.error("No coordinator available")
+        coordinator = get_coordinator(hass)
+        if not coordinator:
+            raise HomeAssistantError("No coordinator available")
+
+        try:
+            await coordinator.clear_history()
+        except Exception as err:
+            _LOGGER.error("Error clearing history: %s", str(err))
+            raise HomeAssistantError(f"Failed to clear history: {str(err)}")
 
     async def async_set_system_prompt(call: ServiceCall) -> None:
         """Handle set_system_prompt service."""
-        coordinator = next(iter(hass.data[DOMAIN].values()), None)
-        if coordinator:
-            prompt = call.data.get("prompt", "")
-            if prompt:
-                coordinator.update_system_prompt(prompt)
-            else:
-                _LOGGER.error("No prompt provided")
-        else:
-            _LOGGER.error("No coordinator available")
+        coordinator = get_coordinator(hass)
+        if not coordinator:
+            raise HomeAssistantError("No coordinator available")
 
-    # Register services
+        prompt = call.data.get("prompt")
+        if not prompt:
+            raise HomeAssistantError("No prompt provided")
+
+        try:
+            coordinator.update_system_prompt(prompt)
+        except Exception as err:
+            _LOGGER.error("Error setting system prompt: %s", str(err))
+            raise HomeAssistantError(f"Failed to set system prompt: {str(err)}")
+
+    # Register services with proper schema validation
     hass.services.async_register(
         DOMAIN,
         SERVICE_ASK_QUESTION,
         async_ask_question,
-        schema=SERVICE_SCHEMA_ASK_QUESTION
+        schema=vol.Schema(SERVICE_SCHEMA_ASK_QUESTION)
     )
 
     hass.services.async_register(
         DOMAIN,
         SERVICE_CLEAR_HISTORY,
-        async_clear_history
+        async_clear_history,
+        schema=vol.Schema({})
     )
 
     hass.services.async_register(
         DOMAIN,
         SERVICE_SET_SYSTEM_PROMPT,
         async_set_system_prompt,
-        schema=SERVICE_SCHEMA_SET_SYSTEM_PROMPT
+        schema=vol.Schema(SERVICE_SCHEMA_SET_SYSTEM_PROMPT)
     )
 
     return True
@@ -200,31 +205,37 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 raise ConfigEntryNotReady("Failed to connect to API")
 
         # Create coordinator
-        coordinator = HATextAICoordinator(
-            hass,
-            api_key=api_key,
-            endpoint=endpoint,
-            model=model,
-            temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE), max_tokens=entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
-            request_interval=entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL),
-            session=session,
-            is_anthropic=is_anthropic
-        )
+        try:
+            # Create coordinator
+            coordinator = HATextAICoordinator(
+                hass,
+                api_key=api_key,
+                endpoint=endpoint,
+                model=model,
+                temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
+                max_tokens=entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
+                request_interval=entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL),
+                session=session,
+                is_anthropic=is_anthropic
+            )
 
-        # Initialize the coordinator
-        await coordinator.async_initialize()
-        await coordinator.async_config_entry_first_refresh()
+            # Initialize the coordinator
+            await coordinator.async_initialize()
+            await coordinator.async_config_entry_first_refresh()
 
-        hass.data[DOMAIN][entry.entry_id] = coordinator
+            # Store coordinator
+            if DOMAIN not in hass.data:
+                hass.data[DOMAIN] = {}
+            hass.data[DOMAIN][entry.entry_id] = coordinator
 
-        # Set up platforms
-        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+            # Set up platforms
+            await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-        return True
+            return True
 
-    except Exception as ex:
-        _LOGGER.exception("Setup error: %s", str(ex))
-        raise ConfigEntryNotReady from ex
+        except Exception as ex:
+            _LOGGER.exception("Error initializing coordinator: %s", str(ex))
+            raise ConfigEntryNotReady(f"Error initializing coordinator: {str(ex)}") from ex
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
