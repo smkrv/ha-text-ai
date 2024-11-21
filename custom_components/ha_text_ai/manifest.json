@@ -23,6 +23,5 @@
   "ssdp": [],
   "usb": [],
   "version": "2.0.0",
-  "zeroconf": [],
-  "icon": "mdi:robot"
+  "zeroconf": []
 }
