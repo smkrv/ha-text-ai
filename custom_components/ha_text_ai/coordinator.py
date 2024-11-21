@@ -209,11 +209,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
         _LOGGER.debug("Response received for question: %s", question)
 
-        except asyncio.TimeoutError as err:
-            _LOGGER.error("Timeout while processing question")
-            await self._handle_timeout_error()
-            return self._responses
-
     async def _handle_api_error(self, question: str, error: Exception) -> None:
         """Handle API errors with retry logic."""
         self._error_count += 1
@@ -492,11 +487,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
         )
         self._performance_metrics["total_requests"] = self._request_count
         self._performance_metrics["total_tokens"] = self._tokens_used
-
-    async def async_initialize(self) -> None:
-        """Initialize coordinator."""
-        self._is_ready = True
-        await self.async_refresh()
 
     @property
     def performance_metrics(self) -> Dict[str, Any]:
