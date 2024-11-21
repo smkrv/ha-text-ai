@@ -1,5 +1,5 @@
 # 🤖 HA Text AI for Home Assistant
-### Advanced AI Integration for Home Assistant with multi-provider support
+## Advanced AI Integration for Home Assistant with multi-provider support
 
 <div align="center">  
 
