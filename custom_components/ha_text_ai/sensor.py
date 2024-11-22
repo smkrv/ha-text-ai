@@ -74,7 +74,10 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._config_entry = config_entry
         self._attr_unique_id = config_entry.entry_id
+        # Добавьте инициализацию состояния
+        self._current_state = STATE_INITIALIZING
 
+        # Девайс инфо
         self._attr_device_info = {
             "identifiers": {(DOMAIN, self._attr_unique_id)},
             "name": "HA Text AI",
@@ -84,16 +87,11 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         }
 
     @property
-    def name(self) -> str:
-        """Return the name of the sensor."""
-        return "HA Text AI"
-
-    @property
     def icon(self) -> str:
         """Return the icon based on the current state."""
-        if self._state == STATE_PROCESSING:
+        if self._current_state == STATE_PROCESSING:
             return ENTITY_ICON_PROCESSING
-        elif self._state in [STATE_ERROR, STATE_DISCONNECTED, STATE_RATE_LIMITED]:
+        elif self._current_state in [STATE_ERROR, STATE_DISCONNECTED, STATE_RATE_LIMITED]:
             return ENTITY_ICON_ERROR
         return ENTITY_ICON
 
@@ -103,57 +101,41 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         last_response = self.coordinator.last_response
         if last_response and 'timestamp' in last_response:
             return dt_util.as_local(last_response['timestamp'])
-        return self._state
+        return self._current_state
 
-    @property
-    def extra_state_attributes(self) -> Dict[str, Any]:
-        """Return entity specific state attributes."""
-        attributes = {
-            ATTR_TOTAL_RESPONSES: 0,
-            ATTR_MODEL: self.coordinator.model,
-            ATTR_TEMPERATURE: self.coordinator.temperature,
-            ATTR_MAX_TOKENS: self.coordinator.max_tokens,
-            ATTR_SYSTEM_PROMPT: self.coordinator.system_prompt,
-            ATTR_QUEUE_SIZE: self.coordinator._question_queue.qsize(),
-            ATTR_API_STATUS: self._state,
-            ATTR_ERROR_COUNT: self._error_count,
-            ATTR_LAST_ERROR: self._last_error,
-            ATTR_API_VERSION: self.coordinator.api_version,
-            ATTR_ENDPOINT_STATUS: self.coordinator.endpoint_status,
-            ATTR_REQUEST_COUNT: self.coordinator.request_count,
-            ATTR_TOKENS_USED: self.coordinator.tokens_used,
-        }
+    def _handle_coordinator_update(self) -> None:
+        """Handle updated data from the coordinator."""
+        try:
+            last_response = self.coordinator.last_response
 
-        last_response = self.coordinator.last_response
-        if last_response:
-            attributes.update({
-                ATTR_RESPONSE: last_response.get("response", ""),
-                ATTR_QUESTION: last_response.get("question", ""),
-                ATTR_LAST_UPDATED: last_response.get("timestamp"),
-                ATTR_MODEL: last_response.get("model", self.coordinator.model),
-                ATTR_TEMPERATURE: last_response.get("temperature", self.coordinator.temperature),
-                ATTR_MAX_TOKENS: last_response.get("max_tokens", self.coordinator.max_tokens),
-                ATTR_RESPONSE_TIME: last_response.get("response_time"),
-                ATTR_TOTAL_RESPONSES: len(self.coordinator._responses)
-            })
+            if last_response:
+                if last_response.get("error"):
+                    self._current_state = STATE_ERROR
+                    self._error_count += 1
+                elif self.coordinator._is_processing:
+                    self._current_state = STATE_PROCESSING
+                elif self.coordinator._is_rate_limited:
+                    self._current_state = STATE_RATE_LIMITED
+                elif self.coordinator._is_maintenance:
+                    self._current_state = STATE_MAINTENANCE
+                else:
+                    self._current_state = STATE_READY
+            else:
+                self._current_state = STATE_DISCONNECTED
 
-            # Обработка ошибок
-            if last_response.get("error"):
-                self._last_error = last_response["error"]
-                self._state = STATE_ERROR
+        except Exception as err:
+            _LOGGER.error("Error handling update: %s", err, exc_info=True)
+            self._error_count += 1
+            self._last_error = str(err)
+            self._current_state = STATE_ERROR
 
-        return attributes
-
-    @property
-    def available(self) -> bool:
-        """Return if entity is available."""
-        return self.coordinator.last_update_success
+        self.async_write_ha_state()
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
         await super().async_added_to_hass()
         self._handle_coordinator_update()
-        self._state = STATE_READY
+        self._current_state = STATE_READY
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
