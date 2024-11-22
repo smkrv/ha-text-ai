@@ -66,5 +66,12 @@
                 }
             }
         }
+    },
+    "entity": {
+        "sensor": {
+            "ha_text_ai": {
+                "name": "HA Text AI"
+            }
+        }
     }
 }

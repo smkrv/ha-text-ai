@@ -62,6 +62,9 @@ async def async_setup_entry(
 class HATextAISensor(CoordinatorEntity, SensorEntity):
     """HA text AI Sensor."""
 
+    _attr_has_entity_name = True
+    _attr_translation_key = "ha_text_ai"
+
     def __init__(
         self,
         coordinator: HATextAICoordinator,
@@ -71,10 +74,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._config_entry = config_entry
         self._attr_unique_id = config_entry.entry_id
-        self._attr_suggested_display_precision = 0
-        self._error_count = 0
-        self._last_error = None
-        self._state = STATE_INITIALIZING
+
         self._attr_device_info = {
             "identifiers": {(DOMAIN, self._attr_unique_id)},
             "name": "HA Text AI",
