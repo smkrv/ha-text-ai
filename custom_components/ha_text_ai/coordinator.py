@@ -7,6 +7,7 @@ import time
 import ssl
 import certifi
 import aiohttp
+import httpx
 
 from homeassistant.helpers import aiohttp_client
 from openai import AsyncOpenAI, APIError, AuthenticationError, RateLimitError
@@ -97,21 +98,21 @@ class HATextAICoordinator(DataUpdateCoordinator):
     async def _init_client(self):
         """Initialize API client with proper SSL context."""
         try:
-            ssl_context = await self._create_ssl_context()
-            connector = aiohttp.TCPConnector(ssl=ssl_context)
-            client_session = aiohttp.ClientSession(connector=connector)
-
             if self._is_anthropic:
-                self.client = AsyncAnthropic(
-                    api_key=self.api_key,
-                    http_client=client_session
-                )
-            else:
-                self.client = AsyncOpenAI(
-                    api_key=self.api_key,
-                    base_url=self.endpoint,
-                    http_client=client_session,
-                )
+                 self.client = AsyncAnthropic(
+                     api_key=self.api_key
+                 )
+            else:  # OpenAI
+                 async_client = httpx.AsyncClient(
+                     base_url=self.endpoint,
+                     timeout=httpx.Timeout(30.0)
+                 )
+
+                 self.client = AsyncOpenAI(
+                     api_key=self.api_key,
+                     base_url=self.endpoint,
+                     http_client=async_client
+                 )
         except Exception as e:
             _LOGGER.error("Error initializing API client: %s", str(e))
             raise
@@ -468,8 +469,10 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 except asyncio.QueueEmpty:
                     break
 
-            if hasattr(self.client, 'close'):
-                await self.client.close()
+             if hasattr(self.client, 'close'):
+                 await self.client.close()
+             elif hasattr(self.client, '_client') and hasattr(self.client._client, 'aclose'):
+                 await self.client._client.aclose()
 
             self._is_ready = False
             self._endpoint_status = "disconnected"
@@ -478,7 +481,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
             self._update_final_metrics()
 
         except Exception as err:
-            _LOGGER.error("Error during shutdown: %s", err)
+             _LOGGER.error("Error during shutdown: %s", err)
 
     def _update_final_metrics(self) -> None:
         """Update final metrics before shutdown."""
