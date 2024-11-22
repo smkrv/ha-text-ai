@@ -46,13 +46,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
             name=DOMAIN,
             update_interval=timedelta(seconds=float(request_interval)),
         )
-        """Initialize coordinator."""
-        super().__init__(
-            hass,
-            _LOGGER,
-            name=DOMAIN,
-            update_interval=timedelta(seconds=request_interval),
-        )
 
         self._validate_params(api_key, temperature, max_tokens)
 
@@ -134,11 +127,8 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Update data via API."""
-        if not self._is_ready:
-            return self._responses
-
-        if self._question_queue.empty():
-            return self._responses
+        if not self._is_ready or self._question_queue.empty():
+            return {}
 
         try:
             async with async_timeout.timeout(DEFAULT_TIMEOUT):
@@ -171,6 +161,12 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 except Exception as err:
                     _LOGGER.error("Error processing question: %s", str(err))
                     await self._handle_api_error(question, err)
+
+                except Exception as e:
+                    _LOGGER.error("Critical error in _async_update_data: %s", str(e))
+                    self._is_ready = False
+                    self._endpoint_status = "error"
+                    return {}
 
                 finally:
                     self._is_processing = False
