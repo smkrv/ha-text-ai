@@ -2,6 +2,8 @@
 from datetime import datetime
 import logging
 from typing import Any, Dict, Optional
+import voluptuous as vol
+from homeassistant import config_entries  
 
 from homeassistant.components.sensor import (
     SensorEntity,

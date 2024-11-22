@@ -91,99 +91,81 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders={"provider": provider}
         )
 
-    async def _process_configuration(self, user_input):
-        """Validate and process user configuration."""
-        errors = {}
+async def _process_configuration(self, user_input):
+    """Validate and process user configuration."""
+    errors = {}
 
-        try:
-            # Принудительная очистка существующих записей с тем же API-ключом
-            await self._async_cleanup_existing_entries(user_input[CONF_API_KEY])
+    try:
+        # Генерируем уникальный идентификатор один раз
+        unique_id = f"{user_input[CONF_API_KEY]}_{user_input[CONF_MODEL]}"
+        await self.async_set_unique_id(unique_id)
+        self._abort_if_unique_id_configured()
 
-            session = async_get_clientsession(self.hass)
+        session = async_get_clientsession(self.hass)
 
-            # Minimal API key validation
+        # Minimal API key validation
+        headers = {
+            "Authorization": f"Bearer {user_input[CONF_API_KEY]}",
+            "Content-Type": "application/json"
+        }
+
+        # Adjust headers and endpoint based on provider
+        if user_input[CONF_API_PROVIDER] == API_PROVIDER_ANTHROPIC:
             headers = {
-                "Authorization": f"Bearer {user_input[CONF_API_KEY]}",
-                "Content-Type": "application/json"
+                "x-api-key": user_input[CONF_API_KEY],
+                "anthropic-version": "2023-06-01"
             }
 
-            # Adjust headers and endpoint based on provider
-            if user_input[CONF_API_PROVIDER] == API_PROVIDER_ANTHROPIC:
-                headers = {
-                    "x-api-key": user_input[CONF_API_KEY],
-                    "anthropic-version": "2023-06-01"
-                }
-
-            # Basic connection test
-            try:
-                async with session.get(
-                    f"{user_input[CONF_API_ENDPOINT]}/models",
-                    headers=headers
-                ) as response:
-                    if response.status not in [200, 404]:
-                        errors["base"] = "cannot_connect"
-            except Exception as e:
-                _LOGGER.error(f"Connection test failed: {e}")
-                errors["base"] = "cannot_connect"
-
-            if not errors:
-                # Генерируем уникальный идентификатор на основе ключа
-                await self.async_set_unique_id(user_input[CONF_API_KEY])
-                self._abort_if_unique_id_configured()
-
-                return self.async_create_entry(
-                    title=user_input.get("name", f"HA Text AI ({user_input[CONF_API_PROVIDER]})"),  # Используем введенное имя
-                    data=user_input
-                )
-
-        except Exception as e:
-            _LOGGER.error(f"Unexpected error: {e}")
-            errors["base"] = "unknown"
-
-        # Return to provider config, preserving previous input
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema({
-                vol.Required("name", default=user_input.get("name", f"HA Text AI {len(self._async_current_entries()) + 1}")): str,
-                vol.Required(CONF_API_PROVIDER): vol.In([user_input[CONF_API_PROVIDER]]),
-                vol.Required(CONF_API_KEY): str,
-                vol.Required(CONF_MODEL, default=user_input.get(CONF_MODEL, DEFAULT_MODEL)): str,
-                vol.Optional(CONF_API_ENDPOINT, default=user_input.get(CONF_API_ENDPOINT,
-                    DEFAULT_OPENAI_ENDPOINT if user_input[CONF_API_PROVIDER] == API_PROVIDER_OPENAI
-                    else DEFAULT_ANTHROPIC_ENDPOINT)): str,
-                vol.Optional(CONF_TEMPERATURE, default=user_input.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)): vol.All(
-                    vol.Coerce(float),
-                    vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
-                ),
-                vol.Optional(CONF_MAX_TOKENS, default=user_input.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)): vol.All(
-                    vol.Coerce(int),
-                    vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
-                ),
-                vol.Optional(CONF_REQUEST_INTERVAL, default=user_input.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)): vol.All(
-                    vol.Coerce(float),
-                    vol.Range(min=MIN_REQUEST_INTERVAL)
-                ),
-            }),
-            description_placeholders={"provider": user_input[CONF_API_PROVIDER]},
-            errors=errors
-        )
-
-async def _async_cleanup_existing_entries(self, api_key):
-    """Cleanup existing entries with the same API key."""
-    existing_entries = [
-        entry for entry in self.hass.config_entries.async_entries(DOMAIN)
-        if entry.data.get(CONF_API_KEY) == api_key
-    ]
-
-    for entry in existing_entries:
+        # Basic connection test
         try:
-            await self.hass.config_entries.async_remove(entry.entry_id)
-            _LOGGER.info(f"Removed existing entry with ID: {entry.entry_id}")
+            async with session.get(
+                f"{user_input[CONF_API_ENDPOINT]}/models",
+                headers=headers
+            ) as response:
+                if response.status not in [200, 404]:
+                    errors["base"] = "cannot_connect"
         except Exception as e:
-            _LOGGER.warning(f"Could not remove existing entry: {e}")
+            _LOGGER.error(f"Connection test failed: {e}")
+            errors["base"] = "cannot_connect"
 
-@staticmethod
-@callback
+        if not errors:
+            return self.async_create_entry(
+                title=user_input.get("name", f"HA Text AI ({user_input[CONF_API_PROVIDER]})"),
+                data=user_input
+            )
+
+    except Exception as e:
+        _LOGGER.error(f"Unexpected error: {e}")
+        errors["base"] = "unknown"
+
+    # Return to provider config, preserving previous input
+    return self.async_show_form(
+        step_id="user",
+        data_schema=vol.Schema({
+            vol.Required("name", default=user_input.get("name", f"HA Text AI {len(self._async_current_entries()) + 1}")): str,
+            vol.Required(CONF_API_PROVIDER): vol.In([user_input[CONF_API_PROVIDER]]),
+            vol.Required(CONF_API_KEY): str,
+            vol.Required(CONF_MODEL, default=user_input.get(CONF_MODEL, DEFAULT_MODEL)): str,
+            vol.Optional(CONF_API_ENDPOINT, default=user_input.get(CONF_API_ENDPOINT,
+                DEFAULT_OPENAI_ENDPOINT if user_input[CONF_API_PROVIDER] == API_PROVIDER_OPENAI
+                else DEFAULT_ANTHROPIC_ENDPOINT)): str,
+            vol.Optional(CONF_TEMPERATURE, default=user_input.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)): vol.All(
+                vol.Coerce(float),
+                vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
+            ),
+            vol.Optional(CONF_MAX_TOKENS, default=user_input.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)): vol.All(
+                vol.Coerce(int),
+                vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
+            ),
+            vol.Optional(CONF_REQUEST_INTERVAL, default=user_input.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)): vol.All(
+                vol.Coerce(float),
+                vol.Range(min=MIN_REQUEST_INTERVAL)
+            ),
+        }),
+        description_placeholders={"provider": user_input[CONF_API_PROVIDER]},
+        errors=errors
+    )
+    
 def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> config_entries.OptionsFlow:
     """Create the options flow."""
     return OptionsFlowHandler(config_entry)

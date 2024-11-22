@@ -9,6 +9,8 @@ import certifi
 import aiohttp
 import httpx
 
+import voluptuous as vol
+from homeassistant import config_entries  
 from homeassistant.helpers import aiohttp_client
 from openai import AsyncOpenAI, APIError, AuthenticationError, RateLimitError
 from anthropic import AsyncAnthropic
