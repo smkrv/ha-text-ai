@@ -252,6 +252,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
                 max_tokens=entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
                 request_interval=float(entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)),
+                name=entry.title,  # Передаем имя из конфигурации
                 session=session,
                 is_anthropic=is_anthropic
             )

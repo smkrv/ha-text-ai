@@ -7,6 +7,8 @@ from homeassistant.helpers import config_validation as cv
 # Domain and platforms
 DOMAIN: Final = "ha_text_ai"
 PLATFORMS: Final = [Platform.SENSOR]
+CONF_NAME = "name"
+DEFAULT_NAME = "HA Text AI"
 
 # New constants for providers
 CONF_API_PROVIDER: Final = "api_provider"

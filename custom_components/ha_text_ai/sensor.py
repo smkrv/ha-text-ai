@@ -14,6 +14,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
+from homeassistant.util import slugify
 
 from .const import (
     DOMAIN,
@@ -62,31 +63,39 @@ async def async_setup_entry(
 class HATextAISensor(CoordinatorEntity, SensorEntity):
     """HA text AI Sensor."""
 
-    def __init__(
-        self,
-        coordinator: HATextAICoordinator,
-        config_entry: ConfigEntry,
-    ) -> None:
-        """Initialize the sensor."""
-        super().__init__(coordinator)
-        self._config_entry = config_entry
+def __init__(
+    self,
+    coordinator: HATextAICoordinator,
+    config_entry: ConfigEntry,
+) -> None:
+    """Initialize the sensor."""
+    super().__init__(coordinator)
+    self._config_entry = config_entry
 
-        self._attr_unique_id = f"{config_entry.entry_id}_sensor"
-        self.entity_id = "sensor.ha_text_ai"
-        self._attr_name = "HA Text AI"
+    # Используем имя из конфигурации
+    self._name = config_entry.title
 
-        self._current_state = STATE_INITIALIZING
-        self._error_count = 0
-        self._last_error = None
+    # Создаем уникальный ID используя имя
+    self._attr_unique_id = f"{config_entry.entry_id}_{slugify(self._name)}"
 
-        # Девайс инфо
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, self._attr_unique_id)},
-            "name": "HA Text AI",
-            "manufacturer": "Community",
-            "model": f"{coordinator.model} ({self._config_entry.data.get(CONF_API_PROVIDER, 'Unknown')} provider)",
-            "sw_version": coordinator.api_version,
-        }
+    # Создаем entity_id используя имя
+    self.entity_id = f"sensor.ha_text_ai_{slugify(self._name)}"
+
+    # Устанавливаем отображаемое имя
+    self._attr_name = self._name
+
+    self._current_state = STATE_INITIALIZING
+    self._error_count = 0
+    self._last_error = None
+
+    # Обновляем device_info с использованием имени
+    self._attr_device_info = {
+        "identifiers": {(DOMAIN, self._attr_unique_id)},
+        "name": self._name,  # Используем имя из конфигурации
+        "manufacturer": "Community",
+        "model": f"{coordinator.model} ({self._config_entry.data.get(CONF_API_PROVIDER, 'Unknown')} provider)",
+        "sw_version": coordinator.api_version,
+    }
 
     @property
     def icon(self) -> str:

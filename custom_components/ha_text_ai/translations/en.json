@@ -12,11 +12,12 @@
                     "max_tokens": "Maximum response length (1-4096 tokens)",
                     "api_endpoint": "Custom API endpoint URL (optional)",
                     "request_interval": "Minimum time between requests in seconds (min: 0.1)",
-                    "name": "Integration name"
+                    "name": "Name for this integration instance (e.g., 'GPT Assistant', 'Claude Helper')"
                 }
             }
         },
         "error": {
+            "invalid_name": "Invalid integration name",
             "invalid_auth": "Authentication failed - check your API key",
             "invalid_api_key": "Invalid API key - please verify your credentials",
             "cannot_connect": "Connection failed - check endpoint and network status",
@@ -71,7 +72,15 @@
     "entity": {
         "sensor": {
             "ha_text_ai": {
-                "name": "HA Text AI"
+                "name": "{name}",
+                "state": {
+                    "initializing": "Initializing",
+                    "ready": "Ready",
+                    "processing": "Processing",
+                    "error": "Error",
+                    "disconnected": "Disconnected",
+                    "rate_limited": "Rate Limited"
+                }
             }
         }
     }

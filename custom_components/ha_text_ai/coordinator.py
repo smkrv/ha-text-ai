@@ -38,16 +38,17 @@ class HATextAICoordinator(DataUpdateCoordinator):
         temperature: float,
         max_tokens: int,
         request_interval: float,
+        name: str,
         session: Optional[Any] = None,
         is_anthropic: bool = False,
     ) -> None:
         super().__init__(
             hass,
             _LOGGER,
-            name=DOMAIN,
+            name=name,
             update_interval=timedelta(seconds=float(request_interval)),
         )
-
+        self._name = name
         self._validate_params(api_key, temperature, max_tokens)
         self._entity_id = None
         self.api_key = api_key
@@ -511,6 +512,11 @@ class HATextAICoordinator(DataUpdateCoordinator):
     def entity_id(self, value: str) -> None:
         """Set entity ID."""
         self._entity_id = value
+
+    @property
+    def name(self) -> str:
+        """Get coordinator name."""
+        return self._name
 
     @property
     def performance_metrics(self) -> Dict[str, Any]:
