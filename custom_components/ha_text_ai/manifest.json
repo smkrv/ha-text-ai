@@ -24,6 +24,5 @@
   "ssdp": [],
   "usb": [],
   "version": "2.0.0",
-  "zeroconf": [],
-  "icon": "icons/icon.png"
+  "zeroconf": []
 }
