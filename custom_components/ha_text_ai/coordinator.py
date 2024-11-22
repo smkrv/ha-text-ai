@@ -49,7 +49,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         )
 
         self._validate_params(api_key, temperature, max_tokens)
-
+        self._entity_id = None
         self.api_key = api_key
         self.endpoint = endpoint
         self.model = model
@@ -211,6 +211,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
         # Fire event for successful response
         self.hass.bus.async_fire(f"{DOMAIN}_response_received", {
+            "entity_id": self._entity_id,
             "question": question,
             "model": response_data["model"],
             "tokens": response_data.get("tokens", 0)
@@ -254,8 +255,9 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
         # Fire error event
         self.hass.bus.async_fire(f"{DOMAIN}_error_occurred", {
+            "entity_id": self._entity_id,
             "error_type": type(error).__name__,
-            "error_message": error_msg,
+            "error_message": str(error),
             "question": question
         })
 
@@ -501,6 +503,16 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self._performance_metrics["total_tokens"] = self._tokens_used
 
     @property
+    def entity_id(self) -> Optional[str]:
+        """Get entity ID."""
+        return self._entity_id
+
+    @entity_id.setter
+    def entity_id(self, value: str) -> None:
+        """Set entity ID."""
+        self._entity_id = value
+
+    @property
     def performance_metrics(self) -> Dict[str, Any]:
         """Return current performance metrics."""
         return self._performance_metrics
@@ -668,6 +680,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
     def export_metrics(self) -> Dict[str, Any]:
         """Export all metrics and statistics."""
         return {
+            "entity_id": self._entity_id,
             "performance": self._performance_metrics,
             "requests": {
                 "total": self._request_count,
