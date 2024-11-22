@@ -59,12 +59,13 @@ async def async_setup_entry(
     coordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([HATextAISensor(coordinator, entry)], True)
 
+from homeassistant.components.sensor import SensorDeviceClass
 
 class HATextAISensor(CoordinatorEntity, SensorEntity):
     """HA text AI Sensor."""
 
     _attr_has_entity_name = True
-    _attr_device_class = SensorDeviceClass.TEXT
+    _attr_device_class = SensorDeviceClass.TEXT  # Оставляем как есть
 
     def __init__(
         self,
