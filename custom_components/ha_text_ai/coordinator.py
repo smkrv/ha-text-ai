@@ -128,12 +128,14 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Update data via API."""
-        if not self._is_ready or self._question_queue.empty():
-            return {}
+        # Возвращаем существующие ответы, если нет новых вопросов
+        if self._question_queue.empty():
+            return self._responses
 
         try:
             async with async_timeout.timeout(DEFAULT_TIMEOUT):
                 self._is_processing = True
+
                 try:
                     priority, question_data = await self._question_queue.get()
                     question = question_data["question"]
@@ -151,6 +153,10 @@ class HATextAICoordinator(DataUpdateCoordinator):
                         question, response_data, params, priority
                     )
 
+                except asyncio.QueueEmpty:
+                    # Если очередь пуста, просто возвращаем существующие ответы
+                    return self._responses
+
                 except asyncio.TimeoutError:
                     _LOGGER.error("Timeout while processing API request")
                     await self._handle_api_error(question, "Request timeout")
@@ -162,12 +168,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 except Exception as err:
                     _LOGGER.error("Error processing question: %s", str(err))
                     await self._handle_api_error(question, err)
-
-                except Exception as e:
-                    _LOGGER.error("Critical error in _async_update_data: %s", str(e))
-                    self._is_ready = False
-                    self._endpoint_status = "error"
-                    return {}
 
                 finally:
                     self._is_processing = False
@@ -450,7 +450,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
             await self._question_queue.put((priority_level, question_data))
             _LOGGER.debug("Question added to queue with priority %d", priority_level)
-            await self.async_refresh()
+
 
         except asyncio.QueueFull:
             _LOGGER.error("Question queue is full. Try again later.")
@@ -458,6 +458,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         except Exception as e:
             _LOGGER.error("Error in async_ask_question: %s", str(e))
             raise
+
 
     async def async_shutdown(self) -> None:
         """Shutdown the coordinator."""
