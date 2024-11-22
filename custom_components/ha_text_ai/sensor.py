@@ -59,26 +59,29 @@ async def async_setup_entry(
     coordinator = hass.data[DOMAIN][entry.entry_id]
     async_add_entities([HATextAISensor(coordinator, entry)], True)
 
-def __init__(
-    self,
-    coordinator: HATextAICoordinator,
-    config_entry: ConfigEntry,
-) -> None:
-    """Initialize the sensor."""
-    super().__init__(coordinator)
-    self._config_entry = config_entry
-    self._attr_unique_id = config_entry.entry_id
-    self._attr_suggested_display_precision = 0
-    self._error_count = 0
-    self._last_error = None
-    self._state = STATE_INITIALIZING
-    self._attr_device_info = {
-        "identifiers": {(DOMAIN, self._attr_unique_id)},
-        "name": "HA Text AI",
-        "manufacturer": "Community",
-        "model": f"{coordinator.model} ({self._config_entry.data.get(CONF_API_PROVIDER, 'Unknown')} provider)",
-        "sw_version": coordinator.api_version,
-    }
+class HATextAISensor(CoordinatorEntity, SensorEntity):
+    """HA text AI Sensor."""
+
+    def __init__(
+        self,
+        coordinator: HATextAICoordinator,
+        config_entry: ConfigEntry,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._config_entry = config_entry
+        self._attr_unique_id = config_entry.entry_id
+        self._attr_suggested_display_precision = 0
+        self._error_count = 0
+        self._last_error = None
+        self._state = STATE_INITIALIZING
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, self._attr_unique_id)},
+            "name": "HA Text AI",
+            "manufacturer": "Community",
+            "model": f"{coordinator.model} ({self._config_entry.data.get(CONF_API_PROVIDER, 'Unknown')} provider)",
+            "sw_version": coordinator.api_version,
+        }
 
     @property
     def name(self) -> str:
@@ -100,8 +103,7 @@ def __init__(
         last_response = self.coordinator.last_response
         if last_response and 'timestamp' in last_response:
             return dt_util.as_local(last_response['timestamp'])
-
-        return None
+        return self._state
 
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
