@@ -93,6 +93,9 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         try:
+            # Принудительная очистка существующих записей с тем же API-ключом
+            await self._async_cleanup_existing_entries(user_input[CONF_API_KEY])
+
             session = async_get_clientsession(self.hass)
 
             # Minimal API key validation
@@ -121,23 +124,14 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
 
             if not errors:
-                # Проверяем существующие конфигурации
-                existing_entries = [
-                    entry for entry in self.hass.config_entries.async_entries(DOMAIN)
-                    if entry.data.get(CONF_API_KEY) == user_input[CONF_API_KEY]
-                ]
+                # Генерируем уникальный идентификатор на основе ключа
+                await self.async_set_unique_id(user_input[CONF_API_KEY])
+                self._abort_if_unique_id_configured()
 
-                if existing_entries:
-                    errors["base"] = "already_configured"
-                else:
-                    # Генерируем уникальный идентификатор на основе ключа
-                    await self.async_set_unique_id(user_input[CONF_API_KEY])
-                    self._abort_if_unique_id_configured()
-
-                    return self.async_create_entry(
-                        title=f"HA Text AI ({user_input[CONF_API_PROVIDER]})",
-                        data=user_input
-                    )
+                return self.async_create_entry(
+                    title=f"HA Text AI ({user_input[CONF_API_PROVIDER]})",
+                    data=user_input
+                )
 
         except Exception as e:
             _LOGGER.error(f"Unexpected error: {e}")
@@ -169,6 +163,20 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders={"provider": user_input[CONF_API_PROVIDER]},
             errors=errors
         )
+
+    async def _async_cleanup_existing_entries(self, api_key):
+        """Cleanup existing entries with the same API key."""
+        existing_entries = [
+            entry for entry in self.hass.config_entries.async_entries(DOMAIN)
+            if entry.data.get(CONF_API_KEY) == api_key
+        ]
+
+        for entry in existing_entries:
+            try:
+                await self.hass.config_entries.async_remove(entry.entry_id)
+                _LOGGER.info(f"Removed existing entry with ID: {entry.entry_id}")
+            except Exception as e:
+                _LOGGER.warning(f"Could not remove existing entry: {e}")
 
 @staticmethod
 @callback
