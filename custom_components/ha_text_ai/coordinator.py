@@ -77,17 +77,22 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self._session = session or aiohttp_client.async_get_clientsession(hass)
         self.client = None
 
-        super().__init__(
+        super().__init__(  
             hass,
             _LOGGER,
-            name=self._name,  # Используем уже установленное значение
+            name=self._name,
             update_interval=timedelta(seconds=float(request_interval)),
         )
 
     @property
     def name(self) -> str:
-        """Return the name of the coordinator."""
+        """Get coordinator name."""
         return self._name
+
+    @name.setter
+    def name(self, value: str) -> None:
+        """Set coordinator name."""
+        self._name = value
 
     async def async_initialize(self) -> None:
         """Initialize coordinator."""
