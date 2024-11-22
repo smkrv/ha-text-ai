@@ -17,7 +17,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
-    CONF_API_PROVIDER,  # Новый импорт
+    CONF_API_PROVIDER,
     ATTR_QUESTION,
     ATTR_RESPONSE,
     ATTR_LAST_UPDATED,
@@ -103,19 +103,11 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
     @property
     def state(self) -> StateType:
         """Return the state of the sensor."""
-        if not self.coordinator.data or not self.coordinator.last_update_success:
-            return None
+        last_response = self.coordinator.last_response
+        if last_response and 'timestamp' in last_response:
+            return dt_util.as_local(last_response['timestamp'])
 
-        try:
-            if self.coordinator.data and isinstance(self.coordinator.data, dict):
-                last_update = self.coordinator.data.get("last_update")
-                if isinstance(last_update, datetime):
-                    return dt_util.as_local(last_update)
-                return last_update
-            return None
-        except Exception as err:
-            _LOGGER.error("Error getting state: %s", err, exc_info=True)
-            return None
+        return None
 
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
@@ -136,59 +128,25 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             ATTR_TOKENS_USED: self.coordinator.tokens_used,
         }
 
-        if not self.coordinator.data:
-            return attributes
+        last_response = self.coordinator.last_response
+        if last_response:
+            attributes.update({
+                ATTR_RESPONSE: last_response.get("response", ""),
+                ATTR_QUESTION: last_response.get("question", ""),
+                ATTR_LAST_UPDATED: last_response.get("timestamp"),
+                ATTR_MODEL: last_response.get("model", self.coordinator.model),
+                ATTR_TEMPERATURE: last_response.get("temperature", self.coordinator.temperature),
+                ATTR_MAX_TOKENS: last_response.get("max_tokens", self.coordinator.max_tokens),
+                ATTR_RESPONSE_TIME: last_response.get("response_time"),
+                ATTR_TOTAL_RESPONSES: len(self.coordinator._responses)
+            })
 
-        try:
-            history = list(self.coordinator._responses.items())
-            if history:
-                last_question, last_data = history[-1]
+            # Обработка ошибок
+            if last_response.get("error"):
+                self._last_error = last_response["error"]
+                self._state = STATE_ERROR
 
-                if isinstance(last_data, dict):
-                    last_response = last_data.get("response", "")
-                    last_updated = last_data.get("timestamp") or self.coordinator.data.get("last_update")
-                    response_time = last_data.get("response_time")
-
-                    model = last_data.get("model", self.coordinator.model)
-                    temperature = last_data.get("temperature", self.coordinator.temperature)
-                    max_tokens = last_data.get("max_tokens", self.coordinator.max_tokens)
-                    error = last_data.get("error")
-
-                    if error:
-                        self._last_error = error
-                        self._state = STATE_ERROR
-                else:
-                    last_response = str(last_data)
-                    last_updated = self.coordinator.data.get("last_update")
-                    response_time = None
-                    model = self.coordinator.model
-                    temperature = self.coordinator.temperature
-                    max_tokens = self.coordinator.max_tokens
-
-                if isinstance(last_updated, datetime):
-                    last_updated = dt_util.as_local(last_updated)
-
-                attributes.update({
-                    ATTR_QUESTION: last_question,
-                    ATTR_RESPONSE: last_response,
-                    ATTR_LAST_UPDATED: last_updated,
-                    ATTR_TOTAL_RESPONSES: len(history),
-                    ATTR_MODEL: model,
-                    ATTR_TEMPERATURE: temperature,
-                    ATTR_MAX_TOKENS: max_tokens,
-                })
-
-                if response_time is not None:
-                    attributes[ATTR_RESPONSE_TIME] = response_time
-
-            return attributes
-
-        except Exception as err:
-            _LOGGER.error("Error getting attributes: %s", err, exc_info=True)
-            self._error_count += 1
-            self._last_error = str(err)
-            self._state = STATE_ERROR
-            return attributes
+        return attributes
 
     @property
     def available(self) -> bool:
@@ -204,23 +162,22 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         try:
-            if self.coordinator.data:
-                if self.coordinator._is_ready:
-                    if self.coordinator._is_processing:
-                        self._state = STATE_PROCESSING
-                    elif self.coordinator._is_rate_limited:
-                        self._state = STATE_RATE_LIMITED
-                    elif self.coordinator._is_maintenance:
-                        self._state = STATE_MAINTENANCE
-                    else:
-                        self._state = STATE_READY
+            last_response = self.coordinator.last_response
+
+            if last_response:
+                if last_response.get("error"):
+                    self._state = STATE_ERROR
+                    self._error_count += 1
+                elif self.coordinator._is_processing:
+                    self._state = STATE_PROCESSING
+                elif self.coordinator._is_rate_limited:
+                    self._state = STATE_RATE_LIMITED
+                elif self.coordinator._is_maintenance:
+                    self._state = STATE_MAINTENANCE
                 else:
-                    self._state = STATE_DISCONNECTED
+                    self._state = STATE_READY
             else:
                 self._state = STATE_DISCONNECTED
-
-            if self._state == STATE_ERROR:
-                self._error_count += 1
 
         except Exception as err:
             _LOGGER.error("Error handling update: %s", err, exc_info=True)

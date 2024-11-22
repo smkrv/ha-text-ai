@@ -563,7 +563,8 @@ class HATextAICoordinator(DataUpdateCoordinator):
         """Return the last response."""
         if not self._responses:
             return None
-        return next(iter(self._responses.values()))
+
+        return list(self._responses.values())[-1]
 
     def reset_error_count(self) -> None:
         """Reset error counter."""
