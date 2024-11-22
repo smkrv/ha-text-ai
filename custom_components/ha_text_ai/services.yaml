@@ -3,6 +3,9 @@ ask_question:
   description: >-
     Send a question to the AI model and receive a detailed response.
     The response will be stored in the conversation history and can be retrieved later.
+  target:
+    entity:
+      integration: ha_text_ai
   fields:
     question:
       name: Question
@@ -56,11 +59,17 @@ ask_question:
 clear_history:
   name: Clear History
   description: Delete all stored questions and responses from the conversation history.
+  target:
+    entity:
+      integration: ha_text_ai
   fields: {}
 
 get_history:
   name: Get History
   description: Retrieve recent conversation history.
+  target:
+    entity:
+      integration: ha_text_ai
   fields:
     limit:
       name: Limit
@@ -84,6 +93,9 @@ get_history:
 set_system_prompt:
   name: Set System Prompt
   description: Set default system behavior instructions for all future conversations.
+  target:
+    entity:
+      integration: ha_text_ai
   fields:
     prompt:
       name: System Prompt

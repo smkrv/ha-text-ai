@@ -11,7 +11,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
-from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import config_validation as cv, entity_platform
 from homeassistant.helpers import aiohttp_client
 from async_timeout import timeout
 
@@ -47,10 +47,12 @@ _LOGGER = logging.getLogger(__name__)
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 @callback
-def get_coordinator(hass: HomeAssistant) -> Optional[HATextAICoordinator]:
-    """Get the first available coordinator."""
-    if DOMAIN in hass.data and hass.data[DOMAIN]:
-        return next(iter(hass.data[DOMAIN].values()), None)
+def get_coordinator_by_id(hass: HomeAssistant, entity_id: str) -> Optional[HATextAICoordinator]:
+    """Get coordinator by entity ID."""
+    if DOMAIN in hass.data:
+        for entry_id, coordinator in hass.data[DOMAIN].items():
+            if coordinator.entity_id == entity_id:
+                return coordinator
     return None
 
 async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
@@ -59,9 +61,13 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
 
     async def async_ask_question(call: ServiceCall) -> None:
         """Handle ask_question service."""
-        coordinator = get_coordinator(hass)
+        entity_id = call.target.get("entity_id")
+        if not entity_id:
+            raise HomeAssistantError("No target entity specified")
+
+        coordinator = get_coordinator_by_id(hass, entity_id)
         if not coordinator:
-            raise HomeAssistantError("No coordinator available")
+            raise HomeAssistantError(f"No coordinator found for entity {entity_id}")
 
         question = call.data.get("question")
         if not question:
@@ -82,9 +88,13 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
 
     async def async_clear_history(call: ServiceCall) -> None:
         """Handle clear_history service."""
-        coordinator = get_coordinator(hass)
+        entity_id = call.target.get("entity_id")
+        if not entity_id:
+            raise HomeAssistantError("No target entity specified")
+
+        coordinator = get_coordinator_by_id(hass, entity_id)
         if not coordinator:
-            raise HomeAssistantError("No coordinator available")
+            raise HomeAssistantError(f"No coordinator found for entity {entity_id}")
 
         try:
             await coordinator.clear_history()
@@ -94,9 +104,13 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
 
     async def async_set_system_prompt(call: ServiceCall) -> None:
         """Handle set_system_prompt service."""
-        coordinator = get_coordinator(hass)
+        entity_id = call.target.get("entity_id")
+        if not entity_id:
+            raise HomeAssistantError("No target entity specified")
+
+        coordinator = get_coordinator_by_id(hass, entity_id)
         if not coordinator:
-            raise HomeAssistantError("No coordinator available")
+            raise HomeAssistantError(f"No coordinator found for entity {entity_id}")
 
         prompt = call.data.get("prompt")
         if not prompt:
@@ -107,6 +121,36 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
         except Exception as err:
             _LOGGER.error("Error setting system prompt: %s", str(err))
             raise HomeAssistantError(f"Failed to set system prompt: {str(err)}")
+
+    # Register services with proper schema and target selector
+    service_schema = {
+        vol.Required("target"): {
+            vol.Required("entity_id"): cv.entity_id
+        }
+    }
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_ASK_QUESTION,
+        async_ask_question,
+        schema=vol.Schema({**service_schema, **SERVICE_SCHEMA_ASK_QUESTION})
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_CLEAR_HISTORY,
+        async_clear_history,
+        schema=vol.Schema(service_schema)
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_SET_SYSTEM_PROMPT,
+        async_set_system_prompt,
+        schema=vol.Schema({**service_schema, **SERVICE_SCHEMA_SET_SYSTEM_PROMPT})
+    )
+
+    return True
 
     # Register services with proper schema validation
     hass.services.async_register(
