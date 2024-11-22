@@ -41,75 +41,35 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    def __init__(self) -> None:
+        """Initialize flow."""
+        super().__init__()
+        self.provider = None
+
     async def async_step_user(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
         """Handle the initial step."""
         if user_input is None:
             return self._show_provider_selection()
 
         if "provider" in user_input:
-            return self._show_provider_config(user_input["provider"])
+            self.provider = user_input["provider"]
+            return self._show_provider_config(self.provider)
 
         return await self._process_configuration(user_input)
-
-    def _show_provider_selection(self):
-        """Show provider selection screen."""
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema({
-                vol.Required("provider"): vol.In(API_PROVIDERS)
-            }),
-            description_placeholders={"providers": ", ".join(API_PROVIDERS)}
-        )
-
-    def _show_provider_config(self, provider):
-        """Show configuration screen for selected provider."""
-        default_endpoint = DEFAULT_OPENAI_ENDPOINT if provider == API_PROVIDER_OPENAI else DEFAULT_ANTHROPIC_ENDPOINT
-        default_name = f"HA Text AI {len(self._async_current_entries()) + 1}"
-        return self.async_show_form(
-            step_id="user",
-            data_schema=vol.Schema({
-                vol.Required("name", default=default_name): str,
-                vol.Required(CONF_API_PROVIDER): vol.In([provider]),
-                vol.Required(CONF_API_KEY): str,
-                vol.Required(CONF_MODEL, default=DEFAULT_MODEL): str,
-                vol.Optional(CONF_API_ENDPOINT, default=default_endpoint): str,
-                vol.Optional(CONF_TEMPERATURE, default=DEFAULT_TEMPERATURE): vol.All(
-                    vol.Coerce(float),
-                    vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
-                ),
-                vol.Optional(CONF_MAX_TOKENS, default=DEFAULT_MAX_TOKENS): vol.All(
-                    vol.Coerce(int),
-                    vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
-                ),
-                vol.Optional(CONF_REQUEST_INTERVAL, default=DEFAULT_REQUEST_INTERVAL): vol.All(
-                    vol.Coerce(float),
-                    vol.Range(min=MIN_REQUEST_INTERVAL)
-                ),
-            }),
-            description_placeholders={"provider": provider}
-        )
 
     async def _process_configuration(self, user_input):
         """Validate and process user configuration."""
         errors = {}
 
         try:
+            # Создаем уникальный идентификатор
             unique_id = f"{user_input[CONF_API_KEY]}_{user_input[CONF_MODEL]}"
             await self.async_set_unique_id(unique_id)
             self._abort_if_unique_id_configured()
 
+            # Проверяем подключение к API
             session = async_get_clientsession(self.hass)
-
-            headers = {
-                "Authorization": f"Bearer {user_input[CONF_API_KEY]}",
-                "Content-Type": "application/json"
-            }
-
-            if user_input[CONF_API_PROVIDER] == API_PROVIDER_ANTHROPIC:
-                headers = {
-                    "x-api-key": user_input[CONF_API_KEY],
-                    "anthropic-version": "2023-06-01"
-                }
+            headers = self._get_api_headers(user_input)
 
             try:
                 async with session.get(
@@ -123,15 +83,36 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
 
             if not errors:
+                # Убедимся, что имя присутствует
+                title = user_input.get("name", f"HA Text AI ({user_input[CONF_API_PROVIDER]})")
                 return self.async_create_entry(
-                    title=user_input.get("name", f"HA Text AI ({user_input[CONF_API_PROVIDER]})"),
-                    data=user_input
+                    title=title,
+                    data={
+                        "name": title,  # Явно добавляем имя в данные
+                        **user_input
+                    }
                 )
 
         except Exception as e:
             _LOGGER.error(f"Unexpected error: {e}")
             errors["base"] = "unknown"
 
+        return self._show_configuration_form(user_input, errors)
+
+    def _get_api_headers(self, user_input):
+        """Get API headers based on provider."""
+        if user_input[CONF_API_PROVIDER] == API_PROVIDER_ANTHROPIC:
+            return {
+                "x-api-key": user_input[CONF_API_KEY],
+                "anthropic-version": "2023-06-01"
+            }
+        return {
+            "Authorization": f"Bearer {user_input[CONF_API_KEY]}",
+            "Content-Type": "application/json"
+        }
+
+    def _show_configuration_form(self, user_input, errors=None):
+        """Show the configuration form to edit location data."""
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema({
@@ -155,17 +136,11 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Range(min=MIN_REQUEST_INTERVAL)
                 ),
             }),
-            description_placeholders={"provider": user_input[CONF_API_PROVIDER]},
-            errors=errors
+            errors=errors or {}
         )
 
-    @staticmethod
-    async def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> config_entries.OptionsFlow:
-        """Create the options flow."""
-        return OptionsFlowHandler(config_entry)
-
 class OptionsFlowHandler(config_entries.OptionsFlow):
-    """Options flow handler."""
+    """Handle options flow."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
         """Initialize options flow."""

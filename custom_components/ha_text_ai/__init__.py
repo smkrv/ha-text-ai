@@ -229,7 +229,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
                 max_tokens=entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
                 request_interval=float(entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)),
-                name=entry.title,
+                name=entry.title or entry.data.get("name", "HA Text AI"),  # Добавляем fallback для имени
                 session=session,
                 is_anthropic=is_anthropic
             )
@@ -271,4 +271,4 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     except Exception as ex:
         _LOGGER.exception("Error unloading entry: %s", str(ex))
-        return False
+        return False  # Убрано лишнее двоеточие

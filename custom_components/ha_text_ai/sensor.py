@@ -63,39 +63,39 @@ async def async_setup_entry(
 class HATextAISensor(CoordinatorEntity, SensorEntity):
     """HA text AI Sensor."""
 
-def __init__(
-    self,
-    coordinator: HATextAICoordinator,
-    config_entry: ConfigEntry,
-) -> None:
-    """Initialize the sensor."""
-    super().__init__(coordinator)
-    self._config_entry = config_entry
+    def __init__(
+        self,
+        coordinator: HATextAICoordinator,
+        config_entry: ConfigEntry,
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self._config_entry = config_entry
 
-    # Используем имя из конфигурации
-    self._name = config_entry.title
+        # Используем имя из конфигурации
+        self._name = config_entry.title
 
-    # Создаем уникальный ID используя имя
-    self._attr_unique_id = f"{config_entry.entry_id}_{slugify(self._name)}"
+        # Создаем уникальный ID используя имя
+        self._attr_unique_id = f"{config_entry.entry_id}_{slugify(self._name)}"
 
-    # Создаем entity_id используя имя
-    self.entity_id = f"sensor.ha_text_ai_{slugify(self._name)}"
+        # Создаем entity_id используя имя
+        self.entity_id = f"sensor.ha_text_ai_{slugify(self._name)}"
 
-    # Устанавливаем отображаемое имя
-    self._attr_name = self._name
+        # Устанавливаем отображаемое имя
+        self._attr_name = self._name
 
-    self._current_state = STATE_INITIALIZING
-    self._error_count = 0
-    self._last_error = None
+        self._current_state = STATE_INITIALIZING
+        self._error_count = 0
+        self._last_error = None
 
-    # Обновляем device_info с использованием имени
-    self._attr_device_info = {
-        "identifiers": {(DOMAIN, self._attr_unique_id)},
-        "name": self._name,  # Используем имя из конфигурации
-        "manufacturer": "Community",
-        "model": f"{coordinator.model} ({self._config_entry.data.get(CONF_API_PROVIDER, 'Unknown')} provider)",
-        "sw_version": coordinator.api_version,
-    }
+        # Обновляем device_info с использованием имени
+        self._attr_device_info = {
+            "identifiers": {(DOMAIN, self._attr_unique_id)},
+            "name": self._name,  # Используем имя из конфигурации
+            "manufacturer": "Community",
+            "model": f"{coordinator.model} ({self._config_entry.data.get(CONF_API_PROVIDER, 'Unknown')} provider)",
+            "sw_version": coordinator.api_version,
+        }
 
     @property
     def icon(self) -> str:
