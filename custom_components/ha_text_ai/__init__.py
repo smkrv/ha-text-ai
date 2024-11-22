@@ -189,15 +189,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         else:  # OpenAI
             headers["Authorization"] = f"Bearer {api_key}"
 
-        # Проверка API с повторами
-        for attempt in range(API_RETRY_COUNT):
-            if await async_check_api(session, endpoint, headers, api_provider):
-                break
-            if attempt < API_RETRY_COUNT - 1:
-                delay = 1.5 * (2 ** attempt)
-                await asyncio.sleep(delay)
-            else:
-                raise ConfigEntryNotReady("Failed to connect to API")
+        # Проверка API
+        try:
+            check_result = await async_check_api(session, endpoint, headers, api_provider)
+            if not check_result:
+                raise ConfigEntryNotReady("API connection failed")
+        except Exception as ex:
+            _LOGGER.error(f"API check failed: {ex}")
+            raise ConfigEntryNotReady("Failed to connect to API")
 
         try:
             # Create coordinator
@@ -234,7 +233,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception as ex:
         _LOGGER.exception("Setup error: %s", str(ex))
         raise ConfigEntryNotReady(f"Setup error: {str(ex)}") from ex
-
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""

@@ -121,14 +121,26 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
 
             if not errors:
-                # Use a unique ID based on the API key
-                await self.async_set_unique_id(user_input[CONF_API_KEY])
-                self._abort_if_unique_id_configured()
+                # ВАЖНОЕ ИЗМЕНЕНИЕ: создаем уникальный идентификатор
+                unique_id = f"{user_input[CONF_API_PROVIDER]}_{user_input[CONF_API_ENDPOINT]}_{user_input[CONF_API_KEY]}"
 
-                return self.async_create_entry(
-                    title=f"HA Text AI ({user_input[CONF_API_PROVIDER]})",
-                    data=user_input
-                )
+                # Проверяем существующие конфигурации
+                existing_entries = [
+                    entry for entry in self.hass.config_entries.async_entries(DOMAIN)
+                    if entry.data.get(CONF_API_PROVIDER) == user_input[CONF_API_PROVIDER]
+                    and entry.data.get(CONF_API_ENDPOINT) == user_input[CONF_API_ENDPOINT]
+                ]
+
+                if existing_entries:
+                    errors["base"] = "already_configured"
+                else:
+                    await self.async_set_unique_id(unique_id)
+                    self._abort_if_unique_id_configured()
+
+                    return self.async_create_entry(
+                        title=f"HA Text AI ({user_input[CONF_API_PROVIDER]})",
+                        data=user_input
+                    )
 
         except Exception as e:
             _LOGGER.error(f"Unexpected error: {e}")
