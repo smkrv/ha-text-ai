@@ -64,8 +64,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
     """HA text AI Sensor."""
 
     _attr_has_entity_name = True
-    _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_device_class = SensorDeviceClass.TEXT
 
     def __init__(
         self,
@@ -77,7 +76,6 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._config_entry = config_entry
         self._attr_unique_id = f"{config_entry.entry_id}"
         self._attr_name = "Response"
-        self._attr_device_class = SensorDeviceClass.TEXT
         self._attr_suggested_display_precision = 0
         self._error_count = 0
         self._last_error = None
