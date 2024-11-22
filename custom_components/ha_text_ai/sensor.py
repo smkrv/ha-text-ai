@@ -61,9 +61,6 @@ async def async_setup_entry(
 
 class HATextAISensor(CoordinatorEntity, SensorEntity):
     """HA text AI Sensor."""
-#
-#    _attr_has_entity_name = True
-#    _attr_translation_key = "ha_text_ai"
 
     def __init__(
         self,
@@ -74,9 +71,8 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._config_entry = config_entry
 
-        self._attr_unique_id = config_entry.entry_id
-        
-        self.entity_id = f"sensor.ha_text_ai"
+        self._attr_unique_id = f"{config_entry.entry_id}_sensor"
+        self.entity_id = "sensor.ha_text_ai"
         self._attr_name = "HA Text AI"
 
         self._current_state = STATE_INITIALIZING
@@ -91,11 +87,6 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             "model": f"{coordinator.model} ({self._config_entry.data.get(CONF_API_PROVIDER, 'Unknown')} provider)",
             "sw_version": coordinator.api_version,
         }
-
-    @property
-    def name(self) -> str:
-        """Return the name of the sensor."""
-        return "HA Text AI"
 
     @property
     def icon(self) -> str:
