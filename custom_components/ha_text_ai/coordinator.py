@@ -469,10 +469,10 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 except asyncio.QueueEmpty:
                     break
 
-             if hasattr(self.client, 'close'):
-                 await self.client.close()
-             elif hasattr(self.client, '_client') and hasattr(self.client._client, 'aclose'):
-                 await self.client._client.aclose()
+            if hasattr(self.client, 'close'):
+                await self.client.close()
+            elif hasattr(self.client, '_client') and hasattr(self.client._client, 'aclose'):
+                await self.client._client.aclose()
 
             self._is_ready = False
             self._endpoint_status = "disconnected"
@@ -481,7 +481,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
             self._update_final_metrics()
 
         except Exception as err:
-             _LOGGER.error("Error during shutdown: %s", err)
+            _LOGGER.error("Error during shutdown: %s", err)
 
     def _update_final_metrics(self) -> None:
         """Update final metrics before shutdown."""
