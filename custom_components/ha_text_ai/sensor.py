@@ -76,7 +76,8 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._config_entry = config_entry
         self._attr_unique_id = f"{config_entry.entry_id}"
-        self._attr_name = DOMAIN.replace('_', ' ').title()
+        self._attr_name = "Response"
+        self._attr_device_class = SensorDeviceClass.TEXT
         self._attr_suggested_display_precision = 0
         self._error_count = 0
         self._last_error = None
