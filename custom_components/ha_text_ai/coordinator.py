@@ -10,7 +10,7 @@ import aiohttp
 import httpx
 
 import voluptuous as vol
-from homeassistant import config_entries  
+from homeassistant import config_entries
 from homeassistant.helpers import aiohttp_client
 from openai import AsyncOpenAI, APIError, AuthenticationError, RateLimitError
 from anthropic import AsyncAnthropic
@@ -44,13 +44,8 @@ class HATextAICoordinator(DataUpdateCoordinator):
         session: Optional[Any] = None,
         is_anthropic: bool = False,
     ) -> None:
-        super().__init__(
-            hass,
-            _LOGGER,
-            name=name,
-            update_interval=timedelta(seconds=float(request_interval)),
-        )
-        self._name = name
+        """Initialize coordinator."""
+        self._name = name  # Инициализируем name до вызова super().__init__
         self._validate_params(api_key, temperature, max_tokens)
         self._entity_id = None
         self.api_key = api_key
@@ -80,7 +75,19 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self._last_request_time = 0
         self._is_anthropic = is_anthropic
         self._session = session or aiohttp_client.async_get_clientsession(hass)
-        self.client = None  # Initialize client as None
+        self.client = None
+
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=self._name,  # Используем уже установленное значение
+            update_interval=timedelta(seconds=float(request_interval)),
+        )
+
+    @property
+    def name(self) -> str:
+        """Return the name of the coordinator."""
+        return self._name
 
     async def async_initialize(self) -> None:
         """Initialize coordinator."""
@@ -514,11 +521,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
     def entity_id(self, value: str) -> None:
         """Set entity ID."""
         self._entity_id = value
-
-    @property
-    def name(self) -> str:
-        """Get coordinator name."""
-        return self._name
 
     @property
     def performance_metrics(self) -> Dict[str, Any]:
