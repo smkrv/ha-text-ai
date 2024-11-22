@@ -13,13 +13,10 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._config_entry = config_entry
 
-        # Убираем _response из unique_id
         self._attr_unique_id = config_entry.entry_id
 
-        # Явно задаем имя
         self._attr_name = "HA Text AI"
 
-        # Инициализация состояний
         self._current_state = STATE_INITIALIZING
         self._error_count = 0
         self._last_error = None
