@@ -4,7 +4,7 @@ import voluptuous as vol
 import aiohttp
 
 from homeassistant import config_entries
-from homeassistant.const import CONF_API_KEY
+from homeassistant.const import CONF_API_KEY, CONF_NAME
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -41,13 +41,18 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
+    def __init__(self):
+        """Initialize the config flow."""
+        self._provider = None
+
     async def async_step_user(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
         """Handle the initial step."""
         if user_input is None:
             return self._show_provider_selection()
 
         if "provider" in user_input:
-            return self._show_provider_config(user_input["provider"])
+            self._provider = user_input["provider"]
+            return self._show_provider_config(self._provider)
 
         return await self._process_configuration(user_input)
 
@@ -68,6 +73,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema({
+                vol.Required(CONF_NAME): str,  # Добавлено поле имени
                 vol.Required(CONF_API_PROVIDER): vol.In([provider]),
                 vol.Required(CONF_API_KEY): str,
                 vol.Required(CONF_MODEL, default=DEFAULT_MODEL): str,
@@ -93,8 +99,10 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         try:
-            # Принудительная очистка существующих записей с тем же API-ключом
-            await self._async_cleanup_existing_entries(user_input[CONF_API_KEY])
+            # Создаем уникальный идентификатор на основе имени и эндпоинта
+            unique_id = f"{user_input[CONF_NAME]}_{user_input[CONF_API_ENDPOINT]}"
+            await self.async_set_unique_id(unique_id)
+            self._abort_if_unique_id_configured()
 
             session = async_get_clientsession(self.hass)
 
@@ -104,7 +112,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 "Content-Type": "application/json"
             }
 
-            # Adjust headers and endpoint based on provider
+            # Adjust headers based on provider
             if user_input[CONF_API_PROVIDER] == API_PROVIDER_ANTHROPIC:
                 headers = {
                     "x-api-key": user_input[CONF_API_KEY],
@@ -124,12 +132,8 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
 
             if not errors:
-                # Генерируем уникальный идентификатор на основе ключа
-                await self.async_set_unique_id(user_input[CONF_API_KEY])
-                self._abort_if_unique_id_configured()
-
                 return self.async_create_entry(
-                    title=f"HA Text AI ({user_input[CONF_API_PROVIDER]})",
+                    title=user_input[CONF_NAME],
                     data=user_input
                 )
 
@@ -142,7 +146,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema({
                 vol.Required(CONF_API_PROVIDER): vol.In([user_input[CONF_API_PROVIDER]]),
-                vol.Required(CONF_API_KEY): str,
+                vol.Required(CONF_API_KEY, default=user_input.get(CONF_API_KEY, "")): str,
                 vol.Required(CONF_MODEL, default=user_input.get(CONF_MODEL, DEFAULT_MODEL)): str,
                 vol.Optional(CONF_API_ENDPOINT, default=user_input.get(CONF_API_ENDPOINT,
                     DEFAULT_OPENAI_ENDPOINT if user_input[CONF_API_PROVIDER] == API_PROVIDER_OPENAI

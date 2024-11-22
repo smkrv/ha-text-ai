@@ -5,6 +5,7 @@
   "bluetooth": [],
   "codeowners": ["@smkrv"],
   "config_flow": true,
+  "multiple_instances": true,
   "dependencies": [],
   "documentation": "https://github.com/smkrv/ha-text-ai",
   "integration_type": "service",
@@ -23,5 +24,6 @@
   "ssdp": [],
   "usb": [],
   "version": "2.0.0",
-  "zeroconf": []
+  "zeroconf": [],
+  "icon": "icons/icon.png"
 }

@@ -11,7 +11,8 @@
                     "temperature": "Response creativity (0-2, lower = more focused and consistent)",
                     "max_tokens": "Maximum response length (1-4096 tokens)",
                     "api_endpoint": "Custom API endpoint URL (optional)",
-                    "request_interval": "Minimum time between requests in seconds (min: 0.1)"
+                    "request_interval": "Minimum time between requests in seconds (min: 0.1)",
+                    "name": "Integration name"
                 }
             }
         },
