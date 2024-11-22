@@ -103,15 +103,22 @@ class HATextAICoordinator(DataUpdateCoordinator):
                      api_key=self.api_key
                  )
             else:  # OpenAI
+                 transport = httpx.AsyncHTTPTransport(retries=3)
+                 limits = httpx.Limits(max_keepalive_connections=5, max_connections=10)
+
                  async_client = httpx.AsyncClient(
                      base_url=self.endpoint,
-                     timeout=httpx.Timeout(30.0)
+                     timeout=httpx.Timeout(30.0),
+                     transport=transport,
+                     limits=limits,
+                     follow_redirects=True
                  )
 
                  self.client = AsyncOpenAI(
                      api_key=self.api_key,
                      base_url=self.endpoint,
-                     http_client=async_client
+                     http_client=async_client,
+                     max_retries=3
                  )
         except Exception as e:
             _LOGGER.error("Error initializing API client: %s", str(e))
