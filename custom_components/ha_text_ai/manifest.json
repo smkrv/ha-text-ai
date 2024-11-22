@@ -12,7 +12,6 @@
   "issue_tracker": "https://github.com/smkrv/ha-text-ai/issues",
   "loggers": ["custom_components.ha_text_ai"],
   "mqtt": [],
-  "icon_filename": "icons/icon.png",
   "single_config_entry": false,
   "quality_scale": "silver",
   "requirements": [
