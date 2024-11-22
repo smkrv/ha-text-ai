@@ -122,56 +122,33 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
             _LOGGER.error("Error setting system prompt: %s", str(err))
             raise HomeAssistantError(f"Failed to set system prompt: {str(err)}")
 
-    # Register services with proper schema and target selector
-    service_schema = {
+    # Базовая схема с target как vol.Schema
+    base_schema = vol.Schema({
         vol.Required("target"): {
             vol.Required("entity_id"): cv.entity_id
         }
-    }
+    })
 
+    # Регистрация сервисов с использованием extend
     hass.services.async_register(
         DOMAIN,
         SERVICE_ASK_QUESTION,
         async_ask_question,
-        schema=vol.Schema({**service_schema, **SERVICE_SCHEMA_ASK_QUESTION})
+        schema=base_schema.extend(SERVICE_SCHEMA_ASK_QUESTION.schema)
     )
 
     hass.services.async_register(
         DOMAIN,
         SERVICE_CLEAR_HISTORY,
         async_clear_history,
-        schema=vol.Schema(service_schema)
+        schema=base_schema
     )
 
     hass.services.async_register(
         DOMAIN,
         SERVICE_SET_SYSTEM_PROMPT,
         async_set_system_prompt,
-        schema=vol.Schema({**service_schema, **SERVICE_SCHEMA_SET_SYSTEM_PROMPT})
-    )
-
-    return True
-
-    # Register services with proper schema validation
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_ASK_QUESTION,
-        async_ask_question,
-        schema=vol.Schema(SERVICE_SCHEMA_ASK_QUESTION)
-    )
-
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_CLEAR_HISTORY,
-        async_clear_history,
-        schema=vol.Schema({})
-    )
-
-    hass.services.async_register(
-        DOMAIN,
-        SERVICE_SET_SYSTEM_PROMPT,
-        async_set_system_prompt,
-        schema=vol.Schema(SERVICE_SCHEMA_SET_SYSTEM_PROMPT)
+        schema=base_schema.extend(SERVICE_SCHEMA_SET_SYSTEM_PROMPT.schema)
     )
 
     return True
@@ -252,7 +229,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
                 max_tokens=entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
                 request_interval=float(entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)),
-                name=entry.title,  # Передаем имя из конфигурации
+                name=entry.title,
                 session=session,
                 is_anthropic=is_anthropic
             )
