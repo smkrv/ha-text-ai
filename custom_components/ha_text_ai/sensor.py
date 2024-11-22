@@ -1,3 +1,64 @@
+"""Sensor platform for HA text AI."""
+from datetime import datetime
+import logging
+from typing import Any, Dict, Optional
+
+from homeassistant.components.sensor import (
+    SensorEntity,
+    SensorStateClass,
+    SensorDeviceClass,
+)
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.typing import StateType
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.util import dt as dt_util
+
+from .const import (
+    DOMAIN,
+    CONF_API_PROVIDER,
+    ATTR_QUESTION,
+    ATTR_RESPONSE,
+    ATTR_LAST_UPDATED,
+    ATTR_MODEL,
+    ATTR_TEMPERATURE,
+    ATTR_MAX_TOKENS,
+    ATTR_TOTAL_RESPONSES,
+    ATTR_SYSTEM_PROMPT,
+    ATTR_QUEUE_SIZE,
+    ATTR_API_STATUS,
+    ATTR_ERROR_COUNT,
+    ATTR_LAST_ERROR,
+    ATTR_RESPONSE_TIME,
+    ATTR_API_VERSION,
+    ATTR_ENDPOINT_STATUS,
+    ATTR_REQUEST_COUNT,
+    ATTR_TOKENS_USED,
+    ENTITY_ICON,
+    ENTITY_ICON_ERROR,
+    ENTITY_ICON_PROCESSING,
+    STATE_READY,
+    STATE_PROCESSING,
+    STATE_ERROR,
+    STATE_DISCONNECTED,
+    STATE_RATE_LIMITED,
+    STATE_INITIALIZING,
+    STATE_MAINTENANCE,
+)
+from .coordinator import HATextAICoordinator
+
+_LOGGER = logging.getLogger(__name__)
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up the HA text AI sensor."""
+    coordinator = hass.data[DOMAIN][entry.entry_id]
+    async_add_entities([HATextAISensor(coordinator, entry)], True)
+
 class HATextAISensor(CoordinatorEntity, SensorEntity):
     """HA text AI Sensor."""
 
@@ -13,10 +74,13 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._config_entry = config_entry
 
+        # Убираем _response из unique_id
         self._attr_unique_id = config_entry.entry_id
 
+        # Явно задаем имя
         self._attr_name = "HA Text AI"
 
+        # Инициализация состояний
         self._current_state = STATE_INITIALIZING
         self._error_count = 0
         self._last_error = None
