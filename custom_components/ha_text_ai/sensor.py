@@ -61,9 +61,9 @@ async def async_setup_entry(
 
 class HATextAISensor(CoordinatorEntity, SensorEntity):
     """HA text AI Sensor."""
-
-    _attr_has_entity_name = True
-    _attr_translation_key = "ha_text_ai"
+#
+#    _attr_has_entity_name = True
+#    _attr_translation_key = "ha_text_ai"
 
     def __init__(
         self,
@@ -74,13 +74,11 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
         self._config_entry = config_entry
 
-        # Убираем _response из unique_id
         self._attr_unique_id = config_entry.entry_id
-
-        # Явно задаем имя
+        
+        self.entity_id = f"sensor.ha_text_ai"
         self._attr_name = "HA Text AI"
 
-        # Инициализация состояний
         self._current_state = STATE_INITIALIZING
         self._error_count = 0
         self._last_error = None
