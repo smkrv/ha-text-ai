@@ -7,7 +7,6 @@ ask_question:
     entity:
       domain: sensor
       integration: ha_text_ai
-      multiple: false
   fields:
     question:
       name: Question
@@ -65,7 +64,6 @@ clear_history:
     entity:
       domain: sensor
       integration: ha_text_ai
-      multiple: false
   fields: {}
 
 get_history:
@@ -75,7 +73,6 @@ get_history:
     entity:
       domain: sensor
       integration: ha_text_ai
-      multiple: false
   fields:
     limit:
       name: Limit
@@ -103,7 +100,6 @@ set_system_prompt:
     entity:
       domain: sensor
       integration: ha_text_ai
-      multiple: false
   fields:
     prompt:
       name: System Prompt
