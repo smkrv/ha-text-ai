@@ -14,6 +14,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.helpers import aiohttp_client
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.exceptions import HomeAssistantError, UpdateFailed
 from openai import AsyncOpenAI, APIError, AuthenticationError, RateLimitError
 from anthropic import AsyncAnthropic
 from homeassistant.core import HomeAssistant
@@ -103,6 +104,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self._session = session or aiohttp_client.async_get_clientsession(hass)
         self.client = None
         self.hass = hass  # Store hass reference for _init_client
+        self._start_time = time.time()
 
         # History and metrics
         self._history: List[Dict[str, Any]] = []
@@ -154,6 +156,18 @@ class HATextAICoordinator(DataUpdateCoordinator):
         except Exception as e:
             self._last_error = str(e)
             _LOGGER.error("Error initializing API client: %s", str(e))
+            raise
+
+    async def async_initialize(self) -> None:
+        """Initialize coordinator."""
+        try:
+            await self._init_client()
+            self._is_ready = True
+            self._endpoint_status = "connected"
+        except Exception as e:
+            self._last_error = str(e)
+            self._endpoint_status = "error"
+            _LOGGER.error("Failed to initialize coordinator: %s", str(e))
             raise
 
     async def async_ask(
