@@ -1,0 +1,273 @@
+{
+    "config": {
+        "step": {
+            "provider": {
+                "title": "Выбор AI провайдера",
+                "description": "Выберите провайдера AI сервиса для этого экземпляра",
+                "data": {
+                    "api_provider": "API провайдер"
+                }
+            },
+            "user": {
+                "title": "Настройка экземпляра HA Text AI",
+                "description": "Настройте новый экземпляр AI ассистента с выбранным провайдером",
+                "data": {
+                    "name": "Название экземпляра (например, 'GPT Ассистент', 'Claude Помощник')",
+                    "api_key": "API ключ для аутентификации",
+                    "model": "Используемая AI модель",
+                    "temperature": "Креативность ответов (0-2, чем ниже, тем точнее)",
+                    "max_tokens": "Максимальная длина ответа (1-4096 токенов)",
+                    "api_endpoint": "Пользовательский URL API (необязательно)",
+                    "request_interval": "Минимальный интервал между запросами (0.1-60 секунд)"
+                }
+            }
+        },
+        "error": {
+            "name_exists": "Экземпляр с таким именем уже существует",
+            "invalid_name": "Недопустимое имя экземпляра",
+            "invalid_auth": "Ошибка аутентификации - проверьте API ключ",
+            "invalid_api_key": "Недействительный API ключ - проверьте учетные данные",
+            "cannot_connect": "Не удалось подключиться к API сервису",
+            "invalid_model": "Выбранная модель недоступна",
+            "rate_limit": "Превышен лимит запросов",
+            "context_length": "Превышена длина контекста",
+            "rate_limit_exceeded": "Превышен лимит API запросов",
+            "maintenance": "Сервис находится на техническом обслуживании",
+            "invalid_response": "Получен некорректный ответ API",
+            "api_error": "Произошла ошибка API сервиса",
+            "timeout": "Превышено время ожидания запроса",
+            "invalid_instance": "Указан недействительный экземпляр",
+            "unknown": "Произошла непредвиденная ошибка"
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Обновление настроек экземпляра",
+                "description": "Измените настройки для этого экземпляра AI ассистента",
+                "data": {
+                    "model": "AI модель",
+                    "temperature": "Креативность ответов (0-2)",
+                    "max_tokens": "Максимальная длина ответа (1-4096)",
+                    "request_interval": "Минимальный интервал запросов (0.1-60 секунд)"
+                }
+            }
+        }
+    },
+    "services": {
+        "ask_question": {
+            "name": "Задать вопрос",
+            "description": "Отправьте вопрос AI модели и получите подробный ответ. Ответ будет сохранен в истории разговора и может быть получен позже.",
+            "fields": {
+                "instance": {
+                    "name": "Экземпляр",
+                    "description": "Название экземпляра HA Text AI для использования",
+                    "required": true
+                },
+                "question": {
+                    "name": "Вопрос",
+                    "description": "Ваш вопрос или запрос для AI ассистента",
+                    "required": true
+                },
+                "system_prompt": {
+                    "name": "Системный промпт",
+                    "description": "Необязательный системный промпт для установки контекста этого вопроса",
+                    "required": false
+                },
+                "model": {
+                    "name": "Модель",
+                    "description": "Выберите AI модель (необязательно, переопределяет настройки по умолчанию)",
+                    "required": false
+                },
+                "temperature": {
+                    "name": "Temperature",
+                    "description": "Управляет креативностью ответов (0.0-2.0)",
+                    "required": false,
+                    "default": 0.7
+                },
+                "max_tokens": {
+                    "name": "Max Tokens",
+                    "description": "Максимальная длина ответа (1-4096 токенов)",
+                    "required": false,
+                    "default": 1000
+                }
+            }
+        },
+        "clear_history": {
+            "name": "Очистить историю",
+            "description": "Удалить все сохраненные вопросы и ответы из истории разговора",
+            "fields": {
+                "instance": {
+                    "name": "Экземпляр",
+                    "description": "Название экземпляра HA Text AI для очистки истории",
+                    "required": true
+                }
+            }
+        },
+        "get_history": {
+            "name": "Получить историю",
+            "description": "Получить историю разговора с дополнительной фильтрацией и сортировкой",
+            "fields": {
+                "instance": {
+                    "name": "Экземпляр",
+                    "description": "Название экземпляра HA Text AI для получения истории",
+                    "required": true
+                },
+                "limit": {
+                    "name": "Лимит",
+                    "description": "Количество разговоров для возврата (1-100)",
+                    "required": false,
+                    "default": 10
+                },
+                "filter_model": {
+                    "name": "Фильтр модели",
+                    "description": "Фильтровать разговоры по конкретной AI модели",
+                    "required": false
+                },
+                "start_date": {
+                    "name": "Начальная дата",
+                    "description": "Фильтровать разговоры начиная с этой даты/времени",
+                    "required": false
+                },
+                "include_metadata": {
+                    "name": "Включить метаданные",
+                    "description": "Включить дополнительную информацию, такую как использованные токены, время ответа и т.д.",
+                    "required": false,
+                    "default": false
+                },
+                "sort_order": {
+                    "name": "Порядок сортировки",
+                    "description": "Порядок сортировки результатов (сначала новые или старые)",
+                    "required": false,
+                    "default": "desc"
+                }
+            }
+        },
+        "set_system_prompt": {
+            "name": "Установить системный промпт",
+            "description": "Установить инструкции поведения по умолчанию для всех будущих разговоров",
+            "fields": {
+                "instance": {
+                    "name": "Экземпляр",
+                    "description": "Название экземпляра HA Text AI для настройки",
+                    "required": true
+                },
+                "prompt": {
+                    "name": "Системный промпт",
+                    "description": "Инструкции, определяющие поведение и ответы AI",
+                    "required": true
+                }
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "ha_text_ai": {
+                "name": "{name}",
+                "state": {
+                    "ready": "Готов",
+                    "processing": "Обработка",
+                    "error": "Ошибка",
+                    "disconnected": "Отключен",
+                    "rate_limited": "Превышен лимит",
+                    "maintenance": "Обслуживание",
+                    "initializing": "Инициализация",
+                    "retrying": "Повторная попытка",
+                    "queued": "В очереди"
+                },
+                "state_attributes": {
+                    "question": {
+                        "name": "Последний вопрос"
+                    },
+                    "response": {
+                        "name": "Последний ответ"
+                    },
+                    "model": {
+                        "name": "Текущая модель"
+                    },
+                    "temperature": {
+                        "name": "Temperature"
+                    },
+                    "max_tokens": {
+                        "name": "Max Tokens"
+                    },
+                    "system_prompt": {
+                        "name": "Системный промпт"
+                    },
+                    "response_time": {
+                        "name": "Время последнего ответа"
+                    },
+                    "total_responses": {
+                        "name": "Всего ответов"
+                    },
+                    "error_count": {
+                        "name": "Количество ошибок"
+                    },
+                    "last_error": {
+                        "name": "Последняя ошибка"
+                    },
+                    "api_status": {
+                        "name": "Статус API"
+                    },
+                    "tokens_used": {
+                        "name": "Всего использовано токенов"
+                    },
+                    "average_response_time": {
+                        "name": "Среднее время ответа"
+                    },
+                    "last_request_time": {
+                        "name": "Время последнего запроса"
+                    },
+                    "is_processing": {
+                        "name": "Статус обработки"
+                    },
+                    "is_rate_limited": {
+                        "name": "Статус ограничения запросов"
+                    },
+                    "is_maintenance": {
+                        "name": "Статус обслуживания"
+                    },
+                    "api_version": {
+                        "name": "Версия API"
+                    },
+                    "endpoint_status": {
+                        "name": "Статус конечной точки"
+                    },
+                    "performance_metrics": {
+                        "name": "Метрики производительности"
+                    },
+                    "history_size": {
+                        "name": "Размер истории"
+                    },
+                    "uptime": {
+                        "name": "Время работы"
+                    },
+                    "total_tokens": {
+                        "name": "Всего токенов"
+                    },
+                    "prompt_tokens": {
+                        "name": "Токены промпта"
+                    },
+                    "completion_tokens": {
+                        "name": "Токены завершения"
+                    },
+                    "successful_requests": {
+                        "name": "Успешные запросы"
+                    },
+                    "failed_requests": {
+                        "name": "Неудачные запросы"
+                    },
+                    "average_latency": {
+                        "name": "Средняя задержка"
+                    },
+                    "max_latency": {
+                        "name": "Максимальная задержка"
+                    },
+                    "min_latency": {
+                        "name": "Минимальная задержка"
+                    }
+                }
+            }
+        }
+    }
+}

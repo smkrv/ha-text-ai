@@ -31,7 +31,7 @@ CONF_REQUEST_INTERVAL: Final = "request_interval"
 CONF_INSTANCE: Final = "instance"
 
 # Default values
-DEFAULT_MODEL: Final = "gpt-3.5-turbo"  # Обновлено на актуальную модель
+DEFAULT_MODEL: Final = "gpt-4o"  
 DEFAULT_TEMPERATURE: Final = 0.7
 DEFAULT_MAX_TOKENS: Final = 1000
 DEFAULT_REQUEST_INTERVAL: Final = 1.0
@@ -64,6 +64,32 @@ ATTR_TEMPERATURE: Final = "temperature"
 ATTR_MAX_TOKENS: Final = "max_tokens"
 ATTR_SYSTEM_PROMPT: Final = "system_prompt"
 
+# Sensor attributes
+ATTR_TOTAL_RESPONSES: Final = "total_responses"
+ATTR_TOTAL_ERRORS: Final = "total_errors"
+ATTR_AVG_RESPONSE_TIME: Final = "average_response_time"
+ATTR_LAST_REQUEST_TIME: Final = "last_request_time"
+ATTR_LAST_ERROR: Final = "last_error"
+ATTR_IS_PROCESSING: Final = "is_processing"
+ATTR_IS_RATE_LIMITED: Final = "is_rate_limited"
+ATTR_IS_MAINTENANCE: Final = "is_maintenance"
+ATTR_API_VERSION: Final = "api_version"
+ATTR_ENDPOINT_STATUS: Final = "endpoint_status"
+ATTR_PERFORMANCE_METRICS: Final = "performance_metrics"
+ATTR_HISTORY_SIZE: Final = "history_size"
+ATTR_UPTIME: Final = "uptime"
+ATTR_API_PROVIDER: Final = "api_provider"
+
+# Sensor metrics
+METRIC_TOTAL_TOKENS: Final = "total_tokens"
+METRIC_PROMPT_TOKENS: Final = "prompt_tokens"
+METRIC_COMPLETION_TOKENS: Final = "completion_tokens"
+METRIC_SUCCESSFUL_REQUESTS: Final = "successful_requests"
+METRIC_FAILED_REQUESTS: Final = "failed_requests"
+METRIC_AVERAGE_LATENCY: Final = "average_latency"
+METRIC_MAX_LATENCY: Final = "max_latency"
+METRIC_MIN_LATENCY: Final = "min_latency"
+
 # Error messages
 ERROR_INVALID_API_KEY: Final = "invalid_api_key"
 ERROR_CANNOT_CONNECT: Final = "cannot_connect"
@@ -75,6 +101,25 @@ ERROR_API_ERROR: Final = "api_error"
 ERROR_TIMEOUT: Final = "timeout_error"
 ERROR_INVALID_INSTANCE: Final = "invalid_instance"
 ERROR_NAME_EXISTS: Final = "name_exists"
+
+# Entity attributes
+ENTITY_ICON: Final = "mdi:robot"
+ENTITY_ICON_ERROR: Final = "mdi:robot-dead"
+ENTITY_ICON_PROCESSING: Final = "mdi:robot-excited"
+
+# State attributes
+STATE_READY: Final = "ready"
+STATE_PROCESSING: Final = "processing"
+STATE_ERROR: Final = "error"
+STATE_INITIALIZING: Final = "initializing"
+STATE_MAINTENANCE: Final = "maintenance"
+STATE_RATE_LIMITED: Final = "rate_limited"
+STATE_DISCONNECTED: Final = "disconnected"
+
+# Event names
+EVENT_RESPONSE_RECEIVED: Final = f"{DOMAIN}_response_received"
+EVENT_ERROR_OCCURRED: Final = f"{DOMAIN}_error_occurred"
+EVENT_STATE_CHANGED: Final = f"{DOMAIN}_state_changed"
 
 # Service schema constants
 SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
@@ -128,18 +173,3 @@ CONFIG_SCHEMA = vol.Schema({
         )
     })
 }, extra=vol.ALLOW_EXTRA)
-
-# Entity attributes
-ENTITY_ICON: Final = "mdi:robot"
-ENTITY_ICON_ERROR: Final = "mdi:robot-dead"
-ENTITY_ICON_PROCESSING: Final = "mdi:robot-excited"
-
-# State attributes
-STATE_READY: Final = "ready"
-STATE_PROCESSING: Final = "processing"
-STATE_ERROR: Final = "error"
-
-# Event names
-EVENT_RESPONSE_RECEIVED: Final = f"{DOMAIN}_response_received"
-EVENT_ERROR_OCCURRED: Final = f"{DOMAIN}_error_occurred"
-EVENT_STATE_CHANGED: Final = f"{DOMAIN}_state_changed"

@@ -4,6 +4,8 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+import asyncio
+from homeassistant.helpers.import_platform import async_import_platform
 from datetime import datetime
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
@@ -235,7 +237,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass=hass,
             client=None,  # Будет установлен позже
             model=model,
-            update_interval=int(entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)),
+            update_interval=timedelta(seconds=int(entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL))),
             instance_name=instance_name,
             max_tokens=entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
             temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
@@ -248,7 +250,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "config_entry": entry,
         }
 
-        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        for platform in PLATFORMS:
+            hass.async_create_task(
+                async_import_platform(hass, f"{DOMAIN}.{platform}", DOMAIN)
+            )
+            await asyncio.sleep(0)
         return True
 
     except Exception as ex:
