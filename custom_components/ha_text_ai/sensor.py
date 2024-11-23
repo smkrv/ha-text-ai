@@ -13,6 +13,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
@@ -88,19 +89,23 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._error_count = 0
         self._last_error = None
 
-        # Обновляем device_info с использованием имени
-        self._attr_device_info = {
-            "identifiers": {(DOMAIN, self._attr_unique_id)},
-            "name": self._name,  # Используем имя из конфигурации
-            "manufacturer": "Community",
-            "model": f"{coordinator.model} ({self._config_entry.data.get(CONF_API_PROVIDER, 'Unknown')} provider)",
-            "sw_version": coordinator.api_version,
-        }
+        # Обновляем device_info с использованием DeviceInfo
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, self._attr_unique_id)},
+            name=self._name,
+            manufacturer="Community",
+            model=f"{coordinator.model} ({self._config_entry.data.get(CONF_API_PROVIDER, 'Unknown')} provider)",
+            sw_version=coordinator.api_version,
+        )
 
     @property
     def icon(self) -> str:
-        """Always return the custom icon."""
-        return "/local/icons/icon.svg"
+        """Return the icon based on the current state."""
+        if self._current_state == STATE_ERROR:
+            return ENTITY_ICON_ERROR
+        elif self._current_state == STATE_PROCESSING:
+            return ENTITY_ICON_PROCESSING
+        return ENTITY_ICON
 
     @property
     def state(self) -> StateType:

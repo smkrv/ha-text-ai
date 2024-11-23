@@ -66,13 +66,14 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self._MAX_ERRORS = 3
         self._request_count = 0
         self._tokens_used = 0
-        self._api_version = "v1"
+        self._api_version = "v1"  # Оставляем только одно определение
         self._endpoint_status = "disconnected"
         self._last_error = None
         self._last_request_time = 0
         self._is_anthropic = is_anthropic
         self._session = session or aiohttp_client.async_get_clientsession(hass)
         self.client = None
+        self.hass = hass  # Сохраняем ссылку на hass для использования в _init_client
 
         # История и метрики
         self._history: List[Dict[str, Any]] = []
@@ -92,33 +93,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
             update_interval=timedelta(seconds=float(request_interval)),
         )
 
-    def _validate_params(self, api_key: str, temperature: float, max_tokens: int) -> None:
-        """Validate initialization parameters."""
-        if not api_key:
-            raise ValueError("API key is required")
-        if not isinstance(temperature, (int, float)) or not 0 <= temperature <= 2:
-            raise ValueError("Temperature must be between 0 and 2")
-        if not isinstance(max_tokens, int) or max_tokens < 1:
-            raise ValueError("Max tokens must be a positive integer")
-
-    async def async_initialize(self) -> None:
-        """Initialize coordinator."""
-        try:
-            await self._init_client()
-            self._is_ready = True
-            self._endpoint_status = "connected"
-            await self.async_refresh()
-        except Exception as e:
-            self._last_error = str(e)
-            _LOGGER.error("Failed to initialize coordinator: %s", str(e))
-            self._is_ready = False
-            self._endpoint_status = "error"
-
-    async def _create_ssl_context(self):
-        """Create an async SSL context."""
-        ssl_context = ssl.create_default_context(cafile=certifi.where())
-        return ssl_context
-
     async def _init_client(self):
         """Initialize API client with proper SSL context."""
         try:
@@ -127,7 +101,11 @@ class HATextAICoordinator(DataUpdateCoordinator):
                     api_key=self.api_key
                 )
             else:  # OpenAI
-                transport = httpx.AsyncHTTPTransport(retries=3)
+                # Создаем транспорт в отдельном потоке
+                transport = await self.hass.async_add_executor_job(
+                    lambda: httpx.AsyncHTTPTransport(retries=3)
+                )
+
                 limits = httpx.Limits(max_keepalive_connections=5, max_connections=10)
 
                 async_client = httpx.AsyncClient(
