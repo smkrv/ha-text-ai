@@ -101,8 +101,13 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         try:
-            # Создаем уникальный идентификатор
-            unique_id = f"{user_input[CONF_API_KEY]}_{user_input[CONF_MODEL]}"
+            # Создаем уникальный идентификатор, включающий имя экземпляра
+            instance_name = user_input.get("name", f"HA Text AI {len(self._async_current_entries()) + 1}")
+            unique_id = f"{DOMAIN}_{instance_name}_{user_input[CONF_API_PROVIDER]}"
+
+            # Нормализуем уникальный идентификатор
+            unique_id = unique_id.lower().replace(" ", "_")
+
             await self.async_set_unique_id(unique_id)
             self._abort_if_unique_id_configured()
 
@@ -122,13 +127,12 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors["base"] = "cannot_connect"
 
             if not errors:
-                # Убедимся, что имя присутствует
-                title = user_input.get("name", f"HA Text AI ({user_input[CONF_API_PROVIDER]})")
                 return self.async_create_entry(
-                    title=title,
+                    title=instance_name,
                     data={
-                        "name": title,  # Явно добавляем имя в данные
-                        **user_input
+                        "name": instance_name,
+                        **user_input,
+                        "unique_id": unique_id  # Сохраняем уникальный идентификатор в данных
                     }
                 )
 
