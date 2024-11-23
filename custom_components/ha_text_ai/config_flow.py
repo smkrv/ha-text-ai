@@ -46,6 +46,45 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         super().__init__()
         self.provider = None
 
+    def _show_provider_selection(self) -> FlowResult:
+        """Show the provider selection form."""
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema({
+                vol.Required("provider"): vol.In(API_PROVIDERS),
+            }),
+        )
+
+    def _show_provider_config(self, provider: str) -> FlowResult:
+        """Show the configuration form for the selected provider."""
+        default_endpoint = (
+            DEFAULT_OPENAI_ENDPOINT if provider == API_PROVIDER_OPENAI
+            else DEFAULT_ANTHROPIC_ENDPOINT
+        )
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema({
+                vol.Required("name", default=f"HA Text AI {len(self._async_current_entries()) + 1}"): str,
+                vol.Required(CONF_API_PROVIDER): vol.In([provider]),
+                vol.Required(CONF_API_KEY): str,
+                vol.Required(CONF_MODEL, default=DEFAULT_MODEL): str,
+                vol.Optional(CONF_API_ENDPOINT, default=default_endpoint): str,
+                vol.Optional(CONF_TEMPERATURE, default=DEFAULT_TEMPERATURE): vol.All(
+                    vol.Coerce(float),
+                    vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
+                ),
+                vol.Optional(CONF_MAX_TOKENS, default=DEFAULT_MAX_TOKENS): vol.All(
+                    vol.Coerce(int),
+                    vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
+                ),
+                vol.Optional(CONF_REQUEST_INTERVAL, default=DEFAULT_REQUEST_INTERVAL): vol.All(
+                    vol.Coerce(float),
+                    vol.Range(min=MIN_REQUEST_INTERVAL)
+                ),
+            })
+        )
+
     async def async_step_user(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
         """Handle the initial step."""
         if user_input is None:
@@ -138,6 +177,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             }),
             errors=errors or {}
         )
+
 
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow."""

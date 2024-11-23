@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import logging
+import os
+import shutil
 from typing import Any, Dict, Optional
 import asyncio
 import voluptuous as vol
@@ -272,3 +274,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception as ex:
         _LOGGER.exception("Error unloading entry: %s", str(ex))
         return False  # Убрано лишнее двоеточие
+
+async def async_setup(hass, config):
+    """Copy a custom icon to the www/icons directory."""
+    # The source of the icon file inside your integration
+    source = os.path.join(os.path.dirname(__file__), 'icons', 'icon.svg')
+    # Target directory – /config/www/icons/
+    dest_dir = os.path.join(hass.config.path('www'), 'icons')
+    # Create the target directory if it does not already exist
+    os.makedirs(dest_dir, exist_ok=True)
+    # Path where the icon will be saved
+    dest = os.path.join(dest_dir, 'icon.svg')
+    # If the icon has not already been copied, copy it to the target
+    if not os.path.exists(dest):
+        shutil.copyfile(source, dest)
+    return True

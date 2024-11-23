@@ -99,12 +99,8 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
 
     @property
     def icon(self) -> str:
-        """Return the icon based on the current state."""
-        if self._current_state == STATE_PROCESSING:
-            return ENTITY_ICON_PROCESSING
-        elif self._current_state in [STATE_ERROR, STATE_DISCONNECTED, STATE_RATE_LIMITED]:
-            return ENTITY_ICON_ERROR
-        return ENTITY_ICON
+        """Always return the custom icon."""
+        return "/local/icons/icon.svg"
 
     @property
     def state(self) -> StateType:
