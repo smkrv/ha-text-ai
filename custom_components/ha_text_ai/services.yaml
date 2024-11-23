@@ -5,7 +5,9 @@ ask_question:
     The response will be stored in the conversation history and can be retrieved later.
   target:
     entity:
+      domain: sensor
       integration: ha_text_ai
+      multiple: false
   fields:
     question:
       name: Question
@@ -61,7 +63,9 @@ clear_history:
   description: Delete all stored questions and responses from the conversation history.
   target:
     entity:
+      domain: sensor
       integration: ha_text_ai
+      multiple: false
   fields: {}
 
 get_history:
@@ -69,7 +73,9 @@ get_history:
   description: Retrieve recent conversation history.
   target:
     entity:
+      domain: sensor
       integration: ha_text_ai
+      multiple: false
   fields:
     limit:
       name: Limit
@@ -95,7 +101,9 @@ set_system_prompt:
   description: Set default system behavior instructions for all future conversations.
   target:
     entity:
+      domain: sensor
       integration: ha_text_ai
+      multiple: false
   fields:
     prompt:
       name: System Prompt
