@@ -1,8 +1,8 @@
 """Constants for the HA text AI integration."""
 from typing import Final
 import voluptuous as vol
-from homeassistant.const import Platform
-from homeassistant.helpers import config_validation as cv
+from homeassistant.const import Platform, CONF_API_KEY  # Добавлен CONF_API_KEY
+from homeassistant.helpers import config_validation as cv  
 
 # Domain and platforms
 DOMAIN: Final = "ha_text_ai"
