@@ -1,26 +1,30 @@
 """Data coordinator for HA text AI."""
-import logging
 import asyncio
+import logging
 import time
-from datetime import timedelta, datetime
-from typing import Any, Dict, Optional, List
+import uuid
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
+
+import httpx
+from anthropic import AsyncAnthropic
+from openai import APIError, AsyncOpenAI, AuthenticationError, RateLimitError
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.exceptions import HomeAssistantError
-import httpx
-from openai import AsyncOpenAI, APIError, AuthenticationError, RateLimitError
-from anthropic import AsyncAnthropic
+from homeassistant.helpers import aiohttp_client
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
-    QUEUE_MAX_SIZE,
     DEFAULT_TIMEOUT,
     MAX_RETRIES,
+    QUEUE_MAX_SIZE,
     RETRY_DELAY,
 )
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)  
 
 class HATextAICoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
