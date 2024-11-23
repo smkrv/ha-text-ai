@@ -1,6 +1,7 @@
 """Data coordinator for HA text AI."""
 import logging
 import asyncio
+import time
 from datetime import timedelta, datetime
 from typing import Any, Dict, Optional, List
 
