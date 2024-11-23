@@ -1,14 +1,12 @@
 """Constants for the HA text AI integration."""
 from typing import Final
 import voluptuous as vol
-from homeassistant.const import Platform, CONF_API_KEY  # Добавлен CONF_API_KEY
+from homeassistant.const import Platform, CONF_API_KEY, CONF_NAME
 from homeassistant.helpers import config_validation as cv
 
 # Domain and platforms
 DOMAIN: Final = "ha_text_ai"
 PLATFORMS: Final = [Platform.SENSOR]
-CONF_NAME = "name"
-DEFAULT_NAME = "HA Text AI"
 
 # Provider configuration
 CONF_API_PROVIDER: Final = "api_provider"
@@ -22,7 +20,7 @@ API_PROVIDERS: Final = [
 
 # Default endpoints
 DEFAULT_OPENAI_ENDPOINT: Final = "https://api.openai.com/v1"
-DEFAULT_ANTHROPIC_ENDPOINT: Final = "https://api.anthropic.com/v1"
+DEFAULT_ANTHROPIC_ENDPOINT: Final = "https://api.anthropic.com"
 
 # Configuration constants
 CONF_MODEL: Final = "model"
@@ -30,12 +28,12 @@ CONF_TEMPERATURE: Final = "temperature"
 CONF_MAX_TOKENS: Final = "max_tokens"
 CONF_API_ENDPOINT: Final = "api_endpoint"
 CONF_REQUEST_INTERVAL: Final = "request_interval"
+CONF_INSTANCE: Final = "instance"
 
 # Default values
-DEFAULT_MODEL: Final = "gpt-4o-mini"
-DEFAULT_TEMPERATURE: Final = 0.1
+DEFAULT_MODEL: Final = "gpt-3.5-turbo"  # Обновлено на актуальную модель
+DEFAULT_TEMPERATURE: Final = 0.7
 DEFAULT_MAX_TOKENS: Final = 1000
-DEFAULT_API_ENDPOINT: Final = DEFAULT_OPENAI_ENDPOINT
 DEFAULT_REQUEST_INTERVAL: Final = 1.0
 DEFAULT_TIMEOUT: Final = 30
 
@@ -48,18 +46,8 @@ MIN_REQUEST_INTERVAL: Final = 0.1
 MAX_REQUEST_INTERVAL: Final = 60.0
 
 # API constants
-API_CHAT_PATH: Final = "chat/completions"
 API_TIMEOUT: Final = 30
 API_RETRY_COUNT: Final = 3
-
-# History constants
-HISTORY_FILTER_MODEL: Final = "filter_model"
-HISTORY_FILTER_DATE: Final = "start_date"
-HISTORY_SORT_ORDER: Final = "sort_order"
-HISTORY_INCLUDE_METADATA: Final = "include_metadata"
-HISTORY_SORT_ASC: Final = "asc"
-HISTORY_SORT_DESC: Final = "desc"
-HISTORY_MAX_ENTRIES: Final = 100
 
 # Service names
 SERVICE_ASK_QUESTION: Final = "ask_question"
@@ -67,34 +55,14 @@ SERVICE_CLEAR_HISTORY: Final = "clear_history"
 SERVICE_GET_HISTORY: Final = "get_history"
 SERVICE_SET_SYSTEM_PROMPT: Final = "set_system_prompt"
 
-# Service descriptions
-SERVICE_ASK_QUESTION_DESCRIPTION: Final = "Send a question to the AI model and receive a detailed response. The response will be stored in the conversation history."
-SERVICE_CLEAR_HISTORY_DESCRIPTION: Final = "Delete all stored questions and responses from the conversation history."
-SERVICE_GET_HISTORY_DESCRIPTION: Final = "Retrieve recent conversation history with optional filtering and sorting."
-SERVICE_SET_SYSTEM_PROMPT_DESCRIPTION: Final = "Set default system behavior instructions for all future conversations."
-
 # Attribute keys
 ATTR_QUESTION: Final = "question"
 ATTR_RESPONSE: Final = "response"
-ATTR_LAST_UPDATED: Final = "last_updated"
+ATTR_INSTANCE: Final = "instance"
 ATTR_MODEL: Final = "model"
 ATTR_TEMPERATURE: Final = "temperature"
 ATTR_MAX_TOKENS: Final = "max_tokens"
-ATTR_TOTAL_RESPONSES: Final = "total_responses"
 ATTR_SYSTEM_PROMPT: Final = "system_prompt"
-ATTR_RESPONSE_TIME: Final = "response_time"
-ATTR_QUEUE_SIZE: Final = "queue_size"
-ATTR_API_STATUS: Final = "api_status"
-ATTR_ERROR_COUNT: Final = "error_count"
-ATTR_LAST_ERROR: Final = "last_error"
-ATTR_API_VERSION: Final = "api_version"
-ATTR_ENDPOINT_STATUS: Final = "endpoint_status"
-ATTR_REQUEST_COUNT: Final = "request_count"
-ATTR_TOKENS_USED: Final = "tokens_used"
-ATTR_RETRY_COUNT: Final = "retry_count"
-ATTR_QUEUE_POSITION: Final = "queue_position"
-ATTR_ESTIMATED_WAIT: Final = "estimated_wait"
-ATTR_SORT_ORDER: Final = "sort_order"
 
 # Error messages
 ERROR_INVALID_API_KEY: Final = "invalid_api_key"
@@ -105,80 +73,12 @@ ERROR_RATE_LIMIT: Final = "rate_limit_exceeded"
 ERROR_CONTEXT_LENGTH: Final = "context_length_exceeded"
 ERROR_API_ERROR: Final = "api_error"
 ERROR_TIMEOUT: Final = "timeout_error"
-ERROR_QUEUE_FULL: Final = "queue_full"
-ERROR_INVALID_PROMPT: Final = "invalid_prompt"
-ERROR_INVALID_PARAMETERS: Final = "invalid_parameters"
-ERROR_SERVICE_UNAVAILABLE: Final = "service_unavailable"
-ERROR_INVALID_SORT_ORDER: Final = "invalid_sort_order"
-
-# Configuration descriptions
-CONF_MODEL_DESCRIPTION: Final = "AI model to use for responses"
-CONF_TEMPERATURE_DESCRIPTION: Final = "Temperature for response generation (0-2)"
-CONF_MAX_TOKENS_DESCRIPTION: Final = "Maximum tokens in response (1-4096)"
-CONF_API_ENDPOINT_DESCRIPTION: Final = "API endpoint URL"
-CONF_REQUEST_INTERVAL_DESCRIPTION: Final = "Minimum time between API requests (seconds)"
-
-# Entity attributes descriptions
-ATTR_QUESTION_DESCRIPTION: Final = "Last question asked"
-ATTR_RESPONSE_DESCRIPTION: Final = "Last response received"
-ATTR_LAST_UPDATED_DESCRIPTION: Final = "Time of last update"
-ATTR_MODEL_DESCRIPTION: Final = "Current AI model in use"
-ATTR_TEMPERATURE_DESCRIPTION: Final = "Current temperature setting"
-ATTR_MAX_TOKENS_DESCRIPTION: Final = "Current max tokens setting"
-ATTR_TOTAL_RESPONSES_DESCRIPTION: Final = "Total number of responses"
-ATTR_SYSTEM_PROMPT_DESCRIPTION: Final = "Current system prompt"
-ATTR_RESPONSE_TIME_DESCRIPTION: Final = "Time taken for last response"
-ATTR_QUEUE_SIZE_DESCRIPTION: Final = "Current size of question queue"
-ATTR_API_STATUS_DESCRIPTION: Final = "Current API connection status"
-ATTR_ERROR_COUNT_DESCRIPTION: Final = "Total number of errors"
-ATTR_LAST_ERROR_DESCRIPTION: Final = "Last error message"
-ATTR_API_VERSION_DESCRIPTION: Final = "Current API version"
-ATTR_ENDPOINT_STATUS_DESCRIPTION: Final = "Current endpoint status"
-ATTR_REQUEST_COUNT_DESCRIPTION: Final = "Total number of API requests"
-ATTR_TOKENS_USED_DESCRIPTION: Final = "Total tokens used"
-ATTR_SORT_ORDER_DESCRIPTION: Final = "Sort order for history (asc/desc)"
-
-# Entity attributes
-ENTITY_NAME: Final = "HA Text AI"
-ENTITY_ICON: Final = "mdi:robot"
-ENTITY_ICON_ERROR: Final = "mdi:robot-dead"
-ENTITY_ICON_PROCESSING: Final = "mdi:robot-excited"
-ENTITY_ICON_OFFLINE: Final = "mdi:robot-off"
-ENTITY_ICON_QUEUE: Final = "mdi:robot-confused"
-
-# Translation keys
-TRANSLATION_KEY_CONFIG: Final = "config"
-TRANSLATION_KEY_OPTIONS: Final = "options"
-TRANSLATION_KEY_ERROR: Final = "error"
-TRANSLATION_KEY_STATE: Final = "state"
-TRANSLATION_KEY_SERVICES: Final = "services"
-
-# State attributes
-STATE_READY: Final = "ready"
-STATE_PROCESSING: Final = "processing"
-STATE_ERROR: Final = "error"
-STATE_DISCONNECTED: Final = "disconnected"
-STATE_RATE_LIMITED: Final = "rate_limited"
-STATE_INITIALIZING: Final = "initializing"
-STATE_MAINTENANCE: Final = "maintenance"
-STATE_RETRYING: Final = "retrying"
-STATE_QUEUED: Final = "queued"
-STATE_UPDATING: Final = "updating"
-
-# Logging
-LOGGER_NAME: Final = "custom_components.ha_text_ai"
-LOG_LEVEL_DEFAULT: Final = "INFO"
-
-# Queue constants
-QUEUE_TIMEOUT: Final = 5
-QUEUE_MAX_SIZE: Final = 100
-
-# Retry constants
-MAX_RETRIES: Final = 3
-RETRY_DELAY: Final = 1.0
+ERROR_INVALID_INSTANCE: Final = "invalid_instance"
+ERROR_NAME_EXISTS: Final = "name_exists"
 
 # Service schema constants
 SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
+    vol.Required(CONF_INSTANCE): cv.string,
     vol.Required("question"): cv.string,
     vol.Optional("system_prompt"): cv.string,
     vol.Optional("model"): cv.string,
@@ -193,26 +93,25 @@ SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
 })
 
 SERVICE_SCHEMA_SET_SYSTEM_PROMPT = vol.Schema({
+    vol.Required(CONF_INSTANCE): cv.string,
     vol.Required("prompt"): cv.string
 })
 
 SERVICE_SCHEMA_GET_HISTORY = vol.Schema({
+    vol.Required(CONF_INSTANCE): cv.string,
     vol.Optional("limit", default=10): vol.All(
         vol.Coerce(int),
-        vol.Range(min=1, max=HISTORY_MAX_ENTRIES)
+        vol.Range(min=1, max=100)
     ),
-    vol.Optional("start_date"): cv.datetime,
-    vol.Optional("include_metadata"): cv.boolean,
-    vol.Optional("sort_order", default=HISTORY_SORT_DESC): vol.In([
-        HISTORY_SORT_ASC,
-        HISTORY_SORT_DESC
-    ])
+    vol.Optional("filter_model"): cv.string
 })
 
 # Configuration schema
 CONFIG_SCHEMA = vol.Schema({
     DOMAIN: vol.Schema({
+        vol.Required(CONF_NAME): cv.string,
         vol.Required(CONF_API_KEY): cv.string,
+        vol.Required(CONF_API_PROVIDER): vol.In(API_PROVIDERS),
         vol.Optional(CONF_MODEL, default=DEFAULT_MODEL): cv.string,
         vol.Optional(CONF_TEMPERATURE, default=DEFAULT_TEMPERATURE): vol.All(
             vol.Coerce(float),
@@ -226,10 +125,19 @@ CONFIG_SCHEMA = vol.Schema({
         vol.Optional(CONF_REQUEST_INTERVAL, default=DEFAULT_REQUEST_INTERVAL): vol.All(
             vol.Coerce(float),
             vol.Range(min=MIN_REQUEST_INTERVAL, max=MAX_REQUEST_INTERVAL)
-        ),
-        vol.Required(CONF_API_PROVIDER): vol.In(API_PROVIDERS)
+        )
     })
 }, extra=vol.ALLOW_EXTRA)
+
+# Entity attributes
+ENTITY_ICON: Final = "mdi:robot"
+ENTITY_ICON_ERROR: Final = "mdi:robot-dead"
+ENTITY_ICON_PROCESSING: Final = "mdi:robot-excited"
+
+# State attributes
+STATE_READY: Final = "ready"
+STATE_PROCESSING: Final = "processing"
+STATE_ERROR: Final = "error"
 
 # Event names
 EVENT_RESPONSE_RECEIVED: Final = f"{DOMAIN}_response_received"

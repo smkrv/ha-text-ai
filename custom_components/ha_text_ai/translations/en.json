@@ -1,49 +1,51 @@
 {
     "config": {
         "step": {
-            "user": {
-                "title": "Set up HA Text AI",
-                "description": "Configure your AI integration with OpenAI or Anthropic providers.",
+            "provider": {
+                "title": "Select AI Provider",
+                "description": "Choose which AI service provider to use for this instance",
                 "data": {
-                    "api_provider": "Select API Provider",
-                    "api_key": "API key for authentication (required)",
-                    "model": "AI model to use (provider-specific)",
-                    "temperature": "Response creativity (0-2, lower = more focused and consistent)",
+                    "api_provider": "API Provider"
+                }
+            },
+            "user": {
+                "title": "Configure HA Text AI Instance",
+                "description": "Set up a new AI assistant instance with your selected provider",
+                "data": {
+                    "name": "Instance name (e.g., 'GPT Assistant', 'Claude Helper')",
+                    "api_key": "API key for authentication",
+                    "model": "AI model to use",
+                    "temperature": "Response creativity (0-2, lower = more focused)",
                     "max_tokens": "Maximum response length (1-4096 tokens)",
                     "api_endpoint": "Custom API endpoint URL (optional)",
-                    "request_interval": "Minimum time between requests in seconds (0.1-60)",
-                    "name": "Name for this integration instance (e.g., 'GPT Assistant', 'Claude Helper')"
+                    "request_interval": "Minimum time between requests (0.1-60 seconds)"
                 }
             }
         },
         "error": {
-            "invalid_name": "Invalid integration name",
+            "name_exists": "An instance with this name already exists",
+            "invalid_name": "Invalid instance name",
             "invalid_auth": "Authentication failed - check your API key",
             "invalid_api_key": "Invalid API key - please verify your credentials",
-            "cannot_connect": "Connection failed - check endpoint and network status",
-            "invalid_model": "Model unavailable or not supported by the selected provider",
-            "rate_limit": "Rate limit exceeded - please reduce request frequency",
-            "api_error": "API service error - check provider status",
-            "timeout": "Request timeout - server not responding",
-            "queue_full": "Request queue full - try again later",
-            "invalid_url_format": "Invalid API endpoint URL format",
-            "invalid_input": "Invalid configuration parameters",
-            "invalid_parameters": "Invalid service parameters provided",
-            "service_unavailable": "Service temporarily unavailable",
-            "context_length": "Maximum context length exceeded",
-            "unknown": "Unexpected error - check logs for details"
+            "cannot_connect": "Failed to connect to API service",
+            "invalid_model": "Selected model is not available",
+            "rate_limit": "Rate limit exceeded",
+            "api_error": "API service error occurred",
+            "timeout": "Request timed out",
+            "invalid_instance": "Invalid instance specified",
+            "unknown": "Unexpected error occurred"
         }
     },
     "options": {
         "step": {
             "init": {
-                "title": "HA Text AI Settings",
-                "description": "Adjust your AI integration parameters",
+                "title": "Update Instance Settings",
+                "description": "Modify settings for this AI assistant instance",
                 "data": {
-                    "model": "Select AI model (provider-specific)",
+                    "model": "AI model",
                     "temperature": "Response creativity (0-2)",
-                    "max_tokens": "Maximum response length in tokens (1-4096)",
-                    "request_interval": "Minimum seconds between requests (0.1-60)"
+                    "max_tokens": "Maximum response length (1-4096)",
+                    "request_interval": "Minimum request interval (0.1-60 seconds)"
                 }
             }
         }
@@ -51,63 +53,85 @@
     "services": {
         "ask_question": {
             "name": "Ask Question",
-            "description": "Send a question to the AI model and get a detailed response.",
+            "description": "Send a question to the specified AI instance",
             "fields": {
+                "instance": {
+                    "name": "Instance",
+                    "description": "The HA Text AI instance to use"
+                },
                 "question": {
                     "name": "Question",
-                    "description": "Your question or prompt for the AI model"
+                    "description": "Your question or prompt"
                 },
                 "system_prompt": {
                     "name": "System Prompt",
-                    "description": "Optional context or instructions for this specific question"
+                    "description": "Optional context for this question"
                 },
                 "model": {
                     "name": "Model",
-                    "description": "Optional specific AI model for this request"
+                    "description": "Override default model for this request"
                 },
                 "temperature": {
                     "name": "Temperature",
-                    "description": "Optional creativity setting (0-2)"
+                    "description": "Override default creativity setting"
                 },
                 "max_tokens": {
                     "name": "Max Tokens",
-                    "description": "Optional maximum response length (1-4096 tokens)"
+                    "description": "Override default response length limit"
                 }
             }
         },
         "clear_history": {
             "name": "Clear History",
-            "description": "Delete all stored questions and responses from the conversation history."
+            "description": "Delete conversation history for specified instance",
+            "fields": {
+                "instance": {
+                    "name": "Instance",
+                    "description": "The HA Text AI instance to clear history for"
+                }
+            }
         },
         "get_history": {
             "name": "Get History",
-            "description": "Retrieve recent conversation history with optional filtering.",
+            "description": "Retrieve conversation history for specified instance",
             "fields": {
+                "instance": {
+                    "name": "Instance",
+                    "description": "The HA Text AI instance to get history from"
+                },
                 "limit": {
                     "name": "Limit",
-                    "description": "Maximum number of entries to return (1-100)"
+                    "description": "Maximum number of entries (1-100)"
+                },
+                "filter_model": {
+                    "name": "Filter Model",
+                    "description": "Filter by specific AI model"
                 },
                 "start_date": {
                     "name": "Start Date",
-                    "description": "Optional date to filter history from"
+                    "description": "Filter from specific date/time"
                 },
                 "include_metadata": {
                     "name": "Include Metadata",
-                    "description": "Include additional response metadata"
+                    "description": "Include additional response information"
                 },
                 "sort_order": {
                     "name": "Sort Order",
-                    "description": "Order of results (asc/desc)"
+                    "description": "Sort order (newest/oldest first)"
                 }
             }
         },
         "set_system_prompt": {
             "name": "Set System Prompt",
-            "description": "Set default system behavior instructions for all future conversations.",
+            "description": "Set default behavior for specified instance",
             "fields": {
+                "instance": {
+                    "name": "Instance",
+                    "description": "The HA Text AI instance to configure"
+                },
                 "prompt": {
                     "name": "System Prompt",
-                    "description": "Instructions that define how the AI should behave"
+                    "description": "Default behavior instructions"
                 }
             }
         }
@@ -117,16 +141,13 @@
             "ha_text_ai": {
                 "name": "{name}",
                 "state": {
-                    "initializing": "Initializing",
                     "ready": "Ready",
                     "processing": "Processing",
                     "error": "Error",
                     "disconnected": "Disconnected",
                     "rate_limited": "Rate Limited",
-                    "maintenance": "Maintenance",
                     "retrying": "Retrying",
-                    "queued": "Queued",
-                    "updating": "Updating"
+                    "queued": "Queued"
                 },
                 "state_attributes": {
                     "question": {
@@ -135,11 +156,8 @@
                     "response": {
                         "name": "Last Response"
                     },
-                    "last_updated": {
-                        "name": "Last Updated"
-                    },
                     "model": {
-                        "name": "Model"
+                        "name": "Current Model"
                     },
                     "temperature": {
                         "name": "Temperature"
@@ -147,20 +165,14 @@
                     "max_tokens": {
                         "name": "Max Tokens"
                     },
-                    "total_responses": {
-                        "name": "Total Responses"
-                    },
                     "system_prompt": {
                         "name": "System Prompt"
                     },
                     "response_time": {
-                        "name": "Response Time"
+                        "name": "Last Response Time"
                     },
-                    "queue_size": {
-                        "name": "Queue Size"
-                    },
-                    "api_status": {
-                        "name": "API Status"
+                    "total_responses": {
+                        "name": "Total Responses"
                     },
                     "error_count": {
                         "name": "Error Count"
@@ -168,11 +180,11 @@
                     "last_error": {
                         "name": "Last Error"
                     },
-                    "tokens_used": {
-                        "name": "Tokens Used"
+                    "api_status": {
+                        "name": "API Status"
                     },
-                    "request_count": {
-                        "name": "Request Count"
+                    "tokens_used": {
+                        "name": "Total Tokens Used"
                     }
                 }
             }

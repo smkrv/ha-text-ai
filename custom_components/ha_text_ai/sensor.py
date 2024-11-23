@@ -57,19 +57,10 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         """Initialize the sensor."""
         super().__init__(coordinator)
         self._config_entry = config_entry
-
-        # Используем имя из конфигурации
         self._name = config_entry.title
-
-        # Создаем уникальный ID используя имя
         self._attr_unique_id = f"{config_entry.entry_id}_{slugify(self._name)}"
-
-        # Создаем entity_id используя имя
         self.entity_id = f"sensor.ha_text_ai_{slugify(self._name)}"
-
-        # Устанавливаем отображаемое имя
         self._attr_name = self._name
-
         self._current_state = STATE_INITIALIZING
         self._error_count = 0
         self._last_error = None
@@ -80,7 +71,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             name=self._name,
             manufacturer="Community",
             model=f"{coordinator.model} ({self._config_entry.data.get(CONF_API_PROVIDER, 'Unknown')} provider)",
-            sw_version=coordinator._api_version,
+            sw_version=getattr(coordinator, 'api_version', 'v1'),
         )
 
     @property
@@ -95,8 +86,14 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
     @property
     def state(self) -> StateType:
         """Return the state of the sensor."""
-        if self.coordinator.data:
-            return self.coordinator.data.get("last_update", self._current_state)
+        try:
+            if self.coordinator.data and "last_update" in self.coordinator.data:
+                timestamp = self.coordinator.data["last_update"]
+                if isinstance(timestamp, str):
+                    return dt_util.parse_datetime(timestamp)
+                return timestamp
+        except Exception as err:
+            _LOGGER.debug("Error parsing state: %s", err)
         return self._current_state
 
     @property
@@ -112,17 +109,22 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
 
         if self.coordinator.data:
             data = self.coordinator.data
-            if "metrics" in data:
+
+            # Обновляем метрики если они есть
+            if "metrics" in data and isinstance(data["metrics"], dict):
                 attributes.update({"metrics": data["metrics"]})
+
+            # Обновляем статус API
             if "status" in data:
                 attributes[ATTR_API_STATUS] = data["status"]
-            if "last_response" in data:
-                last_response = data["last_response"]
-                if last_response:
-                    attributes.update({
-                        ATTR_RESPONSE: last_response.get("response", ""),
-                        ATTR_QUESTION: last_response.get("question", ""),
-                    })
+
+            # Обновляем информацию о последнем ответе
+            last_response = data.get("last_response", {})
+            if isinstance(last_response, dict):
+                attributes.update({
+                    ATTR_RESPONSE: last_response.get("response", ""),
+                    ATTR_QUESTION: last_response.get("question", ""),
+                })
 
         return attributes
 
@@ -130,20 +132,23 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         """Handle updated data from the coordinator."""
         try:
             data = self.coordinator.data
-            if data:
-                if data.get("is_processing"):
-                    self._current_state = STATE_PROCESSING
-                elif data.get("is_rate_limited"):
-                    self._current_state = STATE_RATE_LIMITED
-                elif data.get("is_maintenance"):
-                    self._current_state = STATE_MAINTENANCE
-                else:
-                    self._current_state = STATE_READY
-
-                if "metrics" in data:
-                    self._error_count = data["metrics"].get("total_errors", 0)
-            else:
+            if not data:
                 self._current_state = STATE_DISCONNECTED
+                return
+
+            # Определяем текущее состояние
+            if data.get("is_processing"):
+                self._current_state = STATE_PROCESSING
+            elif data.get("is_rate_limited"):
+                self._current_state = STATE_RATE_LIMITED
+            elif data.get("is_maintenance"):
+                self._current_state = STATE_MAINTENANCE
+            else:
+                self._current_state = STATE_READY
+
+            # Обновляем счетчик ошибок из метрик
+            if "metrics" in data and isinstance(data["metrics"], dict):
+                self._error_count = data["metrics"].get("total_errors", self._error_count)
 
         except Exception as err:
             _LOGGER.error("Error handling update: %s", err, exc_info=True)

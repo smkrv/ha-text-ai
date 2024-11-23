@@ -40,23 +40,32 @@ from .const import (
     SERVICE_CLEAR_HISTORY,
     SERVICE_GET_HISTORY,
     SERVICE_SET_SYSTEM_PROMPT,
-    SERVICE_SCHEMA_ASK_QUESTION,
-    SERVICE_SCHEMA_SET_SYSTEM_PROMPT,
-    SERVICE_SCHEMA_GET_HISTORY,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
-@callback
-def get_coordinator_by_id(hass: HomeAssistant, entity_id: str) -> Optional[HATextAICoordinator]:
-    """Get coordinator by entity ID."""
-    if DOMAIN in hass.data:
-        for entry_id, coordinator in hass.data[DOMAIN].items():
-            if coordinator.entity_id == entity_id:
-                return coordinator
-    return None
+# Обновленные схемы сервисов
+SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
+    vol.Required("instance"): cv.string,
+    vol.Required("question"): cv.string,
+    vol.Optional("system_prompt"): cv.string,
+    vol.Optional("model"): cv.string,
+    vol.Optional("temperature"): cv.positive_float,
+    vol.Optional("max_tokens"): cv.positive_int,
+})
+
+SERVICE_SCHEMA_SET_SYSTEM_PROMPT = vol.Schema({
+    vol.Required("instance"): cv.string,
+    vol.Required("prompt"): cv.string,
+})
+
+SERVICE_SCHEMA_GET_HISTORY = vol.Schema({
+    vol.Required("instance"): cv.string,
+    vol.Optional("limit"): cv.positive_int,
+    vol.Optional("filter_model"): cv.string,
+})
 
 async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
     """Set up the HA Text AI component."""
@@ -75,128 +84,93 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
 
     async def async_ask_question(call: ServiceCall) -> None:
         """Handle ask_question service."""
-        entity_id = call.target.get("entity_id")
-        if not entity_id:
-            raise HomeAssistantError("No target entity specified")
+        instance = call.data["instance"]
+        if instance not in hass.data[DOMAIN]:
+            raise HomeAssistantError(f"Instance {instance} not found")
 
-        coordinator = get_coordinator_by_id(hass, entity_id)
-        if not coordinator:
-            raise HomeAssistantError(f"No coordinator found for entity {entity_id}")
-
-        question = call.data.get("question")
-        if not question:
-            raise HomeAssistantError("No question provided")
-
+        coordinator = hass.data[DOMAIN][instance]["coordinator"]
         try:
-            params = {
-                "system_prompt": call.data.get("system_prompt"),
-                "model": call.data.get("model"),
-                "temperature": call.data.get("temperature"),
-                "max_tokens": call.data.get("max_tokens"),
-                "priority": call.data.get("priority", False)
-            }
-            await coordinator.async_ask_question(question, **params)
+            await coordinator.async_ask_question(
+                question=call.data["question"],
+                model=call.data.get("model"),
+                temperature=call.data.get("temperature"),
+                max_tokens=call.data.get("max_tokens"),
+                system_prompt=call.data.get("system_prompt"),
+            )
         except Exception as err:
             _LOGGER.error("Error asking question: %s", str(err))
             raise HomeAssistantError(f"Failed to process question: {str(err)}")
 
     async def async_clear_history(call: ServiceCall) -> None:
         """Handle clear_history service."""
-        entity_id = call.target.get("entity_id")
-        if not entity_id:
-            raise HomeAssistantError("No target entity specified")
+        instance = call.data["instance"]
+        if instance not in hass.data[DOMAIN]:
+            raise HomeAssistantError(f"Instance {instance} not found")
 
-        coordinator = get_coordinator_by_id(hass, entity_id)
-        if not coordinator:
-            raise HomeAssistantError(f"No coordinator found for entity {entity_id}")
-
+        coordinator = hass.data[DOMAIN][instance]["coordinator"]
         try:
-            await coordinator.clear_history()
+            await coordinator.async_clear_history()
         except Exception as err:
             _LOGGER.error("Error clearing history: %s", str(err))
             raise HomeAssistantError(f"Failed to clear history: {str(err)}")
 
     async def async_get_history(call: ServiceCall) -> None:
         """Handle get_history service."""
-        entity_id = call.target.get("entity_id")
-        if not entity_id:
-            raise HomeAssistantError("No target entity specified")
+        instance = call.data["instance"]
+        if instance not in hass.data[DOMAIN]:
+            raise HomeAssistantError(f"Instance {instance} not found")
 
-        coordinator = get_coordinator_by_id(hass, entity_id)
-        if not coordinator:
-            raise HomeAssistantError(f"No coordinator found for entity {entity_id}")
-
+        coordinator = hass.data[DOMAIN][instance]["coordinator"]
         try:
-            limit = call.data.get("limit", 10)
-            start_date = call.data.get("start_date")
-            include_metadata = call.data.get("include_metadata", False)
-            sort_order = call.data.get("sort_order", "desc")
-
-            history = await coordinator.get_history(
-                limit=limit,
-                start_date=start_date,
-                include_metadata=include_metadata,
-                sort_order=sort_order
+            return await coordinator.async_get_history(
+                limit=call.data.get("limit"),
+                filter_model=call.data.get("filter_model"),
+                instance=instance
             )
-            return history
         except Exception as err:
             _LOGGER.error("Error getting history: %s", str(err))
             raise HomeAssistantError(f"Failed to get history: {str(err)}")
 
     async def async_set_system_prompt(call: ServiceCall) -> None:
         """Handle set_system_prompt service."""
-        entity_id = call.target.get("entity_id")
-        if not entity_id:
-            raise HomeAssistantError("No target entity specified")
+        instance = call.data["instance"]
+        if instance not in hass.data[DOMAIN]:
+            raise HomeAssistantError(f"Instance {instance} not found")
 
-        coordinator = get_coordinator_by_id(hass, entity_id)
-        if not coordinator:
-            raise HomeAssistantError(f"No coordinator found for entity {entity_id}")
-
-        prompt = call.data.get("prompt")
-        if not prompt:
-            raise HomeAssistantError("No prompt provided")
-
+        coordinator = hass.data[DOMAIN][instance]["coordinator"]
         try:
-            coordinator.update_system_prompt(prompt)
+            await coordinator.async_set_system_prompt(call.data["prompt"])
         except Exception as err:
             _LOGGER.error("Error setting system prompt: %s", str(err))
             raise HomeAssistantError(f"Failed to set system prompt: {str(err)}")
-
-    # Base schema with target
-    base_schema = vol.Schema({
-        vol.Required("target"): {
-            vol.Required("entity_id"): cv.entity_id
-        }
-    })
 
     # Register services
     hass.services.async_register(
         DOMAIN,
         SERVICE_ASK_QUESTION,
         async_ask_question,
-        schema=base_schema.extend(SERVICE_SCHEMA_ASK_QUESTION.schema)
+        schema=SERVICE_SCHEMA_ASK_QUESTION
     )
 
     hass.services.async_register(
         DOMAIN,
         SERVICE_CLEAR_HISTORY,
         async_clear_history,
-        schema=base_schema
+        schema=vol.Schema({vol.Required("instance"): cv.string})
     )
 
     hass.services.async_register(
         DOMAIN,
         SERVICE_GET_HISTORY,
         async_get_history,
-        schema=base_schema.extend(SERVICE_SCHEMA_GET_HISTORY.schema)
+        schema=SERVICE_SCHEMA_GET_HISTORY
     )
 
     hass.services.async_register(
         DOMAIN,
         SERVICE_SET_SYSTEM_PROMPT,
         async_set_system_prompt,
-        schema=base_schema.extend(SERVICE_SCHEMA_SET_SYSTEM_PROMPT.schema)
+        schema=SERVICE_SCHEMA_SET_SYSTEM_PROMPT
     )
 
     return True
@@ -239,6 +213,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             DEFAULT_OPENAI_ENDPOINT if api_provider == API_PROVIDER_OPENAI
             else DEFAULT_ANTHROPIC_ENDPOINT).rstrip('/')
         api_key = entry.data[CONF_API_KEY]
+        instance_name = entry.data.get(CONF_NAME, entry.entry_id)
 
         is_anthropic = api_provider == API_PROVIDER_ANTHROPIC
         headers = {
@@ -256,23 +231,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             raise ConfigEntryNotReady("API connection failed")
 
         coordinator = HATextAICoordinator(
-            hass,
-            api_key=api_key,
-            endpoint=endpoint,
+            hass=hass,
+            client=None,  # Будет установлен позже
             model=model,
-            temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
+            update_interval=int(entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)),
+            instance_name=instance_name,
             max_tokens=entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
-            request_interval=float(entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)),
-            name=entry.title or entry.data.get(CONF_NAME, "HA Text AI"),
-            session=session,
-            is_anthropic=is_anthropic
+            temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
+            is_anthropic=is_anthropic,
         )
 
-        await coordinator.async_initialize()
-        await coordinator.async_config_entry_first_refresh()
-
-        hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN][entry.entry_id] = coordinator
+        # Сохраняем данные интеграции
+        hass.data[DOMAIN][instance_name] = {
+            "coordinator": coordinator,
+            "config_entry": entry,
+        }
 
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
         return True
@@ -284,15 +257,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     try:
-        coordinator = hass.data[DOMAIN].get(entry.entry_id)
-        if coordinator:
+        instance_name = entry.data.get(CONF_NAME, entry.entry_id)
+        if instance_name in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][instance_name]["coordinator"]
             await coordinator.async_shutdown()
+            hass.data[DOMAIN].pop(instance_name)
 
-        unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-        if unload_ok:
-            hass.data[DOMAIN].pop(entry.entry_id)
-
-        return unload_ok
+        return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
     except Exception as ex:
         _LOGGER.exception("Error unloading entry: %s", str(ex))
