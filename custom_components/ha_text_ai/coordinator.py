@@ -14,7 +14,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.helpers import aiohttp_client
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.exceptions import HomeAssistantError, UpdateFailed
+from homeassistant.exceptions import HomeAssistantError, ConfigUpdateFailed
 from openai import AsyncOpenAI, APIError, AuthenticationError, RateLimitError
 from anthropic import AsyncAnthropic
 from homeassistant.core import HomeAssistant
@@ -560,7 +560,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         except Exception as e:
             self._last_error = str(e)
             _LOGGER.error("Error updating data: %s", str(e))
-            raise UpdateFailed(f"Error updating data: {str(e)}")
+            raise ConfigUpdateFailed(f"Error updating data: {str(e)}")
 
     async def __aenter__(self):
         """Async enter."""
