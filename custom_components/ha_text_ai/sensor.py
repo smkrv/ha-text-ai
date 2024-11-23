@@ -80,7 +80,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             name=self._name,
             manufacturer="Community",
             model=f"{coordinator.model} ({self._config_entry.data.get(CONF_API_PROVIDER, 'Unknown')} provider)",
-            sw_version=coordinator.api_version,
+            sw_version=coordinator._api_version,
         )
 
     @property
@@ -95,48 +95,53 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
     @property
     def state(self) -> StateType:
         """Return the state of the sensor."""
-        last_response = self.coordinator.last_response
-        if last_response and 'timestamp' in last_response:
-            return dt_util.as_local(last_response['timestamp'])
+        if self.coordinator.data:
+            return self.coordinator.data.get("last_update", self._current_state)
         return self._current_state
 
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
         """Return entity specific state attributes."""
         attributes = {
-            ATTR_TOTAL_RESPONSES: len(self.coordinator._history),
+            ATTR_TOTAL_RESPONSES: len(getattr(self.coordinator, '_history', [])),
             ATTR_MODEL: self.coordinator.model,
             ATTR_API_STATUS: self._current_state,
             ATTR_ERROR_COUNT: self._error_count,
             ATTR_LAST_ERROR: self._last_error,
         }
 
-        last_response = self.coordinator.last_response
-        if last_response:
-            attributes.update({
-                ATTR_RESPONSE: last_response.get("response", ""),
-                ATTR_QUESTION: last_response.get("question", ""),
-            })
+        if self.coordinator.data:
+            data = self.coordinator.data
+            if "metrics" in data:
+                attributes.update({"metrics": data["metrics"]})
+            if "status" in data:
+                attributes[ATTR_API_STATUS] = data["status"]
+            if "last_response" in data:
+                last_response = data["last_response"]
+                if last_response:
+                    attributes.update({
+                        ATTR_RESPONSE: last_response.get("response", ""),
+                        ATTR_QUESTION: last_response.get("question", ""),
+                    })
 
         return attributes
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
         try:
-            last_response = self.coordinator.last_response
-
-            if last_response:
-                if last_response.get("error"):
-                    self._current_state = STATE_ERROR
-                    self._error_count += 1
-                elif self.coordinator._is_processing:
+            data = self.coordinator.data
+            if data:
+                if data.get("is_processing"):
                     self._current_state = STATE_PROCESSING
-                elif self.coordinator._is_rate_limited:
+                elif data.get("is_rate_limited"):
                     self._current_state = STATE_RATE_LIMITED
-                elif self.coordinator._is_maintenance:
+                elif data.get("is_maintenance"):
                     self._current_state = STATE_MAINTENANCE
                 else:
                     self._current_state = STATE_READY
+
+                if "metrics" in data:
+                    self._error_count = data["metrics"].get("total_errors", 0)
             else:
                 self._current_state = STATE_DISCONNECTED
 

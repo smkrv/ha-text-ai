@@ -99,6 +99,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self.client = None
         self.hass = hass  # Store hass reference for _init_client
         self._start_time = time.time()
+        self.last_response = None
 
         # History and metrics
         self._history: List[Dict[str, Any]] = []
@@ -507,7 +508,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async exit."""
         await self.async_stop()
-        
+
     async def async_start(self) -> None:
         """Start coordinator operations."""
         if not self._is_ready:
@@ -563,12 +564,82 @@ class HATextAICoordinator(DataUpdateCoordinator):
             return {
                 "status": self.endpoint_status,
                 "metrics": self._performance_metrics,
-                "last_update": dt_util.utcnow().isoformat()
+                "last_update": dt_util.utcnow().isoformat(),
+                "last_response": self.last_response,  # Добавляем last_response
+                "is_processing": self._is_processing,
+                "is_rate_limited": self._is_rate_limited,
+                "is_maintenance": self._is_maintenance,
             }
         except Exception as e:
             self._last_error = str(e)
             _LOGGER.error("Error updating data: %s", str(e))
             raise HomeAssistantError(f"Error updating data: {str(e)}")
+
+    async def async_process_message(self, message: str, **kwargs) -> dict:  
+        """Process message and update last_response."""
+        try:
+            self._is_processing = True
+            self.async_update_listeners()
+
+            start_time = time.time()
+
+            if self._is_anthropic:
+                response = await self.client.messages.create(
+                    model=self.model,
+                    max_tokens=self.max_tokens,
+                    temperature=self.temperature,
+                    messages=[{"role": "user", "content": message}],
+                    **kwargs
+                )
+                response_text = response.content[0].text
+            else:
+                response = await self.client.chat.completions.create(
+                    model=self.model,
+                    temperature=self.temperature,
+                    max_tokens=self.max_tokens,
+                    messages=[{"role": "user", "content": message}],
+                    **kwargs
+                )
+                response_text = response.choices[0].message.content
+
+            elapsed_time = time.time() - start_time
+            self._request_count += 1
+            self._performance_metrics["avg_response_time"] = (
+                (self._performance_metrics["avg_response_time"] * (self._request_count - 1) + elapsed_time)
+                / self._request_count
+            )
+
+            self.last_response = {
+                "timestamp": dt_util.utcnow().isoformat(),
+                "question": message,
+                "response": response_text,
+                "error": None
+            }
+
+            self._history.append(self.last_response)
+            if len(self._history) > self._max_history_size:
+                self._history.pop(0)
+
+            self._is_processing = False
+            self.async_update_listeners()
+
+            return self.last_response
+
+        except Exception as err:
+            self._error_count += 1
+            self._last_error = str(err)
+            self._performance_metrics["total_errors"] += 1
+
+            self.last_response = {
+                "timestamp": dt_util.utcnow().isoformat(),
+                "question": message,
+                "response": None,
+                "error": str(err)
+            }
+
+            self._is_processing = False
+            self.async_update_listeners()
+        raise
 
     async def __aenter__(self):
         """Async enter."""
