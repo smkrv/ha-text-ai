@@ -1,7 +1,7 @@
 """Data coordinator for HA text AI."""
 import logging
 import asyncio
-from datetime import timedelta
+from datetime import timedelta, datetime
 from typing import Any, Dict, Optional
 
 from homeassistant.core import HomeAssistant
@@ -18,7 +18,7 @@ from .const import (
     RETRY_DELAY,
 )
 
-_LOGGER = logging.getLogger(__name__)  
+_LOGGER = logging.getLogger(__name__)
 
 class HATextAICoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
