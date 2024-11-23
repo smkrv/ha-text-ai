@@ -129,21 +129,66 @@
                     "updating": "Updating"
                 },
                 "state_attributes": {
-                    "question": "Last question asked",
-                    "response": "Last response received",
-                    "last_updated": "Time of last update",
-                    "model": "Current AI model",
-                    "temperature": "Temperature setting",
-                    "max_tokens": "Max tokens setting",
-                    "total_responses": "Total responses",
-                    "system_prompt": "Current system prompt",
-                    "response_time": "Last response time",
-                    "queue_size": "Queue size",
-                    "api_status": "API status",
-                    "error_count": "Error count",
-                    "last_error": "Last error",
-                    "tokens_used": "Total tokens used",
-                    "request_count": "Total requests"
+                    "question": {
+                        "name": "Last Question",
+                        "description": "Most recent question asked to the AI"
+                    },
+                    "response": {
+                        "name": "Last Response",
+                        "description": "Most recent response received from the AI"
+                    },
+                    "last_updated": {
+                        "name": "Last Updated",
+                        "description": "Timestamp of the last update"
+                    },
+                    "model": {
+                        "name": "Model",
+                        "description": "Currently active AI model"
+                    },
+                    "temperature": {
+                        "name": "Temperature",
+                        "description": "Current creativity setting (0-2)"
+                    },
+                    "max_tokens": {
+                        "name": "Max Tokens",
+                        "description": "Maximum response length setting"
+                    },
+                    "total_responses": {
+                        "name": "Total Responses",
+                        "description": "Total number of responses received"
+                    },
+                    "system_prompt": {
+                        "name": "System Prompt",
+                        "description": "Current system behavior instructions"
+                    },
+                    "response_time": {
+                        "name": "Response Time",
+                        "description": "Time taken for last response"
+                    },
+                    "queue_size": {
+                        "name": "Queue Size",
+                        "description": "Number of requests in queue"
+                    },
+                    "api_status": {
+                        "name": "API Status",
+                        "description": "Current status of the API connection"
+                    },
+                    "error_count": {
+                        "name": "Error Count",
+                        "description": "Number of errors encountered"
+                    },
+                    "last_error": {
+                        "name": "Last Error",
+                        "description": "Details of the most recent error"
+                    },
+                    "tokens_used": {
+                        "name": "Tokens Used",
+                        "description": "Total number of tokens consumed"
+                    },
+                    "request_count": {
+                        "name": "Request Count",
+                        "description": "Total number of requests made"
+                    }
                 }
             }
         }
