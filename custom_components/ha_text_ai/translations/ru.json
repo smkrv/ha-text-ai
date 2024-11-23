@@ -61,35 +61,27 @@
             "fields": {
                 "instance": {
                     "name": "Экземпляр",
-                    "description": "Название экземпляра HA Text AI для использования",
-                    "required": true
+                    "description": "Название экземпляра HA Text AI для использования"
                 },
                 "question": {
                     "name": "Вопрос",
-                    "description": "Ваш вопрос или запрос для AI ассистента",
-                    "required": true
+                    "description": "Ваш вопрос или запрос для AI ассистента"
                 },
                 "system_prompt": {
                     "name": "Системный промпт",
-                    "description": "Необязательный системный промпт для установки контекста этого вопроса",
-                    "required": false
+                    "description": "Необязательный системный промпт для установки контекста этого вопроса"
                 },
                 "model": {
                     "name": "Модель",
-                    "description": "Выберите AI модель (необязательно, переопределяет настройки по умолчанию)",
-                    "required": false
+                    "description": "Выберите AI модель (необязательно, переопределяет настройки по умолчанию)"
                 },
                 "temperature": {
                     "name": "Temperature",
-                    "description": "Управляет креативностью ответов (0.0-2.0)",
-                    "required": false,
-                    "default": 0.7
+                    "description": "Управляет креативностью ответов (0.0-2.0)"
                 },
                 "max_tokens": {
                     "name": "Max Tokens",
-                    "description": "Максимальная длина ответа (1-4096 токенов)",
-                    "required": false,
-                    "default": 1000
+                    "description": "Максимальная длина ответа (1-4096 токенов)"
                 }
             }
         },
@@ -99,8 +91,7 @@
             "fields": {
                 "instance": {
                     "name": "Экземпляр",
-                    "description": "Название экземпляра HA Text AI для очистки истории",
-                    "required": true
+                    "description": "Название экземпляра HA Text AI для очистки истории"
                 }
             }
         },
@@ -110,36 +101,27 @@
             "fields": {
                 "instance": {
                     "name": "Экземпляр",
-                    "description": "Название экземпляра HA Text AI для получения истории",
-                    "required": true
+                    "description": "Название экземпляра HA Text AI для получения истории"
                 },
                 "limit": {
                     "name": "Лимит",
-                    "description": "Количество разговоров для возврата (1-100)",
-                    "required": false,
-                    "default": 10
+                    "description": "Количество разговоров для возврата (1-100)"
                 },
                 "filter_model": {
                     "name": "Фильтр модели",
-                    "description": "Фильтровать разговоры по конкретной AI модели",
-                    "required": false
+                    "description": "Фильтровать разговоры по конкретной AI модели"
                 },
                 "start_date": {
                     "name": "Начальная дата",
-                    "description": "Фильтровать разговоры начиная с этой даты/времени",
-                    "required": false
+                    "description": "Фильтровать разговоры начиная с этой даты/времени"
                 },
                 "include_metadata": {
                     "name": "Включить метаданные",
-                    "description": "Включить дополнительную информацию, такую как использованные токены, время ответа и т.д.",
-                    "required": false,
-                    "default": false
+                    "description": "Включить дополнительную информацию, такую как использованные токены, время ответа и т.д."
                 },
                 "sort_order": {
                     "name": "Порядок сортировки",
-                    "description": "Порядок сортировки результатов (сначала новые или старые)",
-                    "required": false,
-                    "default": "desc"
+                    "description": "Порядок сортировки результатов (сначала новые или старые)"
                 }
             }
         },
@@ -149,13 +131,11 @@
             "fields": {
                 "instance": {
                     "name": "Экземпляр",
-                    "description": "Название экземпляра HA Text AI для настройки",
-                    "required": true
+                    "description": "Название экземпляра HA Text AI для настройки"
                 },
                 "prompt": {
                     "name": "Системный промпт",
-                    "description": "Инструкции, определяющие поведение и ответы AI",
-                    "required": true
+                    "description": "Инструкции, определяющие поведение и ответы AI"
                 }
             }
         }
