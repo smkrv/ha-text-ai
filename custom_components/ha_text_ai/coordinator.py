@@ -24,7 +24,7 @@ from .const import (
     RETRY_DELAY,
 )
 
-_LOGGER = logging.getLogger(__name__)  
+_LOGGER = logging.getLogger(__name__)
 
 class HATextAICoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
@@ -494,6 +494,20 @@ class HATextAICoordinator(DataUpdateCoordinator):
         """Return endpoint connection status."""
         return self._endpoint_status
 
+    @property
+    def api_version(self) -> str:
+        """Return the API version."""
+        return self._api_version
+
+    async def __aenter__(self):
+        """Async enter."""
+        await self.async_start()
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async exit."""
+        await self.async_stop()
+        
     async def async_start(self) -> None:
         """Start coordinator operations."""
         if not self._is_ready:
