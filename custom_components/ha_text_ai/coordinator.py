@@ -1,7 +1,7 @@
 """Data coordinator for HA text AI."""
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
 from homeassistant.core import HomeAssistant
@@ -20,7 +20,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         client: Any,
         model: str,
         update_interval: int,
-        instance_name: str,  # Добавляем идентификатор интеграции
+        instance_name: str,
         max_tokens: int = 1000,
         temperature: float = 0.7,
         max_history_size: int = 50,
@@ -30,11 +30,11 @@ class HATextAICoordinator(DataUpdateCoordinator):
         super().__init__(
             hass,
             _LOGGER,
-            name=f"HA Text AI {instance_name}",  # Уникальное имя для каждой интеграции
-            update_interval=update_interval,
+            name=f"HA Text AI {instance_name}",
+            update_interval=timedelta(seconds=update_interval),
         )
 
-        self.instance_name = instance_name  # Сохраняем идентификатор
+        self.instance_name = instance_name
         self.client = client
         self.model = model
         self.max_tokens = max_tokens
@@ -125,7 +125,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 "is_processing": self._is_processing,
                 "is_rate_limited": self._is_rate_limited,
                 "is_maintenance": self._is_maintenance,
-                "instance": self.instance_name,  # Добавляем идентификатор интеграции
+                "instance": self.instance_name,
             }
         except Exception as e:
             self._last_error = str(e)
