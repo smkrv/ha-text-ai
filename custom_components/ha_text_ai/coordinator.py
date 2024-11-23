@@ -2,12 +2,13 @@
 import logging
 import asyncio
 from datetime import timedelta, datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Optional, List
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.exceptions import HomeAssistantError
-from openai import AsyncOpenAI, APIError, RateLimitError
+import httpx
+from openai import AsyncOpenAI, APIError, AuthenticationError, RateLimitError
 from anthropic import AsyncAnthropic
 
 from .const import (

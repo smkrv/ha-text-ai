@@ -1,8 +1,8 @@
 """Config flow for HA text AI integration."""
+import logging
 from typing import Any, Dict, Optional
-import voluptuous as vol
-import aiohttp
 
+import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY
 from homeassistant.core import callback
@@ -33,7 +33,6 @@ from .const import (
     MIN_REQUEST_INTERVAL,
 )
 
-import logging
 _LOGGER = logging.getLogger(__name__)
 
 class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):

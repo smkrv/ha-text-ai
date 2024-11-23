@@ -4,17 +4,18 @@ from __future__ import annotations
 import logging
 import os
 import shutil
-import voluptuous as vol
-from typing import Any, Dict, Optional
 from datetime import datetime
+from typing import Any, Dict, Optional
+
+import voluptuous as vol
+from async_timeout import timeout
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY, CONF_NAME
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
-from homeassistant.helpers import config_validation as cv, entity_platform
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import aiohttp_client
-from async_timeout import timeout
 
 from .coordinator import HATextAICoordinator
 from .const import (

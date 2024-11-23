@@ -1,19 +1,14 @@
 """Sensor platform for HA text AI."""
-from datetime import datetime
 import logging
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
-from homeassistant.components.sensor import (
-    SensorEntity,
-    SensorStateClass,
-    SensorDeviceClass,
-)
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
@@ -22,21 +17,11 @@ from .const import (
     CONF_API_PROVIDER,
     ATTR_QUESTION,
     ATTR_RESPONSE,
-    ATTR_LAST_UPDATED,
     ATTR_MODEL,
-    ATTR_TEMPERATURE,
-    ATTR_MAX_TOKENS,
     ATTR_TOTAL_RESPONSES,
-    ATTR_SYSTEM_PROMPT,
-    ATTR_QUEUE_SIZE,
     ATTR_API_STATUS,
     ATTR_ERROR_COUNT,
     ATTR_LAST_ERROR,
-    ATTR_RESPONSE_TIME,
-    ATTR_API_VERSION,
-    ATTR_ENDPOINT_STATUS,
-    ATTR_REQUEST_COUNT,
-    ATTR_TOKENS_USED,
     ENTITY_ICON,
     ENTITY_ICON_ERROR,
     ENTITY_ICON_PROCESSING,
