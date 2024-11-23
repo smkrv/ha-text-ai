@@ -101,18 +101,10 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         return self._current_state
 
     @property
-    def state(self) -> StateType:
-        """Return the state of the sensor."""
-        last_response = self.coordinator.last_response
-        if last_response and 'timestamp' in last_response:
-            return dt_util.as_local(last_response['timestamp'])
-        return self._current_state
-
-    @property
     def extra_state_attributes(self) -> Dict[str, Any]:
         """Return entity specific state attributes."""
         attributes = {
-            ATTR_TOTAL_RESPONSES: 0,
+            ATTR_TOTAL_RESPONSES: len(self.coordinator._history),
             ATTR_MODEL: self.coordinator.model,
             ATTR_API_STATUS: self._current_state,
             ATTR_ERROR_COUNT: self._error_count,
