@@ -33,6 +33,35 @@ _LOGGER = logging.getLogger(__name__)
 
 class HATextAICoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
+
+    def _validate_params(self, api_key: str, temperature: float, max_tokens: int) -> None:
+        """Validate initialization parameters.
+
+        Args:
+            api_key: API key for authentication
+            temperature: Sampling temperature for text generation
+            max_tokens: Maximum number of tokens to generate
+
+        Raises:
+            ValueError: If any parameters are invalid
+        """
+        if not api_key:
+            raise ValueError("API key cannot be empty")
+
+        try:
+            temp = float(temperature)
+            if not 0 <= temp <= 2:
+                raise ValueError("Temperature must be between 0 and 2")
+        except (TypeError, ValueError):
+            raise ValueError("Temperature must be a number between 0 and 2")
+
+        try:
+            tokens = int(max_tokens)
+            if tokens < 1:
+                raise ValueError("Max tokens must be a positive number")
+        except (TypeError, ValueError):
+            raise ValueError("Max tokens must be a positive integer")
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -66,16 +95,16 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self._MAX_ERRORS = 3
         self._request_count = 0
         self._tokens_used = 0
-        self._api_version = "v1"  # Оставляем только одно определение
+        self._api_version = "v1"  # Keep single definition
         self._endpoint_status = "disconnected"
         self._last_error = None
         self._last_request_time = 0
         self._is_anthropic = is_anthropic
         self._session = session or aiohttp_client.async_get_clientsession(hass)
         self.client = None
-        self.hass = hass  # Сохраняем ссылку на hass для использования в _init_client
+        self.hass = hass  # Store hass reference for _init_client
 
-        # История и метрики
+        # History and metrics
         self._history: List[Dict[str, Any]] = []
         self._max_history_size = 100
         self._performance_metrics: Dict[str, Any] = {
@@ -101,7 +130,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
                     api_key=self.api_key
                 )
             else:  # OpenAI
-                # Создаем транспорт в отдельном потоке
+                # Create transport in separate thread
                 transport = await self.hass.async_add_executor_job(
                     lambda: httpx.AsyncHTTPTransport(retries=3)
                 )
