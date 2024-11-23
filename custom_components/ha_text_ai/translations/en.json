@@ -11,7 +11,7 @@
                     "temperature": "Response creativity (0-2, lower = more focused and consistent)",
                     "max_tokens": "Maximum response length (1-4096 tokens)",
                     "api_endpoint": "Custom API endpoint URL (optional)",
-                    "request_interval": "Minimum time between requests in seconds (min: 0.1)",
+                    "request_interval": "Minimum time between requests in seconds (0.1-60)",
                     "name": "Name for this integration instance (e.g., 'GPT Assistant', 'Claude Helper')"
                 }
             }
@@ -28,6 +28,9 @@
             "queue_full": "Request queue full - try again later",
             "invalid_url_format": "Invalid API endpoint URL format",
             "invalid_input": "Invalid configuration parameters",
+            "invalid_parameters": "Invalid service parameters provided",
+            "service_unavailable": "Service temporarily unavailable",
+            "context_length": "Maximum context length exceeded",
             "unknown": "Unexpected error - check logs for details"
         }
     },
@@ -39,8 +42,8 @@
                 "data": {
                     "model": "Select AI model (provider-specific)",
                     "temperature": "Response creativity (0-2)",
-                    "max_tokens": "Maximum response length in tokens",
-                    "request_interval": "Minimum seconds between requests"
+                    "max_tokens": "Maximum response length in tokens (1-4096)",
+                    "request_interval": "Minimum seconds between requests (0.1-60)"
                 }
             }
         }
@@ -53,6 +56,10 @@
                 "question": {
                     "name": "Question",
                     "description": "Your question or prompt for the AI model"
+                },
+                "system_prompt": {
+                    "name": "System Prompt",
+                    "description": "Optional context or instructions for this specific question"
                 },
                 "model": {
                     "name": "Model",
@@ -67,6 +74,42 @@
                     "description": "Optional maximum response length (1-4096 tokens)"
                 }
             }
+        },
+        "clear_history": {
+            "name": "Clear History",
+            "description": "Delete all stored questions and responses from the conversation history."
+        },
+        "get_history": {
+            "name": "Get History",
+            "description": "Retrieve recent conversation history with optional filtering.",
+            "fields": {
+                "limit": {
+                    "name": "Limit",
+                    "description": "Maximum number of entries to return (1-100)"
+                },
+                "start_date": {
+                    "name": "Start Date",
+                    "description": "Optional date to filter history from"
+                },
+                "include_metadata": {
+                    "name": "Include Metadata",
+                    "description": "Include additional response metadata"
+                },
+                "sort_order": {
+                    "name": "Sort Order",
+                    "description": "Order of results (asc/desc)"
+                }
+            }
+        },
+        "set_system_prompt": {
+            "name": "Set System Prompt",
+            "description": "Set default system behavior instructions for all future conversations.",
+            "fields": {
+                "prompt": {
+                    "name": "System Prompt",
+                    "description": "Instructions that define how the AI should behave"
+                }
+            }
         }
     },
     "entity": {
@@ -79,7 +122,28 @@
                     "processing": "Processing",
                     "error": "Error",
                     "disconnected": "Disconnected",
-                    "rate_limited": "Rate Limited"
+                    "rate_limited": "Rate Limited",
+                    "maintenance": "Maintenance",
+                    "retrying": "Retrying",
+                    "queued": "Queued",
+                    "updating": "Updating"
+                },
+                "state_attributes": {
+                    "question": "Last question asked",
+                    "response": "Last response received",
+                    "last_updated": "Time of last update",
+                    "model": "Current AI model",
+                    "temperature": "Temperature setting",
+                    "max_tokens": "Max tokens setting",
+                    "total_responses": "Total responses",
+                    "system_prompt": "Current system prompt",
+                    "response_time": "Last response time",
+                    "queue_size": "Queue size",
+                    "api_status": "API status",
+                    "error_count": "Error count",
+                    "last_error": "Last error",
+                    "tokens_used": "Total tokens used",
+                    "request_count": "Total requests"
                 }
             }
         }

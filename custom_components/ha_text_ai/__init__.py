@@ -5,12 +5,10 @@ import logging
 import os
 import shutil
 from typing import Any, Dict, Optional
-import asyncio
-import voluptuous as vol
 from datetime import datetime
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_API_KEY
+from homeassistant.const import CONF_API_KEY, CONF_NAME
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv, entity_platform
@@ -36,12 +34,13 @@ from .const import (
     DEFAULT_ANTHROPIC_ENDPOINT,
     DEFAULT_REQUEST_INTERVAL,
     API_TIMEOUT,
-    API_RETRY_COUNT,
     SERVICE_ASK_QUESTION,
     SERVICE_CLEAR_HISTORY,
+    SERVICE_GET_HISTORY,
     SERVICE_SET_SYSTEM_PROMPT,
     SERVICE_SCHEMA_ASK_QUESTION,
     SERVICE_SCHEMA_SET_SYSTEM_PROMPT,
+    SERVICE_SCHEMA_GET_HISTORY,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -60,6 +59,17 @@ def get_coordinator_by_id(hass: HomeAssistant, entity_id: str) -> Optional[HATex
 async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
     """Set up the HA Text AI component."""
     hass.data.setdefault(DOMAIN, {})
+
+    # Copy custom icon
+    try:
+        source = os.path.join(os.path.dirname(__file__), 'icons', 'icon.svg')
+        dest_dir = os.path.join(hass.config.path('www'), 'icons')
+        os.makedirs(dest_dir, exist_ok=True)
+        dest = os.path.join(dest_dir, 'icon.svg')
+        if not os.path.exists(dest):
+            shutil.copyfile(source, dest)
+    except Exception as ex:
+        _LOGGER.warning("Failed to copy custom icon: %s", str(ex))
 
     async def async_ask_question(call: ServiceCall) -> None:
         """Handle ask_question service."""
@@ -104,6 +114,33 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
             _LOGGER.error("Error clearing history: %s", str(err))
             raise HomeAssistantError(f"Failed to clear history: {str(err)}")
 
+    async def async_get_history(call: ServiceCall) -> None:
+        """Handle get_history service."""
+        entity_id = call.target.get("entity_id")
+        if not entity_id:
+            raise HomeAssistantError("No target entity specified")
+
+        coordinator = get_coordinator_by_id(hass, entity_id)
+        if not coordinator:
+            raise HomeAssistantError(f"No coordinator found for entity {entity_id}")
+
+        try:
+            limit = call.data.get("limit", 10)
+            start_date = call.data.get("start_date")
+            include_metadata = call.data.get("include_metadata", False)
+            sort_order = call.data.get("sort_order", "desc")
+
+            history = await coordinator.get_history(
+                limit=limit,
+                start_date=start_date,
+                include_metadata=include_metadata,
+                sort_order=sort_order
+            )
+            return history
+        except Exception as err:
+            _LOGGER.error("Error getting history: %s", str(err))
+            raise HomeAssistantError(f"Failed to get history: {str(err)}")
+
     async def async_set_system_prompt(call: ServiceCall) -> None:
         """Handle set_system_prompt service."""
         entity_id = call.target.get("entity_id")
@@ -124,14 +161,14 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
             _LOGGER.error("Error setting system prompt: %s", str(err))
             raise HomeAssistantError(f"Failed to set system prompt: {str(err)}")
 
-    # Базовая схема с target как vol.Schema
+    # Base schema with target
     base_schema = vol.Schema({
         vol.Required("target"): {
             vol.Required("entity_id"): cv.entity_id
         }
     })
 
-    # Регистрация сервисов с использованием extend
+    # Register services
     hass.services.async_register(
         DOMAIN,
         SERVICE_ASK_QUESTION,
@@ -144,6 +181,13 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
         SERVICE_CLEAR_HISTORY,
         async_clear_history,
         schema=base_schema
+    )
+
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_GET_HISTORY,
+        async_get_history,
+        schema=base_schema.extend(SERVICE_SCHEMA_GET_HISTORY.schema)
     )
 
     hass.services.async_register(
@@ -182,14 +226,11 @@ async def async_check_api(session, endpoint: str, headers: dict, provider: str) 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up HA Text AI from a config entry."""
     try:
-        # Проверка наличия провайдера
         if CONF_API_PROVIDER not in entry.data:
             _LOGGER.error("API provider not specified")
             raise ConfigEntryNotReady("API provider is required")
 
         session = aiohttp_client.async_get_clientsession(hass)
-
-        # Получаем провайдера из конфигурации
         api_provider = entry.data.get(CONF_API_PROVIDER)
         model = entry.data.get(CONF_MODEL, DEFAULT_MODEL)
         endpoint = entry.data.get(CONF_API_ENDPOINT,
@@ -197,10 +238,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             else DEFAULT_ANTHROPIC_ENDPOINT).rstrip('/')
         api_key = entry.data[CONF_API_KEY]
 
-        # Определяем параметры подключения в зависимости от провайдера
         is_anthropic = api_provider == API_PROVIDER_ANTHROPIC
-
-        # Конфигурация headers
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json"
@@ -209,50 +247,33 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if is_anthropic:
             headers["x-api-key"] = api_key
             headers["anthropic-version"] = "2023-06-01"
-        else:  # OpenAI
+        else:
             headers["Authorization"] = f"Bearer {api_key}"
 
-        # Проверка API
-        try:
-            check_result = await async_check_api(session, endpoint, headers, api_provider)
-            if not check_result:
-                raise ConfigEntryNotReady("API connection failed")
-        except Exception as ex:
-            _LOGGER.error(f"API check failed: {ex}")
-            raise ConfigEntryNotReady("Failed to connect to API")
+        if not await async_check_api(session, endpoint, headers, api_provider):
+            raise ConfigEntryNotReady("API connection failed")
 
-        try:
-            # Create coordinator
-            coordinator = HATextAICoordinator(
-                hass,
-                api_key=api_key,
-                endpoint=endpoint,
-                model=model,
-                temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
-                max_tokens=entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
-                request_interval=float(entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)),
-                name=entry.title or entry.data.get("name", "HA Text AI"),  # Добавляем fallback для имени
-                session=session,
-                is_anthropic=is_anthropic
-            )
+        coordinator = HATextAICoordinator(
+            hass,
+            api_key=api_key,
+            endpoint=endpoint,
+            model=model,
+            temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
+            max_tokens=entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
+            request_interval=float(entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)),
+            name=entry.title or entry.data.get(CONF_NAME, "HA Text AI"),
+            session=session,
+            is_anthropic=is_anthropic
+        )
 
-            # Initialize the coordinator
-            await coordinator.async_initialize()
-            await coordinator.async_config_entry_first_refresh()
+        await coordinator.async_initialize()
+        await coordinator.async_config_entry_first_refresh()
 
-            # Store coordinator
-            if DOMAIN not in hass.data:
-                hass.data[DOMAIN] = {}
-            hass.data[DOMAIN][entry.entry_id] = coordinator
+        hass.data.setdefault(DOMAIN, {})
+        hass.data[DOMAIN][entry.entry_id] = coordinator
 
-            # Set up platforms
-            await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-            return True
-
-        except Exception as ex:
-            _LOGGER.exception("Error initializing coordinator: %s", str(ex))
-            raise ConfigEntryNotReady(f"Error initializing coordinator: {str(ex)}") from ex
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+        return True
 
     except Exception as ex:
         _LOGGER.exception("Setup error: %s", str(ex))
@@ -273,19 +294,4 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     except Exception as ex:
         _LOGGER.exception("Error unloading entry: %s", str(ex))
-        return False  # Убрано лишнее двоеточие
-
-async def async_setup(hass, config):
-    """Copy a custom icon to the www/icons directory."""
-    # The source of the icon file inside your integration
-    source = os.path.join(os.path.dirname(__file__), 'icons', 'icon.svg')
-    # Target directory – /config/www/icons/
-    dest_dir = os.path.join(hass.config.path('www'), 'icons')
-    # Create the target directory if it does not already exist
-    os.makedirs(dest_dir, exist_ok=True)
-    # Path where the icon will be saved
-    dest = os.path.join(dest_dir, 'icon.svg')
-    # If the icon has not already been copied, copy it to the target
-    if not os.path.exists(dest):
-        shutil.copyfile(source, dest)
-    return True
+        return False

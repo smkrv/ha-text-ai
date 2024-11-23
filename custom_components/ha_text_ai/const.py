@@ -10,7 +10,7 @@ PLATFORMS: Final = [Platform.SENSOR]
 CONF_NAME = "name"
 DEFAULT_NAME = "HA Text AI"
 
-# New constants for providers
+# Provider configuration
 CONF_API_PROVIDER: Final = "api_provider"
 API_PROVIDER_OPENAI: Final = "openai"
 API_PROVIDER_ANTHROPIC: Final = "anthropic"
@@ -45,6 +45,7 @@ MAX_TEMPERATURE: Final = 2.0
 MIN_MAX_TOKENS: Final = 1
 MAX_MAX_TOKENS: Final = 4096
 MIN_REQUEST_INTERVAL: Final = 0.1
+MAX_REQUEST_INTERVAL: Final = 60.0
 
 # API constants
 API_CHAT_PATH: Final = "chat/completions"
@@ -56,6 +57,9 @@ HISTORY_FILTER_MODEL: Final = "filter_model"
 HISTORY_FILTER_DATE: Final = "start_date"
 HISTORY_SORT_ORDER: Final = "sort_order"
 HISTORY_INCLUDE_METADATA: Final = "include_metadata"
+HISTORY_SORT_ASC: Final = "asc"
+HISTORY_SORT_DESC: Final = "desc"
+HISTORY_MAX_ENTRIES: Final = 100
 
 # Service names
 SERVICE_ASK_QUESTION: Final = "ask_question"
@@ -64,10 +68,10 @@ SERVICE_GET_HISTORY: Final = "get_history"
 SERVICE_SET_SYSTEM_PROMPT: Final = "set_system_prompt"
 
 # Service descriptions
-SERVICE_ASK_QUESTION_DESCRIPTION: Final = "Ask a question to the AI model"
-SERVICE_CLEAR_HISTORY_DESCRIPTION: Final = "Clear conversation history"
-SERVICE_GET_HISTORY_DESCRIPTION: Final = "Get conversation history"
-SERVICE_SET_SYSTEM_PROMPT_DESCRIPTION: Final = "Set system prompt for AI model"
+SERVICE_ASK_QUESTION_DESCRIPTION: Final = "Send a question to the AI model and receive a detailed response. The response will be stored in the conversation history."
+SERVICE_CLEAR_HISTORY_DESCRIPTION: Final = "Delete all stored questions and responses from the conversation history."
+SERVICE_GET_HISTORY_DESCRIPTION: Final = "Retrieve recent conversation history with optional filtering and sorting."
+SERVICE_SET_SYSTEM_PROMPT_DESCRIPTION: Final = "Set default system behavior instructions for all future conversations."
 
 # Attribute keys
 ATTR_QUESTION: Final = "question"
@@ -90,6 +94,7 @@ ATTR_TOKENS_USED: Final = "tokens_used"
 ATTR_RETRY_COUNT: Final = "retry_count"
 ATTR_QUEUE_POSITION: Final = "queue_position"
 ATTR_ESTIMATED_WAIT: Final = "estimated_wait"
+ATTR_SORT_ORDER: Final = "sort_order"
 
 # Error messages
 ERROR_INVALID_API_KEY: Final = "invalid_api_key"
@@ -104,6 +109,7 @@ ERROR_QUEUE_FULL: Final = "queue_full"
 ERROR_INVALID_PROMPT: Final = "invalid_prompt"
 ERROR_INVALID_PARAMETERS: Final = "invalid_parameters"
 ERROR_SERVICE_UNAVAILABLE: Final = "service_unavailable"
+ERROR_INVALID_SORT_ORDER: Final = "invalid_sort_order"
 
 # Configuration descriptions
 CONF_MODEL_DESCRIPTION: Final = "AI model to use for responses"
@@ -130,6 +136,7 @@ ATTR_API_VERSION_DESCRIPTION: Final = "Current API version"
 ATTR_ENDPOINT_STATUS_DESCRIPTION: Final = "Current endpoint status"
 ATTR_REQUEST_COUNT_DESCRIPTION: Final = "Total number of API requests"
 ATTR_TOKENS_USED_DESCRIPTION: Final = "Total tokens used"
+ATTR_SORT_ORDER_DESCRIPTION: Final = "Sort order for history (asc/desc)"
 
 # Entity attributes
 ENTITY_NAME: Final = "HA Text AI"
@@ -171,19 +178,6 @@ MAX_RETRIES: Final = 3
 RETRY_DELAY: Final = 1.0
 
 # Service schema constants
-SCHEMA_QUESTION: Final = "question"
-SCHEMA_MODEL: Final = "model"
-SCHEMA_TEMPERATURE: Final = "temperature"
-SCHEMA_MAX_TOKENS: Final = "max_tokens"
-SCHEMA_PROMPT: Final = "prompt"
-SCHEMA_LIMIT: Final = "limit"
-
-# Event names
-EVENT_RESPONSE_RECEIVED: Final = f"{DOMAIN}_response_received"
-EVENT_ERROR_OCCURRED: Final = f"{DOMAIN}_error_occurred"
-EVENT_STATE_CHANGED: Final = f"{DOMAIN}_state_changed"
-
-# Service schema constants
 SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
     vol.Required("question"): cv.string,
     vol.Optional("system_prompt"): cv.string,
@@ -195,22 +189,49 @@ SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
     vol.Optional("max_tokens"): vol.All(
         vol.Coerce(int),
         vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
-    ),
-    vol.Optional("priority"): cv.boolean,
+    )
 })
 
-# set_system_prompt
 SERVICE_SCHEMA_SET_SYSTEM_PROMPT = vol.Schema({
-    vol.Required("prompt"): cv.string,
+    vol.Required("prompt"): cv.string
 })
 
-# get_history
 SERVICE_SCHEMA_GET_HISTORY = vol.Schema({
     vol.Optional("limit", default=10): vol.All(
         vol.Coerce(int),
-        vol.Range(min=1, max=100)
+        vol.Range(min=1, max=HISTORY_MAX_ENTRIES)
     ),
-#    vol.Optional("filter_model"): vol.In(SUPPORTED_MODELS),
     vol.Optional("start_date"): cv.datetime,
     vol.Optional("include_metadata"): cv.boolean,
+    vol.Optional("sort_order", default=HISTORY_SORT_DESC): vol.In([
+        HISTORY_SORT_ASC,
+        HISTORY_SORT_DESC
+    ])
 })
+
+# Configuration schema
+CONFIG_SCHEMA = vol.Schema({
+    DOMAIN: vol.Schema({
+        vol.Required(CONF_API_KEY): cv.string,
+        vol.Optional(CONF_MODEL, default=DEFAULT_MODEL): cv.string,
+        vol.Optional(CONF_TEMPERATURE, default=DEFAULT_TEMPERATURE): vol.All(
+            vol.Coerce(float),
+            vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
+        ),
+        vol.Optional(CONF_MAX_TOKENS, default=DEFAULT_MAX_TOKENS): vol.All(
+            vol.Coerce(int),
+            vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
+        ),
+        vol.Optional(CONF_API_ENDPOINT): cv.string,
+        vol.Optional(CONF_REQUEST_INTERVAL, default=DEFAULT_REQUEST_INTERVAL): vol.All(
+            vol.Coerce(float),
+            vol.Range(min=MIN_REQUEST_INTERVAL, max=MAX_REQUEST_INTERVAL)
+        ),
+        vol.Required(CONF_API_PROVIDER): vol.In(API_PROVIDERS)
+    })
+}, extra=vol.ALLOW_EXTRA)
+
+# Event names
+EVENT_RESPONSE_RECEIVED: Final = f"{DOMAIN}_response_received"
+EVENT_ERROR_OCCURRED: Final = f"{DOMAIN}_error_occurred"
+EVENT_STATE_CHANGED: Final = f"{DOMAIN}_state_changed"
