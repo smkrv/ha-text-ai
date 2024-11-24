@@ -53,7 +53,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self.max_history_size = max_history_size
         self.is_anthropic = is_anthropic
 
-        # Регистрируем instance в системе
+        # Register instance
         self.hass.data.setdefault(DOMAIN, {})
         self.hass.data[DOMAIN][instance_name] = self
 
@@ -76,7 +76,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self._is_maintenance = False
         self.endpoint_status = "ready"
 
-        # Инициализация last_response
+        # Initialize last_response
         self.last_response = {
             "timestamp": dt_util.utcnow().isoformat(),
             "question": "",
@@ -102,6 +102,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
             "uptime": (dt_util.utcnow() - self._start_time).total_seconds(),
             "system_prompt": self._system_prompt,
             "history_size": len(self._conversation_history),
+            "conversation_history": self._conversation_history,
         }
 
     def _get_current_state(self) -> str:
@@ -115,6 +116,19 @@ class HATextAICoordinator(DataUpdateCoordinator):
         elif self.last_response.get("error"):
             return STATE_ERROR
         return STATE_READY
+
+    async def async_ask_question(
+        self,
+        question: str,
+        model: Optional[str] = None,
+        temperature: Optional[float] = None,
+        max_tokens: Optional[int] = None,
+        system_prompt: Optional[str] = None,
+    ) -> dict:
+        """Process a question with optional parameters."""
+        return await self.async_process_question(
+            question, model, temperature, max_tokens, system_prompt
+        )
 
     async def async_process_question(
         self,
@@ -143,7 +157,17 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
             messages = []
             if temp_system_prompt:
-                messages.append({"role": "system", "content": temp_system_prompt})
+                if self.is_anthropic:
+                    system_content = f"\n\nHuman: {temp_system_prompt}\n\nAssistant: I understand and will follow these instructions."
+                    messages.append({"role": "user", "content": system_content})
+                else:
+                    messages.append({"role": "system", "content": temp_system_prompt})
+
+            # Add conversation history
+            for entry in self._conversation_history[-5:]:  # Last 5 messages for context
+                messages.append({"role": "user", "content": entry["question"]})
+                messages.append({"role": "assistant", "content": entry["response"]})
+
             messages.append({"role": "user", "content": question})
 
             kwargs = {
@@ -155,12 +179,12 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
             response = await self.async_process_message(question, **kwargs)
 
-            # Обновляем метрики
+            # Update metrics
             end_time = dt_util.utcnow()
             latency = (end_time - start_time).total_seconds()
             self._update_metrics(latency, response)
 
-            # Обновляем историю
+            # Update history
             self._update_history(question, response)
 
             return response
@@ -240,7 +264,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
         metrics["completion_tokens"] += tokens.get("completion", 0)
         metrics["successful_requests"] += 1
 
-        # Обновляем латентность
         metrics["average_latency"] = (
             (metrics["average_latency"] * (metrics["successful_requests"] - 1) + latency)
             / metrics["successful_requests"]
@@ -256,7 +279,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
             "response": response["content"]
         })
 
-        # Ограничиваем размер истории
         while len(self._conversation_history) > self.max_history_size:
             self._conversation_history.pop(0)
 
@@ -273,6 +295,20 @@ class HATextAICoordinator(DataUpdateCoordinator):
             "instance": self.instance_name,
             "error": str(error)
         }
+
+    async def async_clear_history(self) -> None:
+        """Clear conversation history."""
+        self._conversation_history = []
+        await self.async_update_ha_state()
+
+    async def async_get_history(self) -> List[Dict[str, str]]:
+        """Get conversation history."""
+        return self._conversation_history
+
+    async def async_set_system_prompt(self, prompt: str) -> None:
+        """Set system prompt."""
+        self._system_prompt = prompt
+        await self.async_update_ha_state()
 
     async def async_update_ha_state(self) -> None:
         """Update Home Assistant state."""
