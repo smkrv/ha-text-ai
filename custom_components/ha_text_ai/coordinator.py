@@ -1,23 +1,49 @@
-"""DataUpdateCoordinator for HA Text AI."""
-from datetime import timedelta
+"""The HA Text AI integration."""
+from __future__ import annotations
+
 import logging
-from typing import Any, Dict, List, Optional
+import os
+import shutil
+from datetime import datetime, timedelta
+from typing import Any, Dict
 
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.util import dt as dt_util
+import voluptuous as vol
+from async_timeout import timeout
 
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_API_KEY, CONF_NAME, Platform
+from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import aiohttp_client
+
+from .coordinator import HATextAICoordinator
+from .api_client import APIClient
 from .const import (
     DOMAIN,
-    STATE_READY,
-    STATE_PROCESSING,
-    STATE_ERROR,
-    STATE_RATE_LIMITED,
-    STATE_MAINTENANCE,
+    PLATFORMS,
+    CONF_MODEL,
+    CONF_TEMPERATURE,
+    CONF_MAX_TOKENS,
+    CONF_API_ENDPOINT,
+    CONF_REQUEST_INTERVAL,
+    CONF_API_PROVIDER,
+    API_PROVIDER_OPENAI,
+    API_PROVIDER_ANTHROPIC,
+    DEFAULT_MODEL,
+    DEFAULT_TEMPERATURE,
+    DEFAULT_MAX_TOKENS,
+    DEFAULT_OPENAI_ENDPOINT,
+    DEFAULT_ANTHROPIC_ENDPOINT,
+    DEFAULT_REQUEST_INTERVAL,
+    API_TIMEOUT,
+    SERVICE_ASK_QUESTION,
+    SERVICE_CLEAR_HISTORY,
+    SERVICE_GET_HISTORY,
+    SERVICE_SET_SYSTEM_PROMPT,
 )
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER = logging.getLogger(__name__)  
 
 class HATextAICoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
@@ -239,20 +265,25 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
     async def _process_openai_message(self, question: str, **kwargs) -> dict:
         """Process message using OpenAI API."""
-        response = await self.client.chat.completions.create(
-            model=kwargs["model"],
-            messages=kwargs["messages"],
-            temperature=kwargs["temperature"],
-            max_tokens=kwargs["max_tokens"],
-        )
-        return {
-            "content": response.choices[0].message.content,
-            "tokens": {
-                "prompt": response.usage.prompt_tokens,
-                "completion": response.usage.completion_tokens,
-                "total": response.usage.total_tokens
+        try:
+            response = await self.client.create(
+                model=kwargs["model"],
+                messages=kwargs["messages"],
+                temperature=kwargs["temperature"],
+                max_tokens=kwargs["max_tokens"],
+            )
+
+            return {
+                "content": response["choices"][0]["message"]["content"],
+                "tokens": {
+                    "prompt": response["usage"]["prompt_tokens"],
+                    "completion": response["usage"]["completion_tokens"],
+                    "total": response["usage"]["total_tokens"]
+                }
             }
-        }
+        except Exception as e:
+            _LOGGER.error(f"Error in OpenAI API call: {str(e)}")
+            raise
 
     def _update_metrics(self, latency: float, response: dict) -> None:
         """Update performance metrics."""

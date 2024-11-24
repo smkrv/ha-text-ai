@@ -18,6 +18,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import aiohttp_client
 
 from .coordinator import HATextAICoordinator
+from .api_client import APIClient
 from .const import (
     DOMAIN,
     PLATFORMS,
@@ -68,11 +69,9 @@ SERVICE_SCHEMA_GET_HISTORY = vol.Schema({
 
 def get_coordinator_by_instance(hass: HomeAssistant, instance: str) -> HATextAICoordinator:
     """Get coordinator by instance name."""
-    # Убираем префикс "sensor." если он есть
     if instance.startswith("sensor."):
         instance = instance.replace("sensor.ha_text_ai_", "", 1)
 
-    # Ищем координатор по instance_name
     for entry_id, coord in hass.data[DOMAIN].items():
         if isinstance(coord, HATextAICoordinator) and coord.instance_name.lower() == instance.lower():
             return coord
@@ -225,14 +224,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if not await async_check_api(session, endpoint, headers, api_provider):
             raise ConfigEntryNotReady("API connection failed")
 
+        _LOGGER.debug("Creating API client for %s with endpoint %s", api_provider, endpoint)
+
         # Создаем API клиент
-        api_client = {
-            "session": session,
-            "endpoint": endpoint,
-            "headers": headers,
-            "api_provider": api_provider,
-            "model": model,
-        }
+        api_client = APIClient(
+            session=session,
+            endpoint=endpoint,
+            headers=headers,
+            api_provider=api_provider,
+            model=model,
+        )
 
         coordinator = HATextAICoordinator(
             hass=hass,
@@ -245,15 +246,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             is_anthropic=is_anthropic,
         )
 
-        # Инициализация координатора
         await coordinator.async_config_entry_first_refresh()
 
-        # Сохраняем координатор
         hass.data.setdefault(DOMAIN, {})
         hass.data[DOMAIN][entry.entry_id] = coordinator
 
-        # Загружаем платформы
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+        _LOGGER.info(
+            "Successfully set up %s instance '%s' with model %s",
+            api_provider,
+            instance_name,
+            model
+        )
+
         return True
 
     except Exception as ex:
@@ -265,6 +271,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         if entry.entry_id in hass.data[DOMAIN]:
             coordinator = hass.data[DOMAIN][entry.entry_id]
+
+            if hasattr(coordinator.client, 'shutdown'):
+                await coordinator.client.shutdown()
+
             await coordinator.async_shutdown()
             hass.data[DOMAIN].pop(entry.entry_id)
 
