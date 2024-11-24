@@ -66,6 +66,8 @@ async def async_setup_entry(
 ) -> None:
     """Set up the HA Text AI sensor."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
+    instance_name = coordinator.instance_name
+    _LOGGER.info(f"Setting up HA Text AI sensor with instance: {instance_name}")
     async_add_entities([HATextAISensor(coordinator, entry)], True)
 
 class HATextAISensor(CoordinatorEntity, SensorEntity):
@@ -86,6 +88,9 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._attr_unique_id = f"{config_entry.entry_id}_{slugify(self._attr_name)}"
         self.entity_id = f"sensor.ha_text_ai_{slugify(self._attr_name)}"
 
+        # Сохраняем instance_name из координатора
+        self._instance_name = coordinator.instance_name
+
         self._current_state = STATE_INITIALIZING
         self._error_count = 0
         self._last_error = None
@@ -103,13 +108,15 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             sw_version="1.0.0",
         )
 
+        _LOGGER.info(f"Initialized sensor with instance: {self._instance_name}")
+
     @property
     def native_value(self) -> StateType:
         """Return the native value of the sensor."""
         if not self.coordinator.data:
             return STATE_DISCONNECTED
 
-        status = self.coordinator.data.get("status", STATE_READY)
+        status = self.coordinator.data.get("state", STATE_READY)
         self._current_state = status
         return status
 
@@ -131,6 +138,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             ATTR_API_STATUS: self._current_state,
             ATTR_TOTAL_ERRORS: self._error_count,
             ATTR_LAST_ERROR: self._last_error,
+            "instance_name": self._instance_name,  # Добавляем instance_name в атрибуты
         }
 
         if not self.coordinator.data:
