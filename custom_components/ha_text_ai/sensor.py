@@ -96,17 +96,19 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._conversation_history = []
         self._system_prompt = None
 
+        sensor_name = f"HA Text AI {self._instance_name}"
+
         # Entity attributes
         self._attr_has_entity_name = True
         self.entity_id = f"sensor.ha_text_ai_{slugify(self._instance_name)}"
-        self._attr_name = f"HA Text AI {self._instance_name}"
+        self._attr_name = sensor_name
         self._attr_unique_id = f"{config_entry.entry_id}"
 
-        # Entity description
+        # Entity description без дублирования
         self.entity_description = SensorEntityDescription(
             key=f"ha_text_ai_{self._instance_name}",
             entity_registry_enabled_default=True,
-        )  
+        )
 
         # State tracking
         self._current_state = STATE_INITIALIZING
@@ -123,7 +125,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
 
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self._attr_unique_id)},
-            name=self._attr_name,
+            name=sensor_name,
             manufacturer="Community",
             model=f"{model} ({api_provider} provider)",
             sw_version="1.0.0",
