@@ -43,6 +43,8 @@ from .const import (
     SERVICE_SET_SYSTEM_PROMPT,
 )
 
+DOMAIN = "ha_text_ai"
+
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
