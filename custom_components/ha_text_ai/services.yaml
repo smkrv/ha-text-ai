@@ -9,8 +9,9 @@ ask_question:
       description: Name of the HA Text AI instance to use
       required: true
       selector:
-        select:
-          options: "{{ states.sensor | selectattr('entity_id', 'search', 'ha_text_ai_') | map(attribute='entity_id') | list }}"
+        entity:
+          integration: ha_text_ai
+          domain: sensor
 
     question:
       name: Question
@@ -19,7 +20,7 @@ ask_question:
       selector:
         text:
           multiline: true
-          type: text
+          type: text  
 
     system_prompt:
       name: System Prompt
