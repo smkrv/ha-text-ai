@@ -43,8 +43,6 @@ from .const import (
     SERVICE_SET_SYSTEM_PROMPT,
 )
 
-DOMAIN = "ha_text_ai"
-
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
@@ -228,7 +226,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         _LOGGER.debug("Creating API client for %s with endpoint %s", api_provider, endpoint)
 
-        # Создаем API клиент
         api_client = APIClient(
             session=session,
             endpoint=endpoint,

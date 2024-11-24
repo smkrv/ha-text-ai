@@ -1,9 +1,21 @@
 """API Client for HA Text AI."""
 import logging
+import asyncio
 from typing import Any, Dict, List, Optional
+from aiohttp import ClientSession, ClientTimeout
+from async_timeout import timeout
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from .const import (
+    API_TIMEOUT,
+    API_RETRY_COUNT,
+    API_PROVIDER_ANTHROPIC,
+    MIN_TEMPERATURE,
+    MAX_TEMPERATURE,
+    MIN_MAX_TOKENS,
+    MAX_MAX_TOKENS,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -12,7 +24,7 @@ class APIClient:
 
     def __init__(
         self,
-        session: Any,
+        session: ClientSession,
         endpoint: str,
         headers: Dict[str, str],
         api_provider: str,
@@ -24,6 +36,51 @@ class APIClient:
         self.headers = headers
         self.api_provider = api_provider
         self.model = model
+        self.timeout = ClientTimeout(total=API_TIMEOUT)
+
+    def _validate_parameters(
+        self,
+        temperature: float,
+        max_tokens: int,
+    ) -> None:
+        """Validate API parameters."""
+        if not MIN_TEMPERATURE <= temperature <= MAX_TEMPERATURE:
+            raise ValueError(
+                f"Temperature must be between {MIN_TEMPERATURE} and {MAX_TEMPERATURE}"
+            )
+        if not MIN_MAX_TOKENS <= max_tokens <= MAX_MAX_TOKENS:
+            raise ValueError(
+                f"Max tokens must be between {MIN_MAX_TOKENS} and {MAX_MAX_TOKENS}"
+            )
+
+    async def _make_request(
+        self,
+        url: str,
+        payload: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """Make API request with retry logic."""
+        for attempt in range(API_RETRY_COUNT):
+            try:
+                async with timeout(API_TIMEOUT):
+                    async with self.session.post(
+                        url,
+                        json=payload,
+                        headers=self.headers,
+                        timeout=self.timeout
+                    ) as response:
+                        if response.status != 200:
+                            error_data = await response.json()
+                            raise HomeAssistantError(f"API error: {error_data}")
+                        return await response.json()
+            except asyncio.TimeoutError:
+                if attempt == API_RETRY_COUNT - 1:
+                    raise HomeAssistantError("API request timed out")
+                await asyncio.sleep(1 * (attempt + 1))
+            except Exception as e:
+                if attempt == API_RETRY_COUNT - 1:
+                    raise
+                _LOGGER.warning("API request failed, retrying: %s", str(e))
+                await asyncio.sleep(1 * (attempt + 1))
 
     async def create(
         self,
@@ -34,7 +91,9 @@ class APIClient:
     ) -> Dict[str, Any]:
         """Create completion using appropriate API."""
         try:
-            if self.api_provider == "anthropic":
+            self._validate_parameters(temperature, max_tokens)
+
+            if self.api_provider == API_PROVIDER_ANTHROPIC:
                 return await self._create_anthropic_completion(
                     model, messages, temperature, max_tokens
                 )
@@ -62,26 +121,21 @@ class APIClient:
             "max_tokens": max_tokens,
         }
 
-        async with self.session.post(url, json=payload, headers=self.headers) as response:
-            if response.status != 200:
-                error_data = await response.json()
-                raise HomeAssistantError(f"OpenAI API error: {error_data}")
-
-            data = await response.json()
-            return {
-                "choices": [
-                    {
-                        "message": {
-                            "content": data["choices"][0]["message"]["content"]
-                        }
+        data = await self._make_request(url, payload)
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": data["choices"][0]["message"]["content"]
                     }
-                ],
-                "usage": {
-                    "prompt_tokens": data["usage"]["prompt_tokens"],
-                    "completion_tokens": data["usage"]["completion_tokens"],
-                    "total_tokens": data["usage"]["total_tokens"]
                 }
+            ],
+            "usage": {
+                "prompt_tokens": data["usage"]["prompt_tokens"],
+                "completion_tokens": data["usage"]["completion_tokens"],
+                "total_tokens": data["usage"]["total_tokens"]
             }
+        }
 
     async def _create_anthropic_completion(
         self,
@@ -94,7 +148,10 @@ class APIClient:
         url = f"{self.endpoint}/v1/messages"
 
         # Convert messages to Anthropic format
-        system_prompt = next((msg["content"] for msg in messages if msg["role"] == "system"), None)
+        system_prompt = next(
+            (msg["content"] for msg in messages if msg["role"] == "system"),
+            None
+        )
         conversation = [msg for msg in messages if msg["role"] != "system"]
 
         payload = {
@@ -106,23 +163,18 @@ class APIClient:
         if system_prompt:
             payload["system"] = system_prompt
 
-        async with self.session.post(url, json=payload, headers=self.headers) as response:
-            if response.status != 200:
-                error_data = await response.json()
-                raise HomeAssistantError(f"Anthropic API error: {error_data}")
-
-            data = await response.json()
-            return {
-                "choices": [
-                    {
-                        "message": {
-                            "content": data["content"][0]["text"]
-                        }
+        data = await self._make_request(url, payload)
+        return {
+            "choices": [
+                {
+                    "message": {
+                        "content": data["content"][0]["text"]
                     }
-                ],
-                "usage": {
-                    "prompt_tokens": data["usage"]["input_tokens"],
-                    "completion_tokens": data["usage"]["output_tokens"],
-                    "total_tokens": data["usage"]["input_tokens"] + data["usage"]["output_tokens"]
                 }
+            ],
+            "usage": {
+                "prompt_tokens": data["usage"]["input_tokens"],
+                "completion_tokens": data["usage"]["output_tokens"],
+                "total_tokens": data["usage"]["input_tokens"] + data["usage"]["output_tokens"]
             }
+        }

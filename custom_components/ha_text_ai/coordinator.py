@@ -1,49 +1,24 @@
-"""The HA Text AI integration."""
+"""The HA Text AI coordinator."""
 from __future__ import annotations
 
 import logging
-import os
-import shutil
 from datetime import datetime, timedelta
-from typing import Any, Dict
+from typing import Any, Dict, List, Optional
 
-import voluptuous as vol
-from async_timeout import timeout
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.util import dt as dt_util
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_API_KEY, CONF_NAME, Platform
-from homeassistant.core import HomeAssistant, ServiceCall
-from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
-from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import aiohttp_client
-
-from .coordinator import HATextAICoordinator
-from .api_client import APIClient
 from .const import (
     DOMAIN,
-    PLATFORMS,
-    CONF_MODEL,
-    CONF_TEMPERATURE,
-    CONF_MAX_TOKENS,
-    CONF_API_ENDPOINT,
-    CONF_REQUEST_INTERVAL,
-    CONF_API_PROVIDER,
-    API_PROVIDER_OPENAI,
-    API_PROVIDER_ANTHROPIC,
-    DEFAULT_MODEL,
-    DEFAULT_TEMPERATURE,
-    DEFAULT_MAX_TOKENS,
-    DEFAULT_OPENAI_ENDPOINT,
-    DEFAULT_ANTHROPIC_ENDPOINT,
-    DEFAULT_REQUEST_INTERVAL,
-    API_TIMEOUT,
-    SERVICE_ASK_QUESTION,
-    SERVICE_CLEAR_HISTORY,
-    SERVICE_GET_HISTORY,
-    SERVICE_SET_SYSTEM_PROMPT,
+    STATE_READY,
+    STATE_PROCESSING,
+    STATE_ERROR,
+    STATE_RATE_LIMITED,
+    STATE_MAINTENANCE,
 )
 
-_LOGGER = logging.getLogger(__name__)  
+_LOGGER = logging.getLogger(__name__)
 
 class HATextAICoordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
