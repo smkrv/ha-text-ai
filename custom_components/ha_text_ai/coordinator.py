@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
-from homeassistant.exceptions import HomeAssistantError  
+from homeassistant.exceptions import HomeAssistantError
 
 from .const import (
     DOMAIN,
@@ -81,7 +81,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
         super().__init__(
             hass,
             _LOGGER,
-            name=f"HA Text AI {instance_name}",
             update_interval=update_interval_td,
         )
 
