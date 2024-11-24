@@ -4,17 +4,15 @@ from __future__ import annotations
 import logging
 import os
 import shutil
-import asyncio
-from datetime import datetime
 from datetime import datetime, timedelta
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 
 import voluptuous as vol
 from async_timeout import timeout
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_API_KEY, CONF_NAME, Platform
-from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import aiohttp_client
@@ -48,7 +46,6 @@ _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
-# Обновленные схемы сервисов
 SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
     vol.Required("instance"): cv.string,
     vol.Required("question"): cv.string,
@@ -73,7 +70,6 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
     """Set up the HA Text AI component."""
     hass.data.setdefault(DOMAIN, {})
 
-    # Copy custom icon
     try:
         source = os.path.join(os.path.dirname(__file__), 'icons', 'icon.svg')
         dest_dir = os.path.join(hass.config.path('www'), 'icons')
@@ -87,10 +83,10 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
     async def async_ask_question(call: ServiceCall) -> None:
         """Handle ask_question service."""
         instance = call.data["instance"]
-        if instance not in hass.data[DOMAIN]:
+        coordinator = hass.data[DOMAIN].get(instance)
+        if not coordinator:
             raise HomeAssistantError(f"Instance {instance} not found")
 
-        coordinator = hass.data[DOMAIN][instance]["coordinator"]
         try:
             await coordinator.async_ask_question(
                 question=call.data["question"],
@@ -106,10 +102,10 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
     async def async_clear_history(call: ServiceCall) -> None:
         """Handle clear_history service."""
         instance = call.data["instance"]
-        if instance not in hass.data[DOMAIN]:
+        coordinator = hass.data[DOMAIN].get(instance)
+        if not coordinator:
             raise HomeAssistantError(f"Instance {instance} not found")
 
-        coordinator = hass.data[DOMAIN][instance]["coordinator"]
         try:
             await coordinator.async_clear_history()
         except Exception as err:
@@ -119,10 +115,10 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
     async def async_get_history(call: ServiceCall) -> None:
         """Handle get_history service."""
         instance = call.data["instance"]
-        if instance not in hass.data[DOMAIN]:
+        coordinator = hass.data[DOMAIN].get(instance)
+        if not coordinator:
             raise HomeAssistantError(f"Instance {instance} not found")
 
-        coordinator = hass.data[DOMAIN][instance]["coordinator"]
         try:
             return await coordinator.async_get_history(
                 limit=call.data.get("limit"),
@@ -136,17 +132,16 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
     async def async_set_system_prompt(call: ServiceCall) -> None:
         """Handle set_system_prompt service."""
         instance = call.data["instance"]
-        if instance not in hass.data[DOMAIN]:
+        coordinator = hass.data[DOMAIN].get(instance)
+        if not coordinator:
             raise HomeAssistantError(f"Instance {instance} not found")
 
-        coordinator = hass.data[DOMAIN][instance]["coordinator"]
         try:
             await coordinator.async_set_system_prompt(call.data["prompt"])
         except Exception as err:
             _LOGGER.error("Error setting system prompt: %s", str(err))
             raise HomeAssistantError(f"Failed to set system prompt: {str(err)}")
 
-    # Register services
     hass.services.async_register(
         DOMAIN,
         SERVICE_ASK_QUESTION,
@@ -208,19 +203,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.error("API provider not specified")
             raise ConfigEntryNotReady("API provider is required")
 
-        # Убедимся, что домен инициализирован в hass.data
-        hass.data.setdefault(DOMAIN, {})
-
         session = aiohttp_client.async_get_clientsession(hass)
         api_provider = entry.data.get(CONF_API_PROVIDER)
         model = entry.data.get(CONF_MODEL, DEFAULT_MODEL)
-        endpoint = entry.data.get(CONF_API_ENDPOINT,
+        endpoint = entry.data.get(
+            CONF_API_ENDPOINT,
             DEFAULT_OPENAI_ENDPOINT if api_provider == API_PROVIDER_OPENAI
-            else DEFAULT_ANTHROPIC_ENDPOINT).rstrip('/')
+            else DEFAULT_ANTHROPIC_ENDPOINT
+        ).rstrip('/')
         api_key = entry.data[CONF_API_KEY]
         instance_name = entry.data.get(CONF_NAME, entry.entry_id)
-
         is_anthropic = api_provider == API_PROVIDER_ANTHROPIC
+
         headers = {
             "Content-Type": "application/json",
             "Accept": "application/json"
@@ -235,23 +229,34 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if not await async_check_api(session, endpoint, headers, api_provider):
             raise ConfigEntryNotReady("API connection failed")
 
+        # Создаем API клиент
+        api_client = {
+            "session": session,
+            "endpoint": endpoint,
+            "headers": headers,
+            "api_provider": api_provider,
+            "model": model,
+        }
+
         coordinator = HATextAICoordinator(
             hass=hass,
-            client=None,  # Будет установлен позже
+            client=api_client,
             model=model,
-            update_interval=entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL),
+            update_interval=timedelta(
+                seconds=entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)
+            ),
             instance_name=instance_name,
             max_tokens=entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
             temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
             is_anthropic=is_anthropic,
         )
 
-        # Сохраняем данные интеграции используя entry.entry_id
-        hass.data[DOMAIN][entry.entry_id] = {
-            "coordinator": coordinator,
-            "config_entry": entry,
-            "instance_name": instance_name,  # Сохраняем instance_name для доступа
-        }
+        # Инициализация координатора
+        await coordinator.async_config_entry_first_refresh()
+
+        # Сохраняем координатор
+        hass.data.setdefault(DOMAIN, {})
+        hass.data[DOMAIN][entry.entry_id] = coordinator
 
         # Загружаем платформы
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -265,7 +270,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     try:
         if entry.entry_id in hass.data[DOMAIN]:
-            coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
+            coordinator = hass.data[DOMAIN][entry.entry_id]
             await coordinator.async_shutdown()
             hass.data[DOMAIN].pop(entry.entry_id)
 
