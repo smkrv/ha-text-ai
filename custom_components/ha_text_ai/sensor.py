@@ -2,7 +2,10 @@
 import logging
 from typing import Any, Dict
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import (
+    SensorEntity,
+    SensorEntityDescription,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -67,8 +70,14 @@ async def async_setup_entry(
     """Set up the HA Text AI sensor."""
     coordinator = hass.data[DOMAIN][entry.entry_id]
     instance_name = coordinator.instance_name
+
     _LOGGER.info(f"Setting up HA Text AI sensor with instance: {instance_name}")
-    async_add_entities([HATextAISensor(coordinator, entry)], True)
+
+    sensor = HATextAISensor(coordinator, entry)
+    sensor.platform = "sensor"
+    sensor.platform_domain = DOMAIN
+
+    async_add_entities([sensor], True)
 
 class HATextAISensor(CoordinatorEntity, SensorEntity):
     """HA Text AI Sensor."""
@@ -86,12 +95,22 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._config_entry = config_entry
         self._instance_name = coordinator.instance_name
 
-        # Упрощаем формирование entity_id
+        # Добавляем явное указание платформы и домена
+        self._attr_has_entity_name = True
         self.entity_id = f"sensor.ha_text_ai_{self._instance_name}"
         self._attr_name = f"HA Text AI {self._instance_name}"
         self._attr_unique_id = f"{config_entry.entry_id}"
 
-        _LOGGER.debug(f"Initializing sensor with entity_id: {self.entity_id}")
+        # Явно указываем принадлежность к интеграции
+        self.entity_description = SensorEntityDescription(
+            key=f"ha_text_ai_{self._instance_name}",
+            name=self._attr_name,
+            entity_registry_enabled_default=True,
+        )
+
+        # Добавляем информацию об интеграции
+        self._attr_platform = "sensor"
+        self._attr_domain = DOMAIN
 
         self._current_state = STATE_INITIALIZING
         self._error_count = 0
@@ -140,7 +159,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             ATTR_API_STATUS: self._current_state,
             ATTR_TOTAL_ERRORS: self._error_count,
             ATTR_LAST_ERROR: self._last_error,
-            "instance_name": self._instance_name,  # Добавляем instance_name в атрибуты
+            "instance_name": self._instance_name,
         }
 
         if not self.coordinator.data:
