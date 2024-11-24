@@ -66,6 +66,19 @@ SERVICE_SCHEMA_GET_HISTORY = vol.Schema({
     vol.Optional("filter_model"): cv.string,
 })
 
+def get_coordinator_by_instance(hass: HomeAssistant, instance: str) -> HATextAICoordinator:
+    """Get coordinator by instance name."""
+    # Убираем префикс "sensor." если он есть
+    if instance.startswith("sensor."):
+        instance = instance.replace("sensor.ha_text_ai_", "", 1)
+
+    # Ищем координатор по instance_name
+    for entry_id, coord in hass.data[DOMAIN].items():
+        if isinstance(coord, HATextAICoordinator) and coord.instance_name.lower() == instance.lower():
+            return coord
+
+    raise HomeAssistantError(f"Instance {instance} not found")
+
 async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
     """Set up the HA Text AI component."""
     hass.data.setdefault(DOMAIN, {})
@@ -82,12 +95,8 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
 
     async def async_ask_question(call: ServiceCall) -> None:
         """Handle ask_question service."""
-        instance = call.data["instance"]
-        coordinator = hass.data[DOMAIN].get(instance)
-        if not coordinator:
-            raise HomeAssistantError(f"Instance {instance} not found")
-
         try:
+            coordinator = get_coordinator_by_instance(hass, call.data["instance"])
             await coordinator.async_ask_question(
                 question=call.data["question"],
                 model=call.data.get("model"),
@@ -101,29 +110,20 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
 
     async def async_clear_history(call: ServiceCall) -> None:
         """Handle clear_history service."""
-        instance = call.data["instance"]
-        coordinator = hass.data[DOMAIN].get(instance)
-        if not coordinator:
-            raise HomeAssistantError(f"Instance {instance} not found")
-
         try:
+            coordinator = get_coordinator_by_instance(hass, call.data["instance"])
             await coordinator.async_clear_history()
         except Exception as err:
             _LOGGER.error("Error clearing history: %s", str(err))
             raise HomeAssistantError(f"Failed to clear history: {str(err)}")
 
-    async def async_get_history(call: ServiceCall) -> None:
+    async def async_get_history(call: ServiceCall) -> list:
         """Handle get_history service."""
-        instance = call.data["instance"]
-        coordinator = hass.data[DOMAIN].get(instance)
-        if not coordinator:
-            raise HomeAssistantError(f"Instance {instance} not found")
-
         try:
+            coordinator = get_coordinator_by_instance(hass, call.data["instance"])
             return await coordinator.async_get_history(
                 limit=call.data.get("limit"),
-                filter_model=call.data.get("filter_model"),
-                instance=instance
+                filter_model=call.data.get("filter_model")
             )
         except Exception as err:
             _LOGGER.error("Error getting history: %s", str(err))
@@ -131,12 +131,8 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
 
     async def async_set_system_prompt(call: ServiceCall) -> None:
         """Handle set_system_prompt service."""
-        instance = call.data["instance"]
-        coordinator = hass.data[DOMAIN].get(instance)
-        if not coordinator:
-            raise HomeAssistantError(f"Instance {instance} not found")
-
         try:
+            coordinator = get_coordinator_by_instance(hass, call.data["instance"])
             await coordinator.async_set_system_prompt(call.data["prompt"])
         except Exception as err:
             _LOGGER.error("Error setting system prompt: %s", str(err))
@@ -238,16 +234,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "model": model,
         }
 
-        # Получаем интервал обновления
-        update_interval = timedelta(
-            seconds=entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)
-        )
-
         coordinator = HATextAICoordinator(
             hass=hass,
             client=api_client,
             model=model,
-            update_interval=entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL),  # Передаем числовое значение
+            update_interval=entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL),
             instance_name=instance_name,
             max_tokens=entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
             temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),

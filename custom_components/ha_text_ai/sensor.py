@@ -38,6 +38,7 @@ from .const import (
     ATTR_API_STATUS,
     ATTR_RESPONSE,
     ATTR_QUESTION,
+    ATTR_CONVERSATION_HISTORY,
     METRIC_TOTAL_TOKENS,
     METRIC_PROMPT_TOKENS,
     METRIC_COMPLETION_TOKENS,
@@ -94,28 +95,32 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
 
         self._config_entry = config_entry
         self._instance_name = coordinator.instance_name
+        self._conversation_history = []
+        self._system_prompt = None
 
-        # Добавляем явное указание платформы и домена
+        # Entity attributes
         self._attr_has_entity_name = True
         self.entity_id = f"sensor.ha_text_ai_{self._instance_name}"
         self._attr_name = f"HA Text AI {self._instance_name}"
         self._attr_unique_id = f"{config_entry.entry_id}"
 
-        # Явно указываем принадлежность к интеграции
+        # Entity description
         self.entity_description = SensorEntityDescription(
             key=f"ha_text_ai_{self._instance_name}",
             name=self._attr_name,
             entity_registry_enabled_default=True,
         )
 
-        # Добавляем информацию об интеграции
+        # Integration info
         self._attr_platform = "sensor"
         self._attr_domain = DOMAIN
 
+        # State tracking
         self._current_state = STATE_INITIALIZING
         self._error_count = 0
         self._last_error = None
         self._last_update = None
+        self._is_processing = False
 
         # Device info
         model = config_entry.data.get(CONF_MODEL, "Unknown")
@@ -160,6 +165,9 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             ATTR_TOTAL_ERRORS: self._error_count,
             ATTR_LAST_ERROR: self._last_error,
             "instance_name": self._instance_name,
+            ATTR_SYSTEM_PROMPT: self._system_prompt,
+            ATTR_CONVERSATION_HISTORY: self._conversation_history,
+            ATTR_IS_PROCESSING: self._is_processing,
         }
 
         if not self.coordinator.data:
@@ -167,12 +175,11 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
 
         data = self.coordinator.data
 
-        # Основные атрибуты
+        # Basic attributes
         for attr in [
             ATTR_TOTAL_RESPONSES,
             ATTR_AVG_RESPONSE_TIME,
             ATTR_LAST_REQUEST_TIME,
-            ATTR_IS_PROCESSING,
             ATTR_IS_RATE_LIMITED,
             ATTR_IS_MAINTENANCE,
             ATTR_API_VERSION,
@@ -180,13 +187,12 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             ATTR_PERFORMANCE_METRICS,
             ATTR_HISTORY_SIZE,
             ATTR_UPTIME,
-            ATTR_SYSTEM_PROMPT,
         ]:
             value = data.get(attr)
             if value is not None:
                 attributes[attr] = value
 
-        # Метрики
+        # Metrics
         metrics = data.get("metrics", {})
         if isinstance(metrics, dict):
             for metric in [
@@ -203,7 +209,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
                 if value is not None:
                     attributes[metric] = value
 
-        # Последний ответ
+        # Last response
         last_response = data.get("last_response", {})
         if isinstance(last_response, dict):
             attributes[ATTR_RESPONSE] = last_response.get("response", "")
@@ -226,8 +232,9 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         try:
             data = self.coordinator.data
 
-            # Обновляем состояние
-            if data.get("is_processing"):
+            # Update state
+            self._is_processing = data.get("is_processing", False)
+            if self._is_processing:
                 self._current_state = STATE_PROCESSING
             elif data.get("is_rate_limited"):
                 self._current_state = STATE_RATE_LIMITED
@@ -240,7 +247,17 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             else:
                 self._current_state = STATE_READY
 
-            # Обновляем метрики
+            # Update history
+            history = data.get("conversation_history", [])
+            if isinstance(history, list):
+                self._conversation_history = history
+
+            # Update system prompt
+            system_prompt = data.get("system_prompt")
+            if system_prompt is not None:
+                self._system_prompt = system_prompt
+
+            # Update metrics
             metrics = data.get("metrics", {})
             if isinstance(metrics, dict):
                 self._error_count = metrics.get("total_errors", self._error_count)
