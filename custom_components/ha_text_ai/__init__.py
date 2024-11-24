@@ -208,6 +208,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.error("API provider not specified")
             raise ConfigEntryNotReady("API provider is required")
 
+        # Убедимся, что домен инициализирован в hass.data
+        hass.data.setdefault(DOMAIN, {})
+
         session = aiohttp_client.async_get_clientsession(hass)
         api_provider = entry.data.get(CONF_API_PROVIDER)
         model = entry.data.get(CONF_MODEL, DEFAULT_MODEL)
@@ -243,10 +246,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             is_anthropic=is_anthropic,
         )
 
-        # Сохраняем данные интеграции
-        hass.data[DOMAIN][instance_name] = {
+        # Сохраняем данные интеграции используя entry.entry_id
+        hass.data[DOMAIN][entry.entry_id] = {
             "coordinator": coordinator,
             "config_entry": entry,
+            "instance_name": instance_name,  # Сохраняем instance_name для доступа
         }
 
         # Загружаем платформы
@@ -260,11 +264,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     try:
-        instance_name = entry.data.get(CONF_NAME, entry.entry_id)
-        if instance_name in hass.data[DOMAIN]:
-            coordinator = hass.data[DOMAIN][instance_name]["coordinator"]
+        if entry.entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
             await coordinator.async_shutdown()
-            hass.data[DOMAIN].pop(instance_name)
+            hass.data[DOMAIN].pop(entry.entry_id)
 
         return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
 
