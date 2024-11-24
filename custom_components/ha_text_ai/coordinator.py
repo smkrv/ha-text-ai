@@ -19,7 +19,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         hass: HomeAssistant,
         client: Any,
         model: str,
-        update_interval: int,
+        update_interval: float,
         instance_name: str,
         max_tokens: int = 1000,
         temperature: float = 0.7,
