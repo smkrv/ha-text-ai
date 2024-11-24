@@ -106,12 +106,12 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
     @property
     def native_value(self) -> StateType:
         """Return the native value of the sensor."""
-        if self.coordinator.data is None:
+        if not self.coordinator.data:
             return STATE_DISCONNECTED
 
-        state = self.coordinator.data.get("state", STATE_READY)
-        self._current_state = state
-        return state
+        status = self.coordinator.data.get("status", STATE_READY)
+        self._current_state = status
+        return status
 
     @property
     def icon(self) -> str:
@@ -133,48 +133,52 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             ATTR_LAST_ERROR: self._last_error,
         }
 
-        if self.coordinator.data:
-            data = self.coordinator.data
+        if not self.coordinator.data:
+            return attributes
 
-            # Основные атрибуты
-            for attr in [
-                ATTR_TOTAL_RESPONSES,
-                ATTR_AVG_RESPONSE_TIME,
-                ATTR_LAST_REQUEST_TIME,
-                ATTR_IS_PROCESSING,
-                ATTR_IS_RATE_LIMITED,
-                ATTR_IS_MAINTENANCE,
-                ATTR_API_VERSION,
-                ATTR_ENDPOINT_STATUS,
-                ATTR_PERFORMANCE_METRICS,
-                ATTR_HISTORY_SIZE,
-                ATTR_UPTIME,
-                ATTR_SYSTEM_PROMPT,
+        data = self.coordinator.data
+
+        # Основные атрибуты
+        for attr in [
+            ATTR_TOTAL_RESPONSES,
+            ATTR_AVG_RESPONSE_TIME,
+            ATTR_LAST_REQUEST_TIME,
+            ATTR_IS_PROCESSING,
+            ATTR_IS_RATE_LIMITED,
+            ATTR_IS_MAINTENANCE,
+            ATTR_API_VERSION,
+            ATTR_ENDPOINT_STATUS,
+            ATTR_PERFORMANCE_METRICS,
+            ATTR_HISTORY_SIZE,
+            ATTR_UPTIME,
+            ATTR_SYSTEM_PROMPT,
+        ]:
+            value = data.get(attr)
+            if value is not None:
+                attributes[attr] = value
+
+        # Метрики
+        metrics = data.get("metrics", {})
+        if isinstance(metrics, dict):
+            for metric in [
+                METRIC_TOTAL_TOKENS,
+                METRIC_PROMPT_TOKENS,
+                METRIC_COMPLETION_TOKENS,
+                METRIC_SUCCESSFUL_REQUESTS,
+                METRIC_FAILED_REQUESTS,
+                METRIC_AVERAGE_LATENCY,
+                METRIC_MAX_LATENCY,
+                METRIC_MIN_LATENCY,
             ]:
-                if attr in data:
-                    attributes[attr] = data[attr]
+                value = metrics.get(metric)
+                if value is not None:
+                    attributes[metric] = value
 
-            # Метрики
-            if "metrics" in data:
-                metrics = data["metrics"]
-                for metric in [
-                    METRIC_TOTAL_TOKENS,
-                    METRIC_PROMPT_TOKENS,
-                    METRIC_COMPLETION_TOKENS,
-                    METRIC_SUCCESSFUL_REQUESTS,
-                    METRIC_FAILED_REQUESTS,
-                    METRIC_AVERAGE_LATENCY,
-                    METRIC_MAX_LATENCY,
-                    METRIC_MIN_LATENCY,
-                ]:
-                    if metric in metrics:
-                        attributes[metric] = metrics[metric]
-
-            # Последний ответ
-            if "last_response" in data:
-                last_response = data["last_response"]
-                attributes[ATTR_RESPONSE] = last_response.get("response", "")
-                attributes[ATTR_QUESTION] = last_response.get("question", "")
+        # Последний ответ
+        last_response = data.get("last_response", {})
+        if isinstance(last_response, dict):
+            attributes[ATTR_RESPONSE] = last_response.get("response", "")
+            attributes[ATTR_QUESTION] = last_response.get("question", "")
 
         return attributes
 
@@ -185,7 +189,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if self.coordinator.data is None:
+        if not self.coordinator.data:
             self._current_state = STATE_DISCONNECTED
             self.async_write_ha_state()
             return
@@ -208,8 +212,9 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
                 self._current_state = STATE_READY
 
             # Обновляем метрики
-            if "metrics" in data:
-                self._error_count = data["metrics"].get("total_errors", self._error_count)
+            metrics = data.get("metrics", {})
+            if isinstance(metrics, dict):
+                self._error_count = metrics.get("total_errors", self._error_count)
 
             self._last_update = data.get("last_update")
 

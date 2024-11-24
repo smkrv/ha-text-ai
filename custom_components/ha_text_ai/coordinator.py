@@ -19,7 +19,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         hass: HomeAssistant,
         client: Any,
         model: str,
-        update_interval: int,  # Изменен тип на int
+        update_interval: int,
         instance_name: str,
         max_tokens: int = 1000,
         temperature: float = 0.7,
@@ -27,15 +27,14 @@ class HATextAICoordinator(DataUpdateCoordinator):
         is_anthropic: bool = False,
     ) -> None:
         """Initialize coordinator."""
-        # Преобразуем update_interval в timedelta
         update_interval_td = timedelta(seconds=update_interval)
 
         super().__init__(
             hass,
             _LOGGER,
             name=f"HA Text AI {instance_name}",
-            update_interval=update_interval_td,  # Передаем timedelta
-        )  
+            update_interval=update_interval_td,
+        )
 
         self.instance_name = instance_name
         self.client = client
@@ -67,6 +66,15 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self.api_version = "v1"
         self.last_response = None
         self.endpoint_status = "initialized"
+
+        self.last_response = {
+            "timestamp": dt_util.utcnow().isoformat(),
+            "question": "",
+            "response": "",
+            "model": model,
+            "instance": instance_name,
+            "error": None
+        }  
 
     @property
     def is_processing(self) -> bool:
