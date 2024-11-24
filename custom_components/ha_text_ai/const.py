@@ -31,7 +31,7 @@ CONF_REQUEST_INTERVAL: Final = "request_interval"
 CONF_INSTANCE: Final = "instance"
 
 # Default values
-DEFAULT_MODEL: Final = "gpt-4o"  
+DEFAULT_MODEL: Final = "gpt-4o"
 DEFAULT_TEMPERATURE: Final = 0.7
 DEFAULT_MAX_TOKENS: Final = 1000
 DEFAULT_REQUEST_INTERVAL: Final = 1.0
@@ -63,6 +63,8 @@ ATTR_MODEL: Final = "model"
 ATTR_TEMPERATURE: Final = "temperature"
 ATTR_MAX_TOKENS: Final = "max_tokens"
 ATTR_SYSTEM_PROMPT: Final = "system_prompt"
+ATTR_API_STATUS: Final = "api_status"
+ATTR_ERROR_COUNT: Final = "error_count"
 
 # Sensor attributes
 ATTR_TOTAL_RESPONSES: Final = "total_responses"
