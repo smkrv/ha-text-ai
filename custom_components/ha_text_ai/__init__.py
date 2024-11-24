@@ -236,7 +236,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass=hass,
             client=None,  # Будет установлен позже
             model=model,
-            update_interval=timedelta(seconds=int(entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL))),
+            update_interval=entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL),
             instance_name=instance_name,
             max_tokens=entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
             temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
