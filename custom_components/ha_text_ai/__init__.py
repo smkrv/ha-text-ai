@@ -5,7 +5,6 @@ import logging
 import os
 import shutil
 import asyncio
-from homeassistant.helpers.import_platform import async_import_platform
 from datetime import datetime
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
@@ -14,7 +13,7 @@ import voluptuous as vol
 from async_timeout import timeout
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_API_KEY, CONF_NAME
+from homeassistant.const import CONF_API_KEY, CONF_NAME, Platform
 from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
@@ -250,11 +249,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "config_entry": entry,
         }
 
-        for platform in PLATFORMS:
-            hass.async_create_task(
-                async_import_platform(hass, f"{DOMAIN}.{platform}", DOMAIN)
-            )
-            await asyncio.sleep(0)
+        # Загружаем платформы
+        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
         return True
 
     except Exception as ex:
