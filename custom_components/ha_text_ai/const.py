@@ -29,13 +29,17 @@ CONF_MAX_TOKENS: Final = "max_tokens"
 CONF_API_ENDPOINT: Final = "api_endpoint"
 CONF_REQUEST_INTERVAL: Final = "request_interval"
 CONF_INSTANCE: Final = "instance"
+CONF_MAX_HISTORY_SIZE: Final = "max_history_size"
+CONF_IS_ANTHROPIC: Final = "is_anthropic"
 
 # Default values
-DEFAULT_MODEL: Final = "gpt-4o"
+DEFAULT_MODEL: Final = "gpt-4"
 DEFAULT_TEMPERATURE: Final = 0.7
 DEFAULT_MAX_TOKENS: Final = 1000
 DEFAULT_REQUEST_INTERVAL: Final = 1.0
 DEFAULT_TIMEOUT: Final = 30
+DEFAULT_MAX_HISTORY: Final = 50
+DEFAULT_NAME: Final = "HA Text AI"
 
 # Parameter constraints
 MIN_TEMPERATURE: Final = 0.0
@@ -65,6 +69,7 @@ ATTR_MAX_TOKENS: Final = "max_tokens"
 ATTR_SYSTEM_PROMPT: Final = "system_prompt"
 ATTR_API_STATUS: Final = "api_status"
 ATTR_ERROR_COUNT: Final = "error_count"
+ATTR_CONVERSATION_HISTORY: Final = "conversation_history"
 
 # Sensor attributes
 ATTR_TOTAL_RESPONSES: Final = "total_responses"
@@ -81,6 +86,11 @@ ATTR_PERFORMANCE_METRICS: Final = "performance_metrics"
 ATTR_HISTORY_SIZE: Final = "history_size"
 ATTR_UPTIME: Final = "uptime"
 ATTR_API_PROVIDER: Final = "api_provider"
+ATTR_METRICS: Final = "metrics"
+ATTR_STATE: Final = "state"
+ATTR_LAST_RESPONSE: Final = "last_response"
+ATTR_ERROR: Final = "error"
+ATTR_TIMESTAMP: Final = "timestamp"
 
 # Sensor metrics
 METRIC_TOTAL_TOKENS: Final = "total_tokens"
@@ -172,6 +182,10 @@ CONFIG_SCHEMA = vol.Schema({
         vol.Optional(CONF_REQUEST_INTERVAL, default=DEFAULT_REQUEST_INTERVAL): vol.All(
             vol.Coerce(float),
             vol.Range(min=MIN_REQUEST_INTERVAL, max=MAX_REQUEST_INTERVAL)
+        ),
+        vol.Optional(CONF_MAX_HISTORY_SIZE, default=DEFAULT_MAX_HISTORY): vol.All(
+            vol.Coerce(int),
+            vol.Range(min=1, max=100)
         )
     })
 }, extra=vol.ALLOW_EXTRA)
