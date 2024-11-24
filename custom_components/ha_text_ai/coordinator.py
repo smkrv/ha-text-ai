@@ -78,9 +78,11 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
         update_interval_td = timedelta(seconds=update_interval)
 
+        # Добавляем name в вызов родительского конструктора
         super().__init__(
             hass,
             _LOGGER,
+            name=instance_name,  # Передаем имя экземпляра
             update_interval=update_interval_td,
         )
 
