@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
+from homeassistant.exceptions import HomeAssistantError  
 
 from .const import (
     DOMAIN,
@@ -21,8 +22,6 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 class HATextAICoordinator(DataUpdateCoordinator):
-    """Class to manage fetching data from the API."""
-
     def __init__(
         self,
         hass: HomeAssistant,
@@ -36,16 +35,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         is_anthropic: bool = False,
     ) -> None:
         """Initialize coordinator."""
-        update_interval_td = timedelta(seconds=update_interval)
         self.instance_name = instance_name
-
-        super().__init__(
-            hass,
-            _LOGGER,
-            name=f"HA Text AI {instance_name}",
-            update_interval=update_interval_td,
-        )
-
         self.hass = hass
         self.client = client
         self.model = model
@@ -54,57 +44,107 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self.max_history_size = max_history_size
         self.is_anthropic = is_anthropic
 
+        # Initialize with default state
+        self._initial_state = {
+            "state": STATE_READY,
+            "metrics": {
+                "total_tokens": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "successful_requests": 0,
+                "failed_requests": 0,
+                "total_errors": 0,
+                "average_latency": 0,
+                "max_latency": 0,
+                "min_latency": float('inf'),
+            },
+            "last_response": {
+                "timestamp": dt_util.utcnow().isoformat(),
+                "question": "",
+                "response": "",
+                "model": model,
+                "instance": instance_name,
+                "error": None
+            },
+            "is_processing": False,
+            "is_rate_limited": False,
+            "is_maintenance": False,
+            "endpoint_status": "ready",
+            "uptime": 0,
+            "system_prompt": None,
+            "history_size": 0,
+            "conversation_history": [],
+        }
+
+        update_interval_td = timedelta(seconds=update_interval)
+
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=f"HA Text AI {instance_name}",
+            update_interval=update_interval_td,
+        )
+
         # Register instance
         self.hass.data.setdefault(DOMAIN, {})
         self.hass.data[DOMAIN][instance_name] = self
 
         self._system_prompt = None
         self._conversation_history = []
-        self._performance_metrics = {
-            "total_tokens": 0,
-            "prompt_tokens": 0,
-            "completion_tokens": 0,
-            "successful_requests": 0,
-            "failed_requests": 0,
-            "total_errors": 0,
-            "average_latency": 0,
-            "max_latency": 0,
-            "min_latency": float('inf'),
-        }
-
+        self._performance_metrics = self._initial_state["metrics"].copy()
         self._is_processing = False
         self._is_rate_limited = False
         self._is_maintenance = False
         self.endpoint_status = "ready"
-
-        # Initialize last_response
-        self.last_response = {
-            "timestamp": dt_util.utcnow().isoformat(),
-            "question": "",
-            "response": "",
-            "model": model,
-            "instance": instance_name,
-            "error": None
-        }
-
+        self.last_response = self._initial_state["last_response"].copy()
         self._start_time = dt_util.utcnow()
+
         _LOGGER.info(f"Initialized HA Text AI coordinator with instance: {instance_name}")
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Update data via library."""
-        return {
-            "state": self._get_current_state(),
-            "metrics": self._performance_metrics,
-            "last_response": self.last_response,
-            "is_processing": self._is_processing,
-            "is_rate_limited": self._is_rate_limited,
-            "is_maintenance": self._is_maintenance,
-            "endpoint_status": self.endpoint_status,
-            "uptime": (dt_util.utcnow() - self._start_time).total_seconds(),
-            "system_prompt": self._system_prompt,
-            "history_size": len(self._conversation_history),
-            "conversation_history": self._conversation_history,
-        }
+        try:
+            current_state = self._get_current_state()
+            _LOGGER.debug(f"Updating data for {self.instance_name}, current state: {current_state}")
+
+            data = {
+                "state": current_state,
+                "metrics": self._performance_metrics,
+                "last_response": self.last_response,
+                "is_processing": self._is_processing,
+                "is_rate_limited": self._is_rate_limited,
+                "is_maintenance": self._is_maintenance,
+                "endpoint_status": self.endpoint_status,
+                "uptime": (dt_util.utcnow() - self._start_time).total_seconds(),
+                "system_prompt": self._system_prompt,
+                "history_size": len(self._conversation_history),
+                "conversation_history": self._conversation_history,
+            }
+
+            # Validate data
+            if not isinstance(data, dict):
+                raise ValueError("Invalid data format")
+
+            _LOGGER.debug(f"Updated data for {self.instance_name}: {data}")
+            return data
+
+        except Exception as err:
+            _LOGGER.error(f"Error updating data for {self.instance_name}: {err}")
+            return self._initial_state
+
+    async def async_update_ha_state(self) -> None:
+        """Update Home Assistant state."""
+        try:
+            _LOGGER.debug(f"Requesting state update for {self.instance_name}")
+            await self.async_request_refresh()
+
+            # Force update of all entities
+            for entity_id in self.hass.states.async_entity_ids():
+                if entity_id.startswith(f"sensor.ha_text_ai_{self.instance_name}"):
+                    self.hass.states.async_set(entity_id, self._get_current_state())
+
+        except Exception as err:
+            _LOGGER.error(f"Error updating HA state for {self.instance_name}: {err}")
 
     def _get_current_state(self) -> str:
         """Get current state based on internal flags."""
@@ -315,7 +355,3 @@ class HATextAICoordinator(DataUpdateCoordinator):
         """Set system prompt."""
         self._system_prompt = prompt
         await self.async_update_ha_state()
-
-    async def async_update_ha_state(self) -> None:
-        """Update Home Assistant state."""
-        await self.async_request_refresh()
