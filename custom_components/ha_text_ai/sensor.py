@@ -73,12 +73,9 @@ async def async_setup_entry(
     coordinator = hass.data[DOMAIN][entry.entry_id]
     instance_name = coordinator.instance_name
 
-    _LOGGER.info(f"Setting up HA Text AI sensor with instance: {instance_name}")
+    _LOGGER.debug(f"Setting up HA Text AI sensor with instance: {instance_name}")
 
     sensor = HATextAISensor(coordinator, entry)
-    sensor.platform = "sensor"
-    sensor.platform_domain = DOMAIN
-
     async_add_entities([sensor], True)
 
 class HATextAISensor(CoordinatorEntity, SensorEntity):
@@ -98,10 +95,11 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._instance_name = coordinator.instance_name
         self._conversation_history = []
         self._system_prompt = None
+        self._available = True
 
         # Entity attributes
         self._attr_has_entity_name = True
-        self.entity_id = f"sensor.ha_text_ai_{self._instance_name}"
+        self.entity_id = f"sensor.ha_text_ai_{slugify(self._instance_name)}"
         self._attr_name = f"HA Text AI {self._instance_name}"
         self._attr_unique_id = f"{config_entry.entry_id}"
 
@@ -112,16 +110,14 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             entity_registry_enabled_default=True,
         )
 
-        # Integration info
-        self._attr_platform = "sensor"
-        self._attr_domain = DOMAIN
-
         # State tracking
         self._current_state = STATE_INITIALIZING
         self._error_count = 0
         self._last_error = None
         self._last_update = None
         self._is_processing = False
+        self._last_response = {}
+        self._metrics = {}
 
         # Device info
         model = config_entry.data.get(CONF_MODEL, "Unknown")
@@ -135,42 +131,40 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             sw_version="1.0.0",
         )
 
-        _LOGGER.info(f"Initialized sensor: {self.entity_id} for instance: {self._instance_name}")
+        _LOGGER.debug(f"Initialized sensor: {self.entity_id} for instance: {self._instance_name}")
+
+    @property
+    def available(self) -> bool:
+        """Return if entity is available."""
+        return (
+            self._available
+            and self.coordinator.last_update_success
+            and self.coordinator.data is not None
+        )
 
     def _sanitize_value(self, value: Any) -> Any:
-        """Sanitize values for JSON serialization.
-
-        Args:
-            value: The value to sanitize
-
-        Returns:
-            Sanitized value safe for JSON serialization
-        """
+        """Sanitize values for JSON serialization."""
         if isinstance(value, float):
             if math.isinf(value) or math.isnan(value):
                 return None
         return value
 
     def _sanitize_attributes(self, attributes: Dict[str, Any]) -> Dict[str, Any]:
-        """Sanitize all attributes for JSON serialization.
-
-        Args:
-            attributes: Dictionary of attributes to sanitize
-
-        Returns:
-            Dictionary with sanitized values
-        """
+        """Sanitize all attributes for JSON serialization."""
         return {
             key: self._sanitize_value(value)
             for key, value in attributes.items()
+            if value is not None
         }
 
     @property
     def native_value(self) -> StateType:
         """Return the native value of the sensor."""
-        if not self.coordinator.data:
+        if not self.coordinator.last_update_success or not self.coordinator.data:
+            self._available = False
             return STATE_DISCONNECTED
 
+        self._available = True
         status = self.coordinator.data.get("state", STATE_READY)
         self._current_state = status
         return status
@@ -187,82 +181,103 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> Dict[str, Any]:
         """Return entity specific state attributes."""
-        attributes = {
-            ATTR_MODEL: self._config_entry.data.get(CONF_MODEL, "Unknown"),
-            ATTR_API_PROVIDER: self._config_entry.data.get(CONF_API_PROVIDER, "Unknown"),
-            ATTR_API_STATUS: self._current_state,
-            ATTR_TOTAL_ERRORS: self._error_count,
-            ATTR_LAST_ERROR: self._last_error,
-            "instance_name": self._instance_name,
-            ATTR_SYSTEM_PROMPT: self._system_prompt,
-            ATTR_CONVERSATION_HISTORY: self._conversation_history,
-            ATTR_IS_PROCESSING: self._is_processing,
-        }
-
         if not self.coordinator.data:
+            return {}
+
+        try:
+            data = self.coordinator.data
+            attributes = {
+                ATTR_MODEL: self._config_entry.data.get(CONF_MODEL, "Unknown"),
+                ATTR_API_PROVIDER: self._config_entry.data.get(CONF_API_PROVIDER, "Unknown"),
+                ATTR_API_STATUS: self._current_state,
+                ATTR_TOTAL_ERRORS: self._error_count,
+                ATTR_LAST_ERROR: self._last_error,
+                "instance_name": self._instance_name,
+                ATTR_SYSTEM_PROMPT: data.get("system_prompt"),
+                ATTR_IS_PROCESSING: data.get("is_processing", False),
+                ATTR_IS_RATE_LIMITED: data.get("is_rate_limited", False),
+                ATTR_IS_MAINTENANCE: data.get("is_maintenance", False),
+                ATTR_ENDPOINT_STATUS: data.get("endpoint_status", "unknown"),
+                ATTR_UPTIME: data.get("uptime", 0),
+                ATTR_HISTORY_SIZE: data.get("history_size", 0),
+                ATTR_CONVERSATION_HISTORY: data.get("conversation_history", []),
+            }
+
+            # Add metrics
+            metrics = data.get("metrics", {})
+            if isinstance(metrics, dict):
+                self._metrics = metrics
+                attributes.update({
+                    METRIC_TOTAL_TOKENS: metrics.get("total_tokens", 0),
+                    METRIC_PROMPT_TOKENS: metrics.get("prompt_tokens", 0),
+                    METRIC_COMPLETION_TOKENS: metrics.get("completion_tokens", 0),
+                    METRIC_SUCCESSFUL_REQUESTS: metrics.get("successful_requests", 0),
+                    METRIC_FAILED_REQUESTS: metrics.get("failed_requests", 0),
+                    METRIC_AVERAGE_LATENCY: metrics.get("average_latency", 0),
+                    METRIC_MAX_LATENCY: metrics.get("max_latency", 0),
+                    METRIC_MIN_LATENCY: metrics.get("min_latency", float("inf")),
+                })
+
+            # Add last response
+            last_response = data.get("last_response", {})
+            if isinstance(last_response, dict):
+                self._last_response = last_response
+                attributes.update({
+                    ATTR_RESPONSE: last_response.get("response", ""),
+                    ATTR_QUESTION: last_response.get("question", ""),
+                    "last_model": last_response.get("model", ""),
+                    "last_timestamp": last_response.get("timestamp", ""),
+                    "last_error": last_response.get("error"),
+                })
+
+            # Add performance metrics if available
+            if ATTR_PERFORMANCE_METRICS in data:
+                attributes[ATTR_PERFORMANCE_METRICS] = data[ATTR_PERFORMANCE_METRICS]
+
+            # Add API version if available
+            if ATTR_API_VERSION in data:
+                attributes[ATTR_API_VERSION] = data[ATTR_API_VERSION]
+
             return self._sanitize_attributes(attributes)
 
-        data = self.coordinator.data
-
-        # Basic attributes
-        for attr in [
-            ATTR_TOTAL_RESPONSES,
-            ATTR_AVG_RESPONSE_TIME,
-            ATTR_LAST_REQUEST_TIME,
-            ATTR_IS_RATE_LIMITED,
-            ATTR_IS_MAINTENANCE,
-            ATTR_API_VERSION,
-            ATTR_ENDPOINT_STATUS,
-            ATTR_PERFORMANCE_METRICS,
-            ATTR_HISTORY_SIZE,
-            ATTR_UPTIME,
-        ]:
-            value = data.get(attr)
-            if value is not None:
-                attributes[attr] = value
-
-        # Metrics
-        metrics = data.get("metrics", {})
-        if isinstance(metrics, dict):
-            for metric in [
-                METRIC_TOTAL_TOKENS,
-                METRIC_PROMPT_TOKENS,
-                METRIC_COMPLETION_TOKENS,
-                METRIC_SUCCESSFUL_REQUESTS,
-                METRIC_FAILED_REQUESTS,
-                METRIC_AVERAGE_LATENCY,
-                METRIC_MAX_LATENCY,
-                METRIC_MIN_LATENCY,
-            ]:
-                value = metrics.get(metric)
-                if value is not None:
-                    attributes[metric] = value
-
-        # Last response
-        last_response = data.get("last_response", {})
-        if isinstance(last_response, dict):
-            attributes[ATTR_RESPONSE] = last_response.get("response", "")
-            attributes[ATTR_QUESTION] = last_response.get("question", "")
-
-        return self._sanitize_attributes(attributes)
+        except Exception as err:
+            _LOGGER.error("Error preparing attributes: %s", err, exc_info=True)
+            return {}
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
         await super().async_added_to_hass()
         self._handle_coordinator_update()
+        _LOGGER.debug(f"Entity {self.entity_id} added to Home Assistant")
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if not self.coordinator.data:
+        if not self.coordinator.last_update_success:
+            self._available = False
             self._current_state = STATE_DISCONNECTED
+            _LOGGER.warning(f"Update failed for {self.entity_id}")
             self.async_write_ha_state()
             return
 
         try:
             data = self.coordinator.data
+            if not data:
+                self._available = False
+                self._current_state = STATE_DISCONNECTED
+                _LOGGER.warning(f"No data available for {self.entity_id}")
+                self.async_write_ha_state()
+                return
 
-            # Update state
+            self._available = True
             self._is_processing = data.get("is_processing", False)
+
+            # Update conversation history
+            self._conversation_history = data.get("conversation_history", [])
+
+            # Update system prompt
+            self._system_prompt = data.get("system_prompt")
+
+            # Update state based on conditions
             if self._is_processing:
                 self._current_state = STATE_PROCESSING
             elif data.get("is_rate_limited"):
@@ -276,27 +291,16 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             else:
                 self._current_state = STATE_READY
 
-            # Update history
-            history = data.get("conversation_history", [])
-            if isinstance(history, list):
-                self._conversation_history = history
+            # Update last update timestamp
+            self._last_update = dt_util.utcnow()
 
-            # Update system prompt
-            system_prompt = data.get("system_prompt")
-            if system_prompt is not None:
-                self._system_prompt = system_prompt
-
-            # Update metrics
-            metrics = data.get("metrics", {})
-            if isinstance(metrics, dict):
-                self._error_count = metrics.get("total_errors", self._error_count)
-
-            self._last_update = data.get("last_update")
+            _LOGGER.debug(f"Updated {self.entity_id} state to: {self._current_state}")
+            self.async_write_ha_state()
 
         except Exception as err:
-            _LOGGER.error("Error handling update: %s", err, exc_info=True)
+            self._available = False
             self._current_state = STATE_ERROR
             self._last_error = str(err)
             self._error_count += 1
-
-        self.async_write_ha_state()
+            _LOGGER.error("Error handling update for %s: %s", self.entity_id, err, exc_info=True)
+            self.async_write_ha_state()
