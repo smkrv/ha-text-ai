@@ -1,4 +1,12 @@
-"""Config flow for HA text AI integration."""
+# config_flow.py
+"""Config flow for HA text AI integration.
+
+This module defines a configuration flow for the HA text AI integration in Home Assistant.
+The flow guides the user through the setup process, including the selection of API provider,
+configuration of API settings, and validation of the entered data. It ensures that the
+configuration entries are unique and establish a valid connection to the AI API service.
+"""
+
 import logging
 from typing import Any, Dict, Optional
 
@@ -48,7 +56,10 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._provider = None
 
     async def async_step_user(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
-        """Handle the initial step."""
+        """Handle the initial step.
+
+        This step asks the user to select an API provider.
+        """
         if user_input is None:
             return self.async_show_form(
                 step_id="user",
@@ -66,7 +77,11 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return await self.async_step_provider()
 
     async def async_step_provider(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
-        """Handle provider configuration step."""
+        """Handle provider configuration step.
+
+        This step collects additional configuration details
+        based on the chosen provider like API key, model, etc.
+        """
         if user_input is None:
             default_endpoint = (
                 DEFAULT_OPENAI_ENDPOINT if self._provider == API_PROVIDER_OPENAI
@@ -98,21 +113,21 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors=self._errors
             )
 
-        # Проверка уникальности имени
         instance_name = user_input[CONF_NAME]
         await self._async_validate_name(instance_name)
         if self._errors:
             return await self.async_step_provider()
 
-        # Проверка API подключения
         if not await self._async_validate_api(user_input):
             return await self.async_step_provider()
 
-        # Создание записи конфигурации
         return await self._create_entry(user_input)
 
     async def _async_validate_name(self, name: str) -> bool:
-        """Validate that the name is unique."""
+        """Validate that the name is unique.
+
+        Ensure no existing configuration entry has the same name.
+        """
         for entry in self._async_current_entries():
             if entry.data.get(CONF_NAME) == name:
                 self._errors["name"] = "name_exists"
@@ -120,7 +135,10 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return True
 
     async def _async_validate_api(self, user_input: Dict[str, Any]) -> bool:
-        """Validate API connection."""
+        """Validate API connection.
+
+        Test the API connection to ensure the provided API details are correct.
+        """
         try:
             session = async_get_clientsession(self.hass)
             headers = self._get_api_headers(user_input)
@@ -146,7 +164,10 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return False
 
     def _get_api_headers(self, user_input: Dict[str, Any]) -> Dict[str, str]:
-        """Get API headers based on provider."""
+        """Get API headers based on provider.
+
+        Returns appropriate headers for API requests depending on the provider.
+        """
         api_key = user_input[CONF_API_KEY]
 
         if self._provider == API_PROVIDER_ANTHROPIC:
@@ -161,7 +182,10 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         }
 
     async def _create_entry(self, user_input: Dict[str, Any]) -> FlowResult:
-        """Create the config entry."""
+        """Create the config entry.
+
+        Constructs and adds the configuration entry to Home Assistant.
+        """
         instance_name = user_input[CONF_NAME]
         unique_id = f"{DOMAIN}_{instance_name}_{self._provider}".lower().replace(" ", "_")
 
@@ -178,7 +202,10 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> config_entries.OptionsFlow:
-        """Get the options flow for this handler."""
+        """Get the options flow for this handler.
+
+        Provides access to configuration options after initial setup.
+        """
         return OptionsFlowHandler(config_entry)
 
 
@@ -186,11 +213,17 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow."""
 
     def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow."""
+        """Initialize options flow.
+
+        Prepare for managing configurable options of the integration.
+        """
         self.config_entry = config_entry
 
     async def async_step_init(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
-        """Manage the options."""
+        """Manage the options.
+
+        Allows modification of configurable parameters post initial setup.
+        """
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
 

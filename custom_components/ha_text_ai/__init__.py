@@ -1,4 +1,10 @@
-"""The HA Text AI integration."""
+# __init__.py
+"""The HA Text AI integration.
+
+This module initializes the HA Text AI integration for Home Assistant, handling setup, configuration,
+API connection verification, and managing service calls for interacting with AI models.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -45,8 +51,10 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Validate the configuration schema
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
+# Schema for the ask_question service
 SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
     vol.Required("instance"): cv.string,
     vol.Required("question"): cv.string,
@@ -56,11 +64,13 @@ SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
     vol.Optional("max_tokens"): cv.positive_int,
 })
 
+# Schema for setting a system prompt
 SERVICE_SCHEMA_SET_SYSTEM_PROMPT = vol.Schema({
     vol.Required("instance"): cv.string,
     vol.Required("prompt"): cv.string,
 })
 
+# Schema for getting history
 SERVICE_SCHEMA_GET_HISTORY = vol.Schema({
     vol.Required("instance"): cv.string,
     vol.Optional("limit"): cv.positive_int,
@@ -82,6 +92,7 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
     """Set up the HA Text AI component."""
     hass.data.setdefault(DOMAIN, {})
 
+    # Try to copy custom icon to home assistant www directory
     try:
         source = os.path.join(os.path.dirname(__file__), 'icons', 'icon.svg')
         dest_dir = os.path.join(hass.config.path('www'), 'icons')
@@ -137,6 +148,7 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
             _LOGGER.error("Error setting system prompt: %s", str(err))
             raise HomeAssistantError(f"Failed to set system prompt: {str(err)}")
 
+    # Registering services to handle different functionalities
     hass.services.async_register(
         DOMAIN,
         SERVICE_ASK_QUESTION,
@@ -194,6 +206,7 @@ async def async_check_api(session, endpoint: str, headers: dict, provider: str) 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up HA Text AI from a config entry."""
     try:
+        # Ensure the API provider is specified
         if CONF_API_PROVIDER not in entry.data:
             _LOGGER.error("API provider not specified")
             raise ConfigEntryNotReady("API provider is required")
@@ -215,17 +228,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "Accept": "application/json"
         }
 
+        # Set appropriate headers based on the provider
         if is_anthropic:
             headers["x-api-key"] = api_key
             headers["anthropic-version"] = "2023-06-01"
         else:
             headers["Authorization"] = f"Bearer {api_key}"
 
+        # Check the API connection
         if not await async_check_api(session, endpoint, headers, api_provider):
             raise ConfigEntryNotReady("API connection failed")
 
         _LOGGER.debug("Creating API client for %s with endpoint %s", api_provider, endpoint)
 
+        # Initialize the API client
         api_client = APIClient(
             session=session,
             endpoint=endpoint,
@@ -234,6 +250,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             model=model,
         )
 
+        # Initialize and set up the coordinator
         coordinator = HATextAICoordinator(
             hass=hass,
             client=api_client,
@@ -248,40 +265,4 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         coordinator.data = coordinator._initial_state.copy()
         _LOGGER.debug(f"Initial state set for coordinator {instance_name}")
 
-        await coordinator.async_config_entry_first_refresh()
-
-        hass.data.setdefault(DOMAIN, {})
-        hass.data[DOMAIN][entry.entry_id] = coordinator
-
-        await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-        _LOGGER.info(
-            "Successfully set up %s instance '%s' with model %s",
-            api_provider,
-            instance_name,
-            model
-        )
-
-        return True
-
-    except Exception as ex:
-        _LOGGER.exception("Setup error: %s", str(ex))
-        raise ConfigEntryNotReady(f"Setup error: {str(ex)}") from ex
-
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    """Unload a config entry."""
-    try:
-        if entry.entry_id in hass.data[DOMAIN]:
-            coordinator = hass.data[DOMAIN][entry.entry_id]
-
-            if hasattr(coordinator.client, 'shutdown'):
-                await coordinator.client.shutdown()
-
-            await coordinator.async_shutdown()
-            hass.data[DOMAIN].pop(entry.entry_id)
-
-        return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-
-    except Exception as ex:
-        _LOGGER.exception("Error unloading entry: %s", str(ex))
-        return False
+        await coordinator.async_config_entry_first_refresh

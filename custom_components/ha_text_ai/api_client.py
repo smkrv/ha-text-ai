@@ -1,7 +1,13 @@
-"""API Client for HA Text AI."""
+# api_client.py
+"""API Client for HA Text AI.
+
+This file contains the implementation of an API client for the HA Text AI integration compatible with both OpenAI and Anthropic service providers.
+The client handles API requests, manages connection sessions, implements retry logic, and validates parameters for requests to ensure the correct functionality of the AI service integration within Home Assistant.
+"""
+
 import logging
 import asyncio
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 from aiohttp import ClientSession, ClientTimeout
 from async_timeout import timeout
 
@@ -20,7 +26,10 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 class APIClient:
-    """API Client for OpenAI and Anthropic."""
+    """API Client for OpenAI and Anthropic.
+
+    This client handles requests to OpenAI and Anthropic services to create text-based AI completions.
+    """
 
     def __init__(
         self,
@@ -30,7 +39,10 @@ class APIClient:
         api_provider: str,
         model: str,
     ) -> None:
-        """Initialize API client."""
+        """Initialize API client.
+
+        Initialize with session, endpoint URL, request headers, type of API provider (OpenAI or Anthropic), and the AI model in use.
+        """
         self.session = session
         self.endpoint = endpoint
         self.headers = headers
@@ -43,7 +55,10 @@ class APIClient:
         temperature: float,
         max_tokens: int,
     ) -> None:
-        """Validate API parameters."""
+        """Validate API parameters.
+
+        Check that the temperature and max_tokens are within their respective allowed ranges.
+        """
         if not MIN_TEMPERATURE <= temperature <= MAX_TEMPERATURE:
             raise ValueError(
                 f"Temperature must be between {MIN_TEMPERATURE} and {MAX_TEMPERATURE}"
@@ -58,7 +73,10 @@ class APIClient:
         url: str,
         payload: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """Make API request with retry logic."""
+        """Make API request with retry logic.
+
+        Attempt the API request a pre-defined number of times in case of failure, with an exponential backoff strategy for timeouts.
+        """
         for attempt in range(API_RETRY_COUNT):
             try:
                 async with timeout(API_TIMEOUT):
@@ -89,7 +107,10 @@ class APIClient:
         temperature: float,
         max_tokens: int,
     ) -> Dict[str, Any]:
-        """Create completion using appropriate API."""
+        """Create completion using appropriate API.
+
+        Make a completion request using either OpenAI or Anthropic API based on the provider specified during initialization.
+        """
         try:
             self._validate_parameters(temperature, max_tokens)
 
@@ -112,7 +133,10 @@ class APIClient:
         temperature: float,
         max_tokens: int,
     ) -> Dict[str, Any]:
-        """Create completion using OpenAI API."""
+        """Create completion using OpenAI API.
+
+        Send details of the completion request to the OpenAI API and process the response.
+        """
         url = f"{self.endpoint}/chat/completions"
         payload = {
             "model": model,
@@ -144,7 +168,10 @@ class APIClient:
         temperature: float,
         max_tokens: int,
     ) -> Dict[str, Any]:
-        """Create completion using Anthropic API."""
+        """Create completion using Anthropic API.
+
+        Adapt messages format to Anthropic's requirement and make the API request to generate text completion.
+        """
         url = f"{self.endpoint}/v1/messages"
 
         # Convert messages to Anthropic format
