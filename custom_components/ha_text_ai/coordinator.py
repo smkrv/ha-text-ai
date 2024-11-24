@@ -19,7 +19,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         hass: HomeAssistant,
         client: Any,
         model: str,
-        update_interval: timedelta,  # Изменен тип на timedelta
+        update_interval: int,  # Изменен тип на int
         instance_name: str,
         max_tokens: int = 1000,
         temperature: float = 0.7,
@@ -27,12 +27,15 @@ class HATextAICoordinator(DataUpdateCoordinator):
         is_anthropic: bool = False,
     ) -> None:
         """Initialize coordinator."""
+        # Преобразуем update_interval в timedelta
+        update_interval_td = timedelta(seconds=update_interval)
+
         super().__init__(
             hass,
             _LOGGER,
             name=f"HA Text AI {instance_name}",
-            update_interval=update_interval,  # Передаем напрямую
-        )
+            update_interval=update_interval_td,  # Передаем timedelta
+        )  
 
         self.instance_name = instance_name
         self.client = client
