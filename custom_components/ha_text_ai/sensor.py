@@ -95,7 +95,6 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._instance_name = coordinator.instance_name
         self._conversation_history = []
         self._system_prompt = None
-        self._available = True
 
         # Entity attributes
         self._attr_has_entity_name = True
@@ -137,9 +136,9 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
     def available(self) -> bool:
         """Return if entity is available."""
         return (
-            self._available
-            and self.coordinator.last_update_success
+            self.coordinator.last_update_success
             and self.coordinator.data is not None
+            and self._current_state != STATE_DISCONNECTED
         )
 
     def _sanitize_value(self, value: Any) -> Any:
@@ -161,10 +160,9 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
     def native_value(self) -> StateType:
         """Return the native value of the sensor."""
         if not self.coordinator.last_update_success or not self.coordinator.data:
-            self._available = False
-            return STATE_DISCONNECTED
+            self._current_state = STATE_DISCONNECTED
+            return self._current_state
 
-        self._available = True
         status = self.coordinator.data.get("state", STATE_READY)
         self._current_state = status
         return status
@@ -252,29 +250,18 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
-        if not self.coordinator.last_update_success:
-            self._available = False
-            self._current_state = STATE_DISCONNECTED
-            _LOGGER.warning(f"Update failed for {self.entity_id}")
-            self.async_write_ha_state()
-            return
-
         try:
             data = self.coordinator.data
-            if not data:
-                self._available = False
+            if not self.coordinator.last_update_success or not data:
                 self._current_state = STATE_DISCONNECTED
                 _LOGGER.warning(f"No data available for {self.entity_id}")
                 self.async_write_ha_state()
                 return
 
-            self._available = True
             self._is_processing = data.get("is_processing", False)
 
-            # Update conversation history
+            # Update conversation history and system prompt
             self._conversation_history = data.get("conversation_history", [])
-
-            # Update system prompt
             self._system_prompt = data.get("system_prompt")
 
             # Update state based on conditions
@@ -289,18 +276,25 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
                 self._last_error = data["error"]
                 self._error_count += 1
             else:
-                self._current_state = STATE_READY
+                self._current_state = data.get("state", STATE_READY)
 
             # Update last update timestamp
             self._last_update = dt_util.utcnow()
 
-            _LOGGER.debug(f"Updated {self.entity_id} state to: {self._current_state}")
-            self.async_write_ha_state()
+            _LOGGER.debug(
+                f"Updated {self.entity_id} state to: {self._current_state} "
+                f"(available: {self.available})"
+            )
 
         except Exception as err:
-            self._available = False
             self._current_state = STATE_ERROR
             self._last_error = str(err)
             self._error_count += 1
-            _LOGGER.error("Error handling update for %s: %s", self.entity_id, err, exc_info=True)
-            self.async_write_ha_state()
+            _LOGGER.error(
+                "Error handling update for %s: %s",
+                self.entity_id,
+                err,
+                exc_info=True
+            )
+
+        self.async_write_ha_state()
