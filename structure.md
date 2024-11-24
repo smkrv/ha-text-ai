@@ -9,8 +9,10 @@ ha-text-ai/
 │       ├── manifest.json
 │       ├── sensor.py
 │       ├── services.yaml
-│       └── const.py
+│       ├── const.py
+│       └── api_client.py
 │
 └── strings/
-    └── en.json
+    ├── en.json
+    └──ru.json
 ```
