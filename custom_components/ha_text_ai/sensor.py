@@ -13,25 +13,50 @@ from homeassistant.util import dt as dt_util
 from homeassistant.util import slugify
 
 from .const import (
+    # Основные константы домена
     DOMAIN,
-    CONF_API_PROVIDER,
-    ATTR_QUESTION,
-    ATTR_RESPONSE,
-    ATTR_MODEL,
+    CONF_INSTANCE,
+    CONF_MODEL,
+
+    # Атрибуты сенсора
     ATTR_TOTAL_RESPONSES,
-    ATTR_API_STATUS,
-    ATTR_ERROR_COUNT,
+    ATTR_TOTAL_ERRORS,
+    ATTR_AVG_RESPONSE_TIME,
+    ATTR_LAST_REQUEST_TIME,
     ATTR_LAST_ERROR,
-    ENTITY_ICON,
-    ENTITY_ICON_ERROR,
-    ENTITY_ICON_PROCESSING,
+    ATTR_IS_PROCESSING,
+    ATTR_IS_RATE_LIMITED,
+    ATTR_IS_MAINTENANCE,
+    ATTR_API_VERSION,
+    ATTR_ENDPOINT_STATUS,
+    ATTR_PERFORMANCE_METRICS,
+    ATTR_HISTORY_SIZE,
+    ATTR_UPTIME,
+    ATTR_API_PROVIDER,
+    ATTR_MODEL,
+    ATTR_SYSTEM_PROMPT,
+
+    # Метрики
+    METRIC_TOTAL_TOKENS,
+    METRIC_PROMPT_TOKENS,
+    METRIC_COMPLETION_TOKENS,
+    METRIC_SUCCESSFUL_REQUESTS,
+    METRIC_FAILED_REQUESTS,
+    METRIC_AVERAGE_LATENCY,
+    METRIC_MAX_LATENCY,
+    METRIC_MIN_LATENCY,
+
+    # Состояния и иконки
     STATE_READY,
     STATE_PROCESSING,
     STATE_ERROR,
-    STATE_DISCONNECTED,
-    STATE_RATE_LIMITED,
     STATE_INITIALIZING,
     STATE_MAINTENANCE,
+    STATE_RATE_LIMITED,
+    STATE_DISCONNECTED,
+    ENTITY_ICON,
+    ENTITY_ICON_ERROR,
+    ENTITY_ICON_PROCESSING,
 )
 from .coordinator import HATextAICoordinator
 
@@ -65,13 +90,27 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._error_count = 0
         self._last_error = None
 
+        # Получаем модель из конфигурации или данных координатора
+        model = (
+            self.coordinator.data.get("model")
+            if self.coordinator.data
+            else self._config_entry.data.get(CONF_MODEL, "Unknown")
+        )
+
+        api_provider = self._config_entry.data.get(CONF_API_PROVIDER, "Unknown")
+        api_version = (
+            self.coordinator.data.get("api_version", "v1")
+            if self.coordinator.data
+            else "v1"
+        )
+
         # Обновляем device_info с использованием DeviceInfo
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self._attr_unique_id)},
             name=self._name,
             manufacturer="Community",
-            model=f"{coordinator.model} ({self._config_entry.data.get(CONF_API_PROVIDER, 'Unknown')} provider)",
-            sw_version=getattr(coordinator, 'api_version', 'v1'),
+            model=f"{model} ({api_provider} provider)",
+            sw_version=api_version,
         )
 
     @property
