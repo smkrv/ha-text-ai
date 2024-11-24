@@ -84,12 +84,14 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         super().__init__(coordinator)
 
         self._config_entry = config_entry
-        self._attr_name = config_entry.title
-        self._attr_unique_id = f"{config_entry.entry_id}_{slugify(self._attr_name)}"
-        self.entity_id = f"sensor.ha_text_ai_{slugify(self._attr_name)}"
-
-        # Сохраняем instance_name из координатора
         self._instance_name = coordinator.instance_name
+
+        # Упрощаем формирование entity_id
+        self.entity_id = f"sensor.ha_text_ai_{self._instance_name}"
+        self._attr_name = f"HA Text AI {self._instance_name}"
+        self._attr_unique_id = f"{config_entry.entry_id}"
+
+        _LOGGER.debug(f"Initializing sensor with entity_id: {self.entity_id}")
 
         self._current_state = STATE_INITIALIZING
         self._error_count = 0
@@ -108,7 +110,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             sw_version="1.0.0",
         )
 
-        _LOGGER.info(f"Initialized sensor with instance: {self._instance_name}")
+        _LOGGER.info(f"Initialized sensor: {self.entity_id} for instance: {self._instance_name}")
 
     @property
     def native_value(self) -> StateType:
