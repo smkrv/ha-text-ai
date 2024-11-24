@@ -19,7 +19,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         hass: HomeAssistant,
         client: Any,
         model: str,
-        update_interval: float,
+        update_interval: timedelta,  # Изменен тип на timedelta
         instance_name: str,
         max_tokens: int = 1000,
         temperature: float = 0.7,
@@ -31,7 +31,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
             hass,
             _LOGGER,
             name=f"HA Text AI {instance_name}",
-            update_interval=timedelta(seconds=update_interval),
+            update_interval=update_interval,  # Передаем напрямую
         )
 
         self.instance_name = instance_name
@@ -139,7 +139,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
             "total_requests": self._request_count,
             "total_errors": self._error_count,
             "last_request_time": dt_util.utcnow().isoformat(),
-            "instance": self.instance_name,  # Добавляем идентификатор интеграции
+            "instance": self.instance_name,
         })
 
     async def async_process_message(self, message: str, **kwargs) -> dict:
@@ -190,7 +190,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 "question": message,
                 "response": response_text,
                 "model": model,
-                "instance": self.instance_name,  # Добавляем идентификатор интеграции
+                "instance": self.instance_name,
                 "error": None
             }
 
@@ -213,7 +213,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 "timestamp": dt_util.utcnow().isoformat(),
                 "question": message,
                 "response": None,
-                "instance": self.instance_name,  # Добавляем идентификатор интеграции
+                "instance": self.instance_name,
                 "error": str(err)
             }
 
@@ -237,13 +237,13 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self,
         limit: Optional[int] = None,
         filter_model: Optional[str] = None,
-        instance: Optional[str] = None  # Добавляем фильтр по интеграции
+        instance: Optional[str] = None
     ) -> List[Dict[str, Any]]:
         """Get conversation history with optional filtering."""
         history = self._history.copy()
 
         if instance and instance != self.instance_name:
-            return []  # Возвращаем пустой список для чужих интеграций
+            return []
 
         if filter_model:
             history = [h for h in history if h.get("model") == filter_model]
@@ -262,7 +262,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
             "total_errors": 0,
             "avg_response_time": 0.0,
             "last_request_time": None,
-            "instance": self.instance_name,  # Добавляем идентификатор интеграции
+            "instance": self.instance_name,
         }
         _LOGGER.debug("[%s] Metrics reset", self.instance_name)
         self.async_update_listeners()

@@ -238,13 +238,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             "model": model,
         }
 
+        # Получаем интервал обновления
+        update_interval = entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)
+
         coordinator = HATextAICoordinator(
             hass=hass,
             client=api_client,
             model=model,
-            update_interval=timedelta(
-                seconds=entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)
-            ),
+            update_interval=update_interval,  # Передаем числовое значение
             instance_name=instance_name,
             max_tokens=entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
             temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
