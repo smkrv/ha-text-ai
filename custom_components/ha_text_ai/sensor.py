@@ -1,5 +1,6 @@
 """Sensor platform for HA Text AI."""
 import logging
+import math
 from typing import Any, Dict
 
 from homeassistant.components.sensor import (
@@ -136,6 +137,34 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
 
         _LOGGER.info(f"Initialized sensor: {self.entity_id} for instance: {self._instance_name}")
 
+    def _sanitize_value(self, value: Any) -> Any:
+        """Sanitize values for JSON serialization.
+
+        Args:
+            value: The value to sanitize
+
+        Returns:
+            Sanitized value safe for JSON serialization
+        """
+        if isinstance(value, float):
+            if math.isinf(value) or math.isnan(value):
+                return None
+        return value
+
+    def _sanitize_attributes(self, attributes: Dict[str, Any]) -> Dict[str, Any]:
+        """Sanitize all attributes for JSON serialization.
+
+        Args:
+            attributes: Dictionary of attributes to sanitize
+
+        Returns:
+            Dictionary with sanitized values
+        """
+        return {
+            key: self._sanitize_value(value)
+            for key, value in attributes.items()
+        }
+
     @property
     def native_value(self) -> StateType:
         """Return the native value of the sensor."""
@@ -171,7 +200,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         }
 
         if not self.coordinator.data:
-            return attributes
+            return self._sanitize_attributes(attributes)
 
         data = self.coordinator.data
 
@@ -215,7 +244,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             attributes[ATTR_RESPONSE] = last_response.get("response", "")
             attributes[ATTR_QUESTION] = last_response.get("question", "")
 
-        return attributes
+        return self._sanitize_attributes(attributes)
 
     async def async_added_to_hass(self) -> None:
         """When entity is added to hass."""
