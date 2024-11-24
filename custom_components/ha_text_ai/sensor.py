@@ -105,9 +105,8 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         # Entity description
         self.entity_description = SensorEntityDescription(
             key=f"ha_text_ai_{self._instance_name}",
-            name=self._attr_name,
             entity_registry_enabled_default=True,
-        )
+        )  
 
         # State tracking
         self._current_state = STATE_INITIALIZING
