@@ -192,6 +192,107 @@ data:
   filter_model: "gpt-4o"  # optional
 ```
 
+### 🏷️ HA Text AI Sensor Naming Convention
+
+#### Sensor Name Structure
+```yaml
+# Always starts with 'sensor.ha_text_ai_'
+# You define only the part after the underscore
+sensor.ha_text_ai_YOUR_UNIQUE_SUFFIX
+
+# Examples:
+sensor.ha_text_ai_gpt      # GPT-based sensor
+sensor.ha_text_ai_claude   # Claude-based sensor
+sensor.ha_text_ai_gpt   # Custom suffix
+```
+
+#### Response Retrieval
+```yaml
+# Use your specific sensor name
+{{ state_attr('sensor.ha_text_ai_gpt', 'response') }}
+```
+
+#### Practical Usage
+```yaml
+automation:
+  - alias: "AI Response with Custom Sensor"
+    action:
+      - service: ha_text_ai.ask_question
+        data:
+          question: "Home automation advice"
+      - service: notify.mobile
+        data:
+          message: >
+            AI Tip:
+            {{ state_attr('sensor.ha_text_ai_gpt', 'response') }}
+```
+
+### 💡 Naming Rules
+- Prefix is always `sensor.ha_text_ai_`
+- Add your unique identifier after the underscore
+- Use lowercase
+- No spaces allowed
+- Keep it descriptive but concise
+
+### 🔍 HA Text AI Sensor Attributes
+
+#### Model and Provider Information
+```yaml
+# Model details
+{{ state_attr('sensor.ha_text_ai_gpt', 'Model') }}           # gpt-4o
+{{ state_attr('sensor.ha_text_ai_gpt', 'Api provider') }}    # openai
+{{ state_attr('sensor.ha_text_ai_gpt', 'Last model') }}      # gpt-4o
+```
+
+#### System Status
+```yaml
+# Operational status
+{{ state_attr('sensor.ha_text_ai_gpt', 'Api status') }}      # ready
+{{ state_attr('sensor.ha_text_ai_gpt', 'Is processing') }}   # false
+{{ state_attr('sensor.ha_text_ai_gpt', 'Is rate limited') }} # false
+{{ state_attr('sensor.ha_text_ai_gpt', 'Endpoint status') }} # ready
+```
+
+#### Performance Metrics
+```yaml
+# Request and performance statistics
+{{ state_attr('sensor.ha_text_ai_gpt', 'Successful requests') }}   # 0
+{{ state_attr('sensor.ha_text_ai_gpt', 'Failed requests') }}       # 0
+{{ state_attr('sensor.ha_text_ai_gpt', 'Average latency') }}       # 0
+{{ state_attr('sensor.ha_text_ai_gpt', 'Max latency') }}           # 0
+```
+
+#### Conversation and Token Usage
+```yaml
+# Conversation and token details
+{{ state_attr('sensor.ha_text_ai_gpt', 'History size') }}          # 0
+{{ state_attr('sensor.ha_text_ai_gpt', 'Total tokens') }}          # 0
+{{ state_attr('sensor.ha_text_ai_gpt', 'Prompt tokens') }}         # 0
+{{ state_attr('sensor.ha_text_ai_gpt', 'Completion tokens') }}     # 0
+```
+
+#### Last Interaction Details
+```yaml
+# Last interaction information
+{{ state_attr('sensor.ha_text_ai_gpt', 'Response') }}        # Last AI response
+{{ state_attr('sensor.ha_text_ai_gpt', 'Question') }}        # Last asked question
+{{ state_attr('sensor.ha_text_ai_gpt', 'Last timestamp') }}  # Timestamp
+```
+
+#### System Health
+```yaml
+# System health and maintenance
+{{ state_attr('sensor.ha_text_ai_gpt', 'Total errors') }}    # 0
+{{ state_attr('sensor.ha_text_ai_gpt', 'Is maintenance') }}  # false
+{{ state_attr('sensor.ha_text_ai_gpt', 'Uptime') }}          # 547,58
+```
+
+### 💡 Pro Tips
+- Always check attribute existence
+- Use these attributes for monitoring and automation
+- Some values might be 0 or empty initially
+
+
 ## 📘 FAQ
 
 **Q: Which AI providers are supported?**
