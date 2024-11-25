@@ -15,14 +15,12 @@ Transform your smart home experience with powerful AI assistance powered by mult
 
 <div align="center">  
 <p align="center">
-  
+
 🚧 ALPHA VERSION 🚧
+
 This is an early release
 
-⚠️ Expect:
-- Potential bugs
-- Frequent changes
-- Incomplete features
+⚠️ Expect: potential bugs, frequent changes, incomplete features
 🤝 Community Driven
 </p>
 </div>
