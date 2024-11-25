@@ -71,6 +71,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 - Active API key from:
   - OpenAI ([Get key](https://platform.openai.com/account/api-keys))
   - Anthropic ([Get key](https://console.anthropic.com/))
+  - OpenRouter ([Get OpenRouter API Key](https://openrouter.ai/keys))
 - Python 3.9 or newer
 - Stable internet connection
 
@@ -82,6 +83,30 @@ Transform your smart home experience with powerful AI assistance powered by mult
 - Max Tokens (Response length limit)
 - Request Interval (API call throttling)
 - Custom API Endpoint (optional)
+
+#### Potentially Compatible Providers  
+The integration is designed to be flexible and may work with other providers offering OpenAI-compatible APIs:  
+
+- Groq  
+- Together AI  
+- Perplexity AI  
+- Mistral AI  
+- Google AI  
+- Local AI servers (like Ollama)  
+- Custom OpenAI-compatible endpoints  
+
+### Additional Notes  
+- Not all providers guarantee full compatibility  
+- Performance may vary between providers  
+- Check individual provider's documentation  
+- Ensure your API key has sufficient credits/quota 
+
+### Provider Compatibility Requirements  
+To be compatible, a provider should support:  
+- OpenAI-like REST API structure  
+- JSON request/response format  
+- Standard authentication method  
+- Similar model parameter handling
 
 ## ⚡ Installation
 
