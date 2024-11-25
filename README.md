@@ -10,18 +10,7 @@
 </div>
 
 <p align="center">
-Transform your smart home experience with powerful AI assistance powered by multiple AI providers including OpenAI GPT and Anthropic Claude models. Get intelligent responses, automate complex scenarios, and enhance your home automation with advanced natural language processing.
-
-</p>
-
----
-
-> [!IMPORTANT]
-> 🚧 ALPHA VERSION 🚧  
-> Expect: potential bugs, frequent changes, incomplete features.  
-> 🤝 Community Driven  
->
->  <a href="https://community.home-assistant.io/t/ha-text-ai-transforming-home-automation-with-multi-provider-language-models/799741"><img src="https://img.shields.io/badge/Community-blue?style=for-the-badge&logo=homeassistant&logoColor=white&color=03a9f4"/></a>  
+Transform your smart home experience with powerful AI assistance powered by multiple AI providers including OpenAI GPT and Anthropic Claude models. Get intelligent responses, automate compi
 
 ## 🌟 Features
 
@@ -336,6 +325,22 @@ Contributions welcome! Please read our [Contributing Guide](CONTRIBUTING.md).
 ## 📝 License
 
 MIT License - see [LICENSE](LICENSE) for details.
+
+## 💡 Support the Project
+
+The best support is:
+- Sharing feedback
+- Contributing ideas
+- Recommending to friends
+- Reporting issues
+- Star the repository
+
+If you want to say thanks financially, you can send a small token of appreciation in USDT:
+
+**USDT Wallet (TRC10/TRC20):**
+`TXC9zYHYPfWUGi4Sv4R1ctTBGScXXQk5HZ`
+
+*Open-source is built by community passion!* 🚀
 
 ---
 
