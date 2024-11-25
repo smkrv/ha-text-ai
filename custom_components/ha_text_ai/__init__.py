@@ -89,7 +89,7 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
         source = os.path.join(os.path.dirname(__file__), 'icons', 'icon.svg')
         dest_dir = os.path.join(hass.config.path('www'), 'icons')
         os.makedirs(dest_dir, exist_ok=True)
-        dest = os.path.join(dest_dir, 'icon.svg')
+        dest = os.path.join(dest_dir, 'icon.png')
         if not os.path.exists(dest):
             shutil.copyfile(source, dest)
     except Exception as ex:
