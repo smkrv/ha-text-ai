@@ -114,6 +114,7 @@ To be compatible, a provider should support:
 ## ⚡ Installation
 
 ### HACS Installation (Recommended)
+<a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=smkrv&repository=ha-text-ai&category=Integration"><img src="https://my.home-assistant.io/badges/hacs_repository.svg" width="170" height="auto"></a>
 1. Open HACS in Home Assistant
 2. Click on "Integrations"
 3. Click "..." in top right corner
@@ -122,10 +123,6 @@ To be compatible, a provider should support:
 6. Choose "Integration" as category
 7. Click "Download"
 8. Restart Home Assistant
-
-<a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=smkrv&repository=ha-text-ai&category=Integration">  
-  <img src="https://my.home-assistant.io/badges/hacs_repository.svg" width="160" height="auto">  
-</a>
 
 ### Manual Installation
 1. Download the latest release
