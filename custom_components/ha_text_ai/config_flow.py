@@ -107,17 +107,14 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 errors=self._errors
             )
 
-        # Проверка уникальности имени
         instance_name = user_input[CONF_NAME]
         await self._async_validate_name(instance_name)
         if self._errors:
             return await self.async_step_provider()
 
-        # Проверка API подключения
         if not await self._async_validate_api(user_input):
             return await self.async_step_provider()
 
-        # Создание записи конфигурации
         return await self._create_entry(user_input)
 
     async def _async_validate_name(self, name: str) -> bool:
@@ -242,7 +239,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                         CONF_CONTEXT_MESSAGES,
                         DEFAULT_CONTEXT_MESSAGES
                     )
-                ): vol.All(  
+                ): vol.All(
                     vol.Coerce(int),
                     vol.Range(min=1, max=20)
                 ),

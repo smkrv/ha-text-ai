@@ -250,7 +250,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             context_messages=entry.data.get(
                 CONF_CONTEXT_MESSAGES,
                 DEFAULT_CONTEXT_MESSAGES
-            ),              
+            ),
         )
 
         coordinator.data = coordinator._initial_state.copy()

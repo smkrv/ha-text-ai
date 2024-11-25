@@ -83,11 +83,10 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
         update_interval_td = timedelta(seconds=update_interval)
 
-        # Добавляем name в вызов родительского конструктора
         super().__init__(
             hass,
             _LOGGER,
-            name=instance_name,  # Передаем имя экземпляра
+            name=instance_name,
             update_interval=update_interval_td,
         )
 
@@ -166,12 +165,10 @@ class HATextAICoordinator(DataUpdateCoordinator):
         return STATE_READY
 
     def _calculate_context_tokens(self, messages: List[Dict[str, str]]) -> int:
-        """Приблизительный подсчет токенов в контексте."""
         try:
             if self.is_anthropic and hasattr(self.client, 'count_tokens'):
                 return sum(self.client.count_tokens(msg['content']) for msg in messages)
 
-            # Простая эвристика: 1 токен примерно на 4 символа
             return sum(len(msg['content']) // 4 for msg in messages)
         except Exception as e:
             _LOGGER.warning(f"Error calculating context tokens: {e}")

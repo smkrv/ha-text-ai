@@ -73,7 +73,7 @@ async def async_setup_entry(
     coordinator = hass.data[DOMAIN][entry.entry_id]
     instance_name = coordinator.instance_name
 
-    _LOGGER.debug(f"Setting up sensor with instance: {instance_name}")  # Убрал префикс "HA Text AI"
+    _LOGGER.debug(f"Setting up sensor with instance: {instance_name}")
 
     sensor = HATextAISensor(coordinator, entry)
     async_add_entities([sensor], True)
@@ -96,18 +96,15 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._conversation_history = []
         self._system_prompt = None
 
-        # Убираем дублирование префикса
-        self._attr_name = f"HA Text AI {self._instance_name}"  # Устанавливаем имя только здесь
+        self._attr_name = f"HA Text AI {self._instance_name}"
         self.entity_id = f"sensor.ha_text_ai_{slugify(self._instance_name)}"
         self._attr_unique_id = f"{config_entry.entry_id}"
 
-        # Entity description без дублирования
         self.entity_description = SensorEntityDescription(
             key=f"ha_text_ai_{self._instance_name}",
             entity_registry_enabled_default=True,
         )
 
-        # State tracking
         self._current_state = STATE_INITIALIZING
         self._error_count = 0
         self._last_error = None
@@ -116,7 +113,6 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._last_response = {}
         self._metrics = {}
 
-        # Device info
         model = config_entry.data.get(CONF_MODEL, "Unknown")
         api_provider = config_entry.data.get(CONF_API_PROVIDER, "Unknown")
 
@@ -128,7 +124,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             sw_version="1.0.0",
         )
 
-        _LOGGER.debug(f"Initialized sensor: {self.entity_id} for instance: {self._instance_name}")  
+        _LOGGER.debug(f"Initialized sensor: {self.entity_id} for instance: {self._instance_name}")
 
     @property
     def available(self) -> bool:

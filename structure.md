@@ -14,5 +14,6 @@ ha-text-ai/
 │
 └── strings/
     ├── en.json
-    └──ru.json
+    ├── de.json
+    └── ru.json
 ```

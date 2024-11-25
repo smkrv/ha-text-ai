@@ -149,7 +149,6 @@ SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
         vol.Coerce(int),
         vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
     ),
-     # Добавить опциональный параметр контекста
     vol.Optional("context_messages"): vol.All(
         vol.Coerce(int),
         vol.Range(min=1, max=20)
