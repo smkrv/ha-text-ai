@@ -16,7 +16,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 ---
 > [!NOTE]
 > 🚧 ALPHA VERSION 🚧  
-> Expect: potential bugs, frequent changes, incomplete features. 
+> Expect: potential bugs, frequent changes, incomplete features.
 > 🤝 Community Driven
 
 ## 🌟 Features
@@ -122,6 +122,9 @@ To be compatible, a provider should support:
 6. Choose "Integration" as category
 7. Click "Download"
 8. Restart Home Assistant
+
+[![HACS Badge](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=smkrv&repository=ha-text-ai&category=Integration)  
+<img src="https://my.home-assistant.io/badges/hacs_repository.svg" width="130" height="auto">
 
 ### Manual Installation
 1. Download the latest release
