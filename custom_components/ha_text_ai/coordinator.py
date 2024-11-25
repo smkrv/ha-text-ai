@@ -17,6 +17,10 @@ from .const import (
     STATE_ERROR,
     STATE_RATE_LIMITED,
     STATE_MAINTENANCE,
+    DEFAULT_MAX_TOKENS,
+    DEFAULT_TEMPERATURE,
+    DEFAULT_MAX_HISTORY,
+    DEFAULT_CONTEXT_MESSAGES,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -29,9 +33,10 @@ class HATextAICoordinator(DataUpdateCoordinator):
         model: str,
         update_interval: int,
         instance_name: str,
-        max_tokens: int = 1000,
-        temperature: float = 0.7,
-        max_history_size: int = 50,
+        max_tokens: int = DEFAULT_MAX_TOKENS,
+        temperature: float = DEFAULT_TEMPERATURE,
+        max_history_size: int = DEFAULT_MAX_HISTORY,
+        context_messages: int = DEFAULT_CONTEXT_MESSAGES,
         is_anthropic: bool = False,
     ) -> None:
         """Initialize coordinator."""
@@ -89,6 +94,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         # Register instance
         self.hass.data.setdefault(DOMAIN, {})
         self.hass.data[DOMAIN][instance_name] = self
+        self.context_messages = context_messages
 
         self._system_prompt = None
         self._conversation_history = []
@@ -159,6 +165,18 @@ class HATextAICoordinator(DataUpdateCoordinator):
             return STATE_ERROR
         return STATE_READY
 
+    def _calculate_context_tokens(self, messages: List[Dict[str, str]]) -> int:
+        """Приблизительный подсчет токенов в контексте."""
+        try:
+            if self.is_anthropic and hasattr(self.client, 'count_tokens'):
+                return sum(self.client.count_tokens(msg['content']) for msg in messages)
+
+            # Простая эвристика: 1 токен примерно на 4 символа
+            return sum(len(msg['content']) // 4 for msg in messages)
+        except Exception as e:
+            _LOGGER.warning(f"Error calculating context tokens: {e}")
+        return 0
+
     async def async_ask_question(
         self,
         question: str,
@@ -166,10 +184,11 @@ class HATextAICoordinator(DataUpdateCoordinator):
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         system_prompt: Optional[str] = None,
+        context_messages: Optional[int] = None,
     ) -> dict:
         """Process a question with optional parameters."""
         return await self.async_process_question(
-            question, model, temperature, max_tokens, system_prompt
+            question, model, temperature, max_tokens, system_prompt, context_messages
         )
 
     async def async_process_question(
@@ -179,8 +198,10 @@ class HATextAICoordinator(DataUpdateCoordinator):
         temperature: Optional[float] = None,
         max_tokens: Optional[int] = None,
         system_prompt: Optional[str] = None,
+        context_messages: Optional[int] = None,
     ) -> dict:
-        """Process a question with optional parameters."""
+        temp_context_messages = context_messages or self.context_messages
+
         if not question:
             raise ValueError("Question cannot be empty")
 
@@ -206,7 +227,8 @@ class HATextAICoordinator(DataUpdateCoordinator):
                     messages.append({"role": "system", "content": temp_system_prompt})
 
             # Add conversation history
-            for entry in self._conversation_history[-5:]:  # Last 5 messages for context
+            context_history = self._conversation_history[-temp_context_messages:]
+            for entry in context_history:
                 messages.append({"role": "user", "content": entry["question"]})
                 messages.append({"role": "assistant", "content": entry["response"]})
 

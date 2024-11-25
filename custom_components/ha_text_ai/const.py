@@ -31,6 +31,7 @@ CONF_REQUEST_INTERVAL: Final = "request_interval"
 CONF_INSTANCE: Final = "instance"
 CONF_MAX_HISTORY_SIZE: Final = "max_history_size"
 CONF_IS_ANTHROPIC: Final = "is_anthropic"
+CONF_CONTEXT_MESSAGES: Final = "context_messages"
 
 # Default values
 DEFAULT_MODEL: Final = "gpt-4"
@@ -40,6 +41,7 @@ DEFAULT_REQUEST_INTERVAL: Final = 1.0
 DEFAULT_TIMEOUT: Final = 30
 DEFAULT_MAX_HISTORY: Final = 50
 DEFAULT_NAME: Final = "HA Text AI"
+DEFAULT_CONTEXT_MESSAGES: Final = 5
 
 # Parameter constraints
 MIN_TEMPERATURE: Final = 0.0
@@ -146,6 +148,11 @@ SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
     vol.Optional("max_tokens"): vol.All(
         vol.Coerce(int),
         vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
+    ),
+     # Добавить опциональный параметр контекста
+    vol.Optional("context_messages"): vol.All(
+        vol.Coerce(int),
+        vol.Range(min=1, max=20)
     )
 })
 
@@ -185,7 +192,11 @@ CONFIG_SCHEMA = vol.Schema({
         ),
         vol.Optional(CONF_MAX_HISTORY_SIZE, default=DEFAULT_MAX_HISTORY): vol.All(
             vol.Coerce(int),
-            vol.Range(min=1, max=100)
+            vol.Range(min=1, max=100),
+        ),
+        vol.Optional(CONF_CONTEXT_MESSAGES, default=DEFAULT_CONTEXT_MESSAGES): vol.All(
+            vol.Coerce(int),
+            vol.Range(min=1, max=20)
         )
     })
 }, extra=vol.ALLOW_EXTRA)

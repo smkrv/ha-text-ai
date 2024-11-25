@@ -28,6 +28,7 @@ from .const import (
     CONF_API_ENDPOINT,
     CONF_REQUEST_INTERVAL,
     CONF_API_PROVIDER,
+    CONF_CONTEXT_MESSAGES,
     API_PROVIDER_OPENAI,
     API_PROVIDER_ANTHROPIC,
     DEFAULT_MODEL,
@@ -36,6 +37,7 @@ from .const import (
     DEFAULT_OPENAI_ENDPOINT,
     DEFAULT_ANTHROPIC_ENDPOINT,
     DEFAULT_REQUEST_INTERVAL,
+    DEFAULT_CONTEXT_MESSAGES,
     API_TIMEOUT,
     SERVICE_ASK_QUESTION,
     SERVICE_CLEAR_HISTORY,
@@ -54,6 +56,7 @@ SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
     vol.Optional("model"): cv.string,
     vol.Optional("temperature"): cv.positive_float,
     vol.Optional("max_tokens"): cv.positive_int,
+    vol.Optional("context_messages"): cv.positive_int,
 })
 
 SERVICE_SCHEMA_SET_SYSTEM_PROMPT = vol.Schema({
@@ -102,6 +105,7 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
                 temperature=call.data.get("temperature"),
                 max_tokens=call.data.get("max_tokens"),
                 system_prompt=call.data.get("system_prompt"),
+                context_messages=call.data.get("context_messages"),
             )
         except Exception as err:
             _LOGGER.error("Error asking question: %s", str(err))
@@ -243,6 +247,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             max_tokens=entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
             temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
             is_anthropic=is_anthropic,
+            context_messages=entry.data.get(
+                CONF_CONTEXT_MESSAGES,
+                DEFAULT_CONTEXT_MESSAGES
+            ),              
         )
 
         coordinator.data = coordinator._initial_state.copy()

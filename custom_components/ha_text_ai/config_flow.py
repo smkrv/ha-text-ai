@@ -18,6 +18,7 @@ from .const import (
     CONF_API_ENDPOINT,
     CONF_REQUEST_INTERVAL,
     CONF_API_PROVIDER,
+    CONF_CONTEXT_MESSAGES,
     API_PROVIDER_OPENAI,
     API_PROVIDER_ANTHROPIC,
     API_PROVIDERS,
@@ -27,6 +28,7 @@ from .const import (
     DEFAULT_REQUEST_INTERVAL,
     DEFAULT_OPENAI_ENDPOINT,
     DEFAULT_ANTHROPIC_ENDPOINT,
+    DEFAULT_CONTEXT_MESSAGES,
     MIN_TEMPERATURE,
     MAX_TEMPERATURE,
     MIN_MAX_TOKENS,
@@ -93,6 +95,13 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(CONF_REQUEST_INTERVAL, default=DEFAULT_REQUEST_INTERVAL): vol.All(
                         vol.Coerce(float),
                         vol.Range(min=MIN_REQUEST_INTERVAL)
+                    ),
+                    vol.Optional(
+                        CONF_CONTEXT_MESSAGES,
+                        default=DEFAULT_CONTEXT_MESSAGES
+                    ): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(min=1, max=20)
                     ),
                 }),
                 errors=self._errors
@@ -171,8 +180,11 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 CONF_API_PROVIDER: self._provider,
                 CONF_NAME: instance_name,
                 **user_input,
-                "unique_id": unique_id
-            }
+                "unique_id": unique_id,
+                CONF_CONTEXT_MESSAGES: user_input.get(
+                CONF_CONTEXT_MESSAGES,
+                DEFAULT_CONTEXT_MESSAGES)
+        }
         )
 
     @staticmethod
@@ -223,6 +235,16 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ): vol.All(
                     vol.Coerce(float),
                     vol.Range(min=MIN_REQUEST_INTERVAL)
+                ),
+                vol.Optional(
+                    CONF_CONTEXT_MESSAGES,
+                    default=current_data.get(
+                        CONF_CONTEXT_MESSAGES,
+                        DEFAULT_CONTEXT_MESSAGES
+                    )
+                ): vol.All(  
+                    vol.Coerce(int),
+                    vol.Range(min=1, max=20)
                 ),
             })
         )
