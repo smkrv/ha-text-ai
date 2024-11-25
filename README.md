@@ -84,7 +84,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 - Request Interval (API call throttling)
 - Custom API Endpoint (optional)
 
-#### Potentially Compatible Providers  
+#### ⓘ Potentially Compatible Providers  
 The integration is designed to be flexible and may work with other providers offering OpenAI-compatible APIs:  
 
 - Groq  
@@ -95,13 +95,13 @@ The integration is designed to be flexible and may work with other providers off
 - Local AI servers (like Ollama)  
 - Custom OpenAI-compatible endpoints  
 
-### Additional Notes  
+#### ⚠️ Additional Notes  
 - Not all providers guarantee full compatibility  
 - Performance may vary between providers  
 - Check individual provider's documentation  
-- Ensure your API key has sufficient credits/quota 
+- Ensure your API key has sufficient credits/quota
 
-### Provider Compatibility Requirements  
+#### ⚠️ Provider Compatibility Requirements  
 To be compatible, a provider should support:  
 - OpenAI-like REST API structure  
 - JSON request/response format  
