@@ -13,14 +13,18 @@
 Transform your smart home experience with powerful AI assistance powered by multiple AI providers including OpenAI GPT and Anthropic Claude models. Get intelligent responses, automate complex scenarios, and enhance your home automation with advanced natural language processing.
 </p>
 
-#### ⚠️ Project Status: Alpha Release  
-
-🚧 **Warning: This is an Alpha Version** 🚧  
-
-#### What This Means  
-- 🐞 Expect potential bugs and instability  
-- 🔧 Active development in progress  
-- 📝 Features may change without prior notice  
++-----------------------------------------------------------+
+| 🚧 ALPHA VERSION 🚧 |
++-----------------------------------------------------------+
+| This is an early development release |
+| |
+| ⚠️ Expect: |
+| - Potential bugs |
+| - Frequent changes |
+| - Incomplete features |
+| |
+| 🤝 Community Driven |
++-----------------------------------------------------------+
 
 ---
 
