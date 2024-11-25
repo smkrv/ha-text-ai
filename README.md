@@ -123,8 +123,9 @@ To be compatible, a provider should support:
 7. Click "Download"
 8. Restart Home Assistant
 
-[![HACS Badge](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=smkrv&repository=ha-text-ai&category=Integration)  
-<img src="https://my.home-assistant.io/badges/hacs_repository.svg" width="130" height="auto">
+<a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=smkrv&repository=ha-text-ai&category=Integration">  
+  <img src="https://my.home-assistant.io/badges/hacs_repository.svg" width="160" height="auto">  
+</a>
 
 ### Manual Installation
 1. Download the latest release
