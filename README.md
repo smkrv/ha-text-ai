@@ -14,10 +14,10 @@ Transform your smart home experience with powerful AI assistance powered by mult
 </p>
 
 ---
-
-🚧 ALPHA VERSION 🚧  
-Expect: potential bugs, frequent changes, incomplete features.
-🤝 Community Driven
+[!NOTE]
+> 🚧 ALPHA VERSION 🚧  
+> Expect: potential bugs, frequent changes, incomplete features.
+> 🤝 Community Driven
 
 ## 🌟 Features
 
