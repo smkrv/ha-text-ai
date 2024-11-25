@@ -15,6 +15,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 </p>
 
 ---
+
 > [!IMPORTANT]
 > 🚧 ALPHA VERSION 🚧  
 > Expect: potential bugs, frequent changes, incomplete features.
