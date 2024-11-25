@@ -16,7 +16,8 @@ Transform your smart home experience with powerful AI assistance powered by mult
 ---
 
 🚧 ALPHA VERSION 🚧  
-Expect: potential bugs, frequent changes, incomplete features. 🤝 Community Driven
+Expect: potential bugs, frequent changes, incomplete features.
+🤝 Community Driven
 
 ## 🌟 Features
 
@@ -74,7 +75,7 @@ Expect: potential bugs, frequent changes, incomplete features. 🤝 Community Dr
 - Active API key from:
   - OpenAI ([Get key](https://platform.openai.com/account/api-keys))
   - Anthropic ([Get key](https://console.anthropic.com/))
-  - OpenRouter ([Get OpenRouter API Key](https://openrouter.ai/keys))
+  - OpenRouter ([Get key](https://openrouter.ai/keys))
 - Python 3.9 or newer
 - Stable internet connection
 
@@ -89,7 +90,6 @@ Expect: potential bugs, frequent changes, incomplete features. 🤝 Community Dr
 
 #### ⓘ Potentially Compatible Providers  
 The integration is designed to be flexible and may work with other providers offering OpenAI-compatible APIs:  
-
 - Groq  
 - Together AI  
 - Perplexity AI  
@@ -98,13 +98,13 @@ The integration is designed to be flexible and may work with other providers off
 - Local AI servers (like Ollama)  
 - Custom OpenAI-compatible endpoints  
 
-#### ⚠️ Additional Notes  
+#### Additional Notes  
 - Not all providers guarantee full compatibility  
 - Performance may vary between providers  
 - Check individual provider's documentation  
 - Ensure your API key has sufficient credits/quota
 
-#### ⚠️ Provider Compatibility Requirements  
+#### Provider Compatibility Requirements  
 To be compatible, a provider should support:  
 - OpenAI-like REST API structure  
 - JSON request/response format  
