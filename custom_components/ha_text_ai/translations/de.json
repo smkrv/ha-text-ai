@@ -18,7 +18,8 @@
                     "temperature": "Antwort-Kreativität (0-2, niedriger = fokussierter)",
                     "max_tokens": "Maximale Antwortlänge (1-4096 Token)",
                     "api_endpoint": "Benutzerdefinierte API-Endpunkt-URL (optional)",
-                    "request_interval": "Minimale Zeit zwischen Anfragen (0,1-60 Sekunden)"
+                    "request_interval": "Minimale Zeit zwischen Anfragen (0,1-60 Sekunden)",
+                    "context_messages": "Anzahl der zu speichernden Kontextnachrichten (1-20)"
                 }
             }
         },
@@ -49,7 +50,9 @@
                     "model": "KI-Modell",
                     "temperature": "Antwort-Kreativität (0-2)",
                     "max_tokens": "Maximale Antwortlänge (1-4096)",
-                    "request_interval": "Minimales Anfragen-Intervall (0,1-60 Sekunden)"
+                    "request_interval": "Minimales Anfragen-Intervall (0,1-60 Sekunden)",
+                    "context_messages": "Anzahl der vorherigen Nachrichten, die in den Kontext einbezogen werden sollen (1-20)"
+
                 }
             }
         }

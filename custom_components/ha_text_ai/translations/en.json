@@ -18,7 +18,8 @@
                     "temperature": "Response creativity (0-2, lower = more focused)",
                     "max_tokens": "Maximum response length (1-4096 tokens)",
                     "api_endpoint": "Custom API endpoint URL (optional)",
-                    "request_interval": "Minimum time between requests (0.1-60 seconds)"
+                    "request_interval": "Minimum time between requests (0.1-60 seconds)",
+                    "context_messages": "Number of context messages to retain (1-20)"
                 }
             }
         },
@@ -49,7 +50,8 @@
                     "model": "AI model",
                     "temperature": "Response creativity (0-2)",
                     "max_tokens": "Maximum response length (1-4096)",
-                    "request_interval": "Minimum request interval (0.1-60 seconds)"
+                    "request_interval": "Minimum request interval (0.1-60 seconds)",
+                    "context_messages": "Number of previous messages to include in context (1-20)"
                 }
             }
         }

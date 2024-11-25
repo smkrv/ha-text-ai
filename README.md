@@ -134,6 +134,7 @@ data:
   model: "claude-3-sonnet"  # optional
   temperature: 0.5  # optional
   max_tokens: 500  # optional
+  context_messages: 10  #optional, number of previous messages to include in context, default: 5
   system_prompt: "You are a sleep optimization expert"  # optional
 ```
 
@@ -159,7 +160,7 @@ service: ha_text_ai.clear_history
 service: ha_text_ai.get_history
 data:
   limit: 5  # optional
-  filter_model: "gpt-4"  # optional
+  filter_model: "gpt-4o"  # optional
 ```
 
 ## 📘 FAQ
@@ -184,6 +185,9 @@ A: Use GPT-3.5-Turbo for most queries, implement caching, and optimize token usa
 
 **Q: Is my data secure?**
 A: Yes, your data is secure. The system operates entirely on your local machine, keeping your data under your control. API keys are stored securely and all external communications use encrypted connections.
+
+**Q: How do context messages work?**
+A: Context messages allow the AI to remember and reference previous conversation history. By default, 5 previous messages are included, but you can customize this from 1 to 20 messages to control the conversation depth and token usage.
 
 ## 🤝 Contributing
 
