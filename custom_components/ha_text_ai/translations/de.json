@@ -5,7 +5,8 @@
                 "title": "KI-Anbieter auswählen",
                 "description": "Wählen Sie den KI-Dienst-Anbieter für diese Instanz",
                 "data": {
-                    "api_provider": "API-Anbieter"
+                    "api_provider": "API-Anbieter",
+                    "context_messages": "Anzahl der zu speichernden Kontextnachrichten (1-20)"
                 }
             },
             "user": {

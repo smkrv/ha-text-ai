@@ -5,7 +5,8 @@
                 "title": "Select AI Provider",
                 "description": "Choose which AI service provider to use for this instance",
                 "data": {
-                    "api_provider": "API Provider"
+                    "api_provider": "API Provider",
+                    "context_messages": "Number of context messages to retain (1-20)"
                 }
             },
             "user": {
