@@ -346,7 +346,7 @@ If you want to say thanks financially, you can send a small token of appreciatio
 
 <div align="center">
 
-Made with ❤️ for the Home Assistant Community
+Made with ❤️ &  Claude 3.5 Sonnet for the Home Assistant Community
 
 [Report Bug](https://github.com/smkrv/ha-text-ai/issues) · [Request Feature](https://github.com/smkrv/ha-text-ai/issues)
 
