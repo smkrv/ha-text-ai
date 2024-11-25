@@ -1,0 +1,75 @@
+ask_question:
+  name: Ask Question
+  description: >-
+    Send a question to the AI model and receive a detailed response.
+    The response will be stored in the conversation history and can be retrieved later.
+  fields:
+    instance:
+      name: Instance
+      description: Name of the HA Text AI instance to use
+      required: true
+      selector:
+        entity:
+          integration: ha_text_ai
+          domain: sensor
+
+    question:
+      name: Question
+      description: Your question or prompt for the AI assistant
+      required: true
+      selector:
+        text:
+          multiline: true
+          type: text
+
+    system_prompt:
+      name: System Prompt
+      description: Optional system prompt to set context for this specific question
+      required: false
+      selector:
+        text:
+          multiline: true
+
+    context_messages:
+      name: Context Messages
+      description: Number of previous messages to include in context (1-20)
+      required: false
+      default: 5
+      selector:
+        number:
+          min: 1
+          max: 20
+          step: 1
+          mode: box
+
+    model:
+      name: Model
+      description: "Select AI model to use (optional, overrides default setting)"
+      required: false
+      selector:  
+        text:
+          multiline: false
+
+    temperature:
+      name: Temperature
+      description: Controls response creativity (0.0-2.0)
+      required: false
+      default: 0.7
+      selector:
+        number:
+          min: 0.0
+          max: 2.0
+          step: 0.1
+          mode: slider
+
+    max_tokens:
+      name: Max Tokens
+      description: Maximum length of the response (1-4096 tokens)
+      required: false
+      default: 1000
+      selector:
+        number:
+          min: 1
+          max: 4096
+          step: 1
+          mode: box
