@@ -34,8 +34,8 @@ CONF_IS_ANTHROPIC: Final = "is_anthropic"
 CONF_CONTEXT_MESSAGES: Final = "context_messages"
 
 # Default values
-DEFAULT_MODEL: Final = "gpt-4"
-DEFAULT_TEMPERATURE: Final = 0.7
+DEFAULT_MODEL: Final = "gpt-4o-mini"
+DEFAULT_TEMPERATURE: Final = 0.1
 DEFAULT_MAX_TOKENS: Final = 1000
 DEFAULT_REQUEST_INTERVAL: Final = 1.0
 DEFAULT_TIMEOUT: Final = 30
@@ -49,7 +49,7 @@ MAX_TEMPERATURE: Final = 2.0
 MIN_MAX_TOKENS: Final = 1
 MAX_MAX_TOKENS: Final = 4096
 MIN_REQUEST_INTERVAL: Final = 0.1
-MAX_REQUEST_INTERVAL: Final = 60.0
+MAX_REQUEST_INTERVAL: Final = 20.0
 
 # API constants
 API_TIMEOUT: Final = 30
