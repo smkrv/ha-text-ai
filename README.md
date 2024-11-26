@@ -75,7 +75,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 
 ## 📋 Prerequisites
 
-- Home Assistant 2023.11 or later
+- Home Assistant 2024.11 or later
 - Active API key from:
   - OpenAI ([Get key](https://platform.openai.com/account/api-keys))
   - Anthropic ([Get key](https://console.anthropic.com/))
