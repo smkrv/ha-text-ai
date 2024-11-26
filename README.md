@@ -2,13 +2,7 @@
 
 <div align="center">  
 
-  [![GitHub release](https://img.shields.io/github/release/smkrv/ha-text-ai.svg?style=flat-square)](https://github.com/smkrv/ha-text-ai/releases)  
-  [![GitHub last commit](https://img.shields.io/github/last-commit/smkrv/ha-text-ai.svg?style=flat-square)](https://github.com/smkrv/ha-text-ai/commits)  
-  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)  
-  [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration)  
-  ![README.md](https://img.shields.io/badge/language-English-red)  
-  ![README_RU.md](https://img.shields.io/badge/language-Russian-red)  
-  ![](https://img.shields.io/badge/language-Deutch-red)  
+![GitHub release](https://img.shields.io/github/release/smkrv/ha-text-ai.svg?style=flat-square) ![GitHub last commit](https://img.shields.io/github/last-commit/smkrv/ha-text-ai.svg?style=flat-square) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT) [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration) ![/README.md](https://img.shields.io/badge/language-English-green) ![/README_RU.md](https://img.shields.io/badge/language-Russian-green) ![](https://img.shields.io/badge/language-Deutch-green)
 
   <img src="https://github.com/smkrv/ha-text-ai/blob/3e3ec45b195c92989434fde40ae110027f4ea124/misc/icons/icon.png" alt="HA Text AI" width="140"/>
 
