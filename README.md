@@ -12,6 +12,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 
 </p>
   <img src="https://github.com/smkrv/ha-text-ai/blob/524849f6a945ec62c2cf6a6b7ecd9a28b37bf0fa/misc/icons/logo.jpg" alt="HA Text AI" height="160"/>
+  
 ---
 
 > [!IMPORTANT]
