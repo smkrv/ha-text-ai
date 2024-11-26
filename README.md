@@ -1,7 +1,5 @@
 # 🤖 HA Text AI for Home Assistant
 
-[English](README.md) | [Русский](README_RU.md)  
-
 <div align="center">  
 
 ![GitHub release](https://img.shields.io/github/release/smkrv/ha-text-ai.svg?style=flat-square) ![GitHub downloads](https://img.shields.io/github/downloads/smkrv/ha-text-ai/total.svg?style=flat-square) ![GitHub stars](https://img.shields.io/github/stars/smkrv/ha-text-ai.svg?style=social) ![GitHub last commit](https://img.shields.io/github/last-commit/smkrv/ha-text-ai.svg?style=flat-square) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT) [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration) ![English](https://img.shields.io/badge/language-Russian-red) ![Russian](https://img.shields.io/badge/language-English-red) ![Deutch](https://img.shields.io/badge/language-Deutch-red)
