@@ -6,7 +6,7 @@
 
   <img src="https://github.com/smkrv/ha-text-ai/blob/3e3ec45b195c92989434fde40ae110027f4ea124/misc/icons/icon.png" alt="HA Text AI" width="140"/>
 
-### Advanced AI Integration for Home Assistant with multi-provider support
+### Advanced AI Integration for Home Assistant with LLM multi-provider support
 </div>
 
 <p align="center">
