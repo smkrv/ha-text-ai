@@ -1,6 +1,6 @@
 # 🤖 HA Text AI for Home Assistant
 
-[🇺🇸 English](README.md) | [🇷🇺 Русский](README.ru.md)  
+[English](README.md) | [Русский](README_RU.md)  
 
 <div align="center">  
 
