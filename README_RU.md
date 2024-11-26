@@ -4,7 +4,7 @@
 
 ![GitHub release](https://img.shields.io/github/release/smkrv/ha-text-ai.svg?style=flat-square) ![GitHub last commit](https://img.shields.io/github/last-commit/smkrv/ha-text-ai.svg?style=flat-square) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT) [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration) ![/README.md](https://img.shields.io/badge/language-English-green?style=flat-square) ![/README_RU.md](https://img.shields.io/badge/language-Russian-green?style=flat-square) ![](https://img.shields.io/badge/language-Deutch-green?style=flat-square)
 
-  <img src="https://github.com/smkrv/ha-text-ai/blob/524849f6a945ec62c2cf6a6b7ecd9a28b37bf0fa/misc/icons/logo.jpg" alt="HA Text AI" height="160"/>
+  <img src="https://github.com/smkrv/ha-text-ai/blob/524849f6a945ec62c2cf6a6b7ecd9a28b37bf0fa/misc/icons/logo.jpg" alt="HA Text AI" width="98%"/>
 
 ### Расширенная AI-интеграция для Home Assistant с поддержкой нескольких провайдеров
 </div>
