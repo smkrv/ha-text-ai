@@ -154,7 +154,7 @@ ha_text_ai:
   temperature: 0.7  # Optional
   max_tokens: 1000  # Optional
   request_interval: 1.0  # Optional
-  api_endpoint: https://api.openai.com/v1  # Optional
+  api_endpoint: https://api.openai.com/v1  # Required
   system_prompt: |  # Optional
     You are a home automation expert assistant.
     Focus on practical and efficient solutions.
