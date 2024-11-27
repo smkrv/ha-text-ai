@@ -180,7 +180,7 @@ sensor:
 |-----------|------|----------|---------|-------------|
 | `api_provider` | String | ✅ | - | AI service provider (openai, anthropic) |
 | `api_key` | String | ✅ | - | Authentication key for AI service |
-| `model` | String | ❌ | Provider default | Specific AI model to use |
+| `model` | String | ⚠️ | Provider default | Recommended: Specific AI model to use. If not specified, the provider's default model will be used |
 | `temperature` | Float | ❌ | 0.7 | Response creativity level (0.0-2.0) |
 | `max_tokens` | Integer | ❌ | 1000 | Maximum response length |
 | `request_interval` | Float | ❌ | 1.0 | Delay between API requests |
@@ -194,7 +194,7 @@ sensor:
 | `platform` | String | ✅ | - | Must be `ha_text_ai` |
 | `name` | String | ✅ | - | Unique sensor identifier |
 | `api_provider` | String | ❌ | Platform setting | Override global provider |
-| `model` | String | ❌ | Platform setting | Override global model |
+| `model` | String | ⚠️ | Platform setting | Recommended: Override global model. If not specified, uses platform or provider default |
 | `temperature` | Float | ❌ | Platform setting | Override global temperature |
 | `max_tokens` | Integer | ❌ | Platform setting | Override global max tokens |
 
