@@ -150,7 +150,7 @@ To be compatible, a provider should support:
 ha_text_ai:
   api_provider: openai  # Required
   api_key: !secret ai_api_key  # Required
-  model: gpt-4o-mini  # Optional
+  model: gpt-4o-mini  # Strongly recommended
   temperature: 0.7  # Optional
   max_tokens: 1000  # Optional
   request_interval: 1.0  # Optional
@@ -180,7 +180,7 @@ sensor:
 |-----------|------|----------|---------|-------------|
 | `api_provider` | String | ✅ | - | AI service provider (openai, anthropic) |
 | `api_key` | String | ✅ | - | Authentication key for AI service |
-| `model` | String | ⚠️ | Provider default | Recommended: Specific AI model to use. If not specified, the provider's default model will be used |
+| `model` | String | ⚠️ | Provider default | Strongly recommended: Specific AI model to use. If not specified, the provider's default model will be used |
 | `temperature` | Float | ❌ | 0.7 | Response creativity level (0.0-2.0) |
 | `max_tokens` | Integer | ❌ | 1000 | Maximum response length |
 | `request_interval` | Float | ❌ | 1.0 | Delay between API requests |
