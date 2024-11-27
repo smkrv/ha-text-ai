@@ -184,7 +184,7 @@ sensor:
 | `temperature` | Float | ❌ | 0.7 | Response creativity level (0.0-2.0) |
 | `max_tokens` | Integer | ❌ | 1000 | Maximum response length |
 | `request_interval` | Float | ❌ | 1.0 | Delay between API requests |
-| `api_endpoint` | URL | ❌ | Provider default | Custom API endpoint |
+| `api_endpoint` | URL | ⚠️ | Provider default | Custom API endpoint |
 | `system_prompt` | String | ❌ | - | Default context for AI interactions |
 
 #### Sensor Configuration
