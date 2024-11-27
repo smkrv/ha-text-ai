@@ -4,7 +4,7 @@
 
 ![GitHub release](https://img.shields.io/github/release/smkrv/ha-text-ai.svg?style=flat-square) ![GitHub last commit](https://img.shields.io/github/last-commit/smkrv/ha-text-ai.svg?style=flat-square) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT) [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration) ![/README.md](https://img.shields.io/badge/language-English-green?style=flat-square) ![/README_RU.md](https://img.shields.io/badge/language-Russian-green?style=flat-square) ![](https://img.shields.io/badge/language-Deutch-green?style=flat-square)
 
-  <img src="https://github.com/smkrv/ha-text-ai/blob/524849f6a945ec62c2cf6a6b7ecd9a28b37bf0fa/misc/icons/logo.jpg" alt="HA Text AI" width="98%"/>
+  <img src="https://github.com/smkrv/ha-text-ai/blob/524849f6a945ec62c2cf6a6b7ecd9a28b37bf0fa/misc/icons/logo.jpg" alt="HA Text AI" height="160"/>
 
 ### Advanced AI Integration for Home Assistant with LLM multi-provider support
 </div>
@@ -143,19 +143,60 @@ To be compatible, a provider should support:
 4. Follow the configuration steps
 
 ### Via YAML
+
+### Platform Configuration (Global Settings)
+
 ```yaml
 ha_text_ai:
-  api_provider: openai  # or anthropic
-  api_key: !secret ai_api_key
-  model: gpt-4o-mini
-  temperature: 0.7
-  max_tokens: 1000
-  request_interval: 1.0
-  api_endpoint: https://api.openai.com/v1  # optional, for custom endpoints
-  system_prompt: |
+  api_provider: openai  # Required
+  api_key: !secret ai_api_key  # Required
+  model: gpt-4o-mini  # Optional
+  temperature: 0.7  # Optional
+  max_tokens: 1000  # Optional
+  request_interval: 1.0  # Optional
+  api_endpoint: https://api.openai.com/v1  # Optional
+  system_prompt: |  # Optional
     You are a home automation expert assistant.
     Focus on practical and efficient solutions.
 ```
+
+### Sensor Configuration
+
+```yaml
+sensor:
+  - platform: ha_text_ai
+    name: "My AI Assistant"  # Required, unique identifier
+    api_provider: openai  # Optional (inherits from platform)
+    model: "gpt-4o-mini"  # Optional
+    temperature: 0.7  # Optional
+    max_tokens: 1000  # Optional
+```
+
+### 📋 Configuration Parameters
+
+#### Platform Configuration
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `api_provider` | String | ✅ | - | AI service provider (openai, anthropic) |
+| `api_key` | String | ✅ | - | Authentication key for AI service |
+| `model` | String | ❌ | Provider default | Specific AI model to use |
+| `temperature` | Float | ❌ | 0.7 | Response creativity level (0.0-2.0) |
+| `max_tokens` | Integer | ❌ | 1000 | Maximum response length |
+| `request_interval` | Float | ❌ | 1.0 | Delay between API requests |
+| `api_endpoint` | URL | ❌ | Provider default | Custom API endpoint |
+| `system_prompt` | String | ❌ | - | Default context for AI interactions |
+
+#### Sensor Configuration
+
+| Parameter | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `platform` | String | ✅ | - | Must be `ha_text_ai` |
+| `name` | String | ✅ | - | Unique sensor identifier |
+| `api_provider` | String | ❌ | Platform setting | Override global provider |
+| `model` | String | ❌ | Platform setting | Override global model |
+| `temperature` | Float | ❌ | Platform setting | Override global temperature |
+| `max_tokens` | Integer | ❌ | Platform setting | Override global max tokens |
 
 ## 🛠️ Available Services
 
