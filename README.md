@@ -243,7 +243,7 @@ data:
 - Only lowercase letters (a-z)  
 - Numbers (0-9)  
 - Underscore (_)  
-- Maximum length: 50 characters (including `ha_text_ai_` prefix (14 characters)
+- Maximum length: 50 characters (including `ha_text_ai_`)
 
 #### Sensor Name Structure
 ```yaml
