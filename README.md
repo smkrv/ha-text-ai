@@ -22,7 +22,8 @@ Transform your smart home experience with powerful AI assistance powered by mult
 > 🤝 Community Driven  
 >
 >  <a href="https://community.home-assistant.io/t/ha-text-ai-transforming-home-automation-with-multi-provider-language-models/799741"><img src="https://img.shields.io/badge/Community-blue?style=for-the-badge&logo=homeassistant&logoColor=white&color=03a9f4"/></a>  
-> [screenshots](misc/screenshots/screenshot.jpg)
+>  
+> [Screenshots](misc/screenshots/screenshot.jpg)
 
 ## 🌟 Features
 
