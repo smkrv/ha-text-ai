@@ -106,6 +106,11 @@ class APIClient:
                 return await self._create_openai_completion(
                     model, messages, temperature, max_tokens
                 )
+        except (KeyError, IndexError) as e:
+            if "'choices'" in str(e) or "'message'" in str(e):
+                raise HomeAssistantError("Failed to get a response from the AI model. Please check your internet connection and try again later.")
+            else:
+                raise
         except Exception as e:
             _LOGGER.error("API request failed: %s", str(e))
             raise HomeAssistantError(f"API request failed: {str(e)}")
