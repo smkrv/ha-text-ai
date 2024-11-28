@@ -1,0 +1,266 @@
+{
+  "config": {
+    "step": {
+      "provider": {
+        "title": "Seleccionar proveedor de IA",
+        "description": "Elige qué proveedor de servicios de IA usar para esta instancia.",
+        "data": {
+          "api_provider": "Proveedor de API",
+          "context_messages": "Número de mensajes de contexto que conservar (1-20)"
+        }
+      },
+      "user": {
+        "title": "Configurar instancia de HA Text AI",
+        "description": "Configura una nueva instancia de asistente de IA con el proveedor seleccionado.",
+        "data": {
+          "name": "Nombre de la instancia (p. ej., 'Asistente GPT', 'Ayudante de Claude')",
+          "api_key": "Clave API para la autenticación",
+          "model": "Modelo de IA a usar",
+          "temperature": "Creatividad de la respuesta (0-2, cuanto menor, más enfocada)",
+          "max_tokens": "Longitud máxima de la respuesta (1-4096 tokens)",
+          "api_endpoint": "URL del punto final de la API personalizada (opcional)",
+          "api_provider": "Proveedor de API",
+          "request_interval": "Tiempo mínimo entre solicitudes (0,1-60 segundos)",
+          "context_messages": "Número de mensajes de contexto que conservar (1-20)",
+          "max_history_size": "Tamaño máximo del historial de conversación (1-100)"
+        }
+      }
+    },
+    "error": {
+      "name_exists": "Ya existe una instancia con este nombre",
+      "invalid_name": "Nombre de instancia no válido",
+      "invalid_auth": "Error de autenticación: comprueba tu clave API",
+      "invalid_api_key": "Clave API no válida: verifica tus credenciales",
+      "cannot_connect": "No se pudo conectar al servicio API",
+      "invalid_model": "El modelo seleccionado no está disponible",
+      "rate_limit": "Límite de tasa excedido",
+      "context_length": "Longitud de contexto excedida",
+      "rate_limit_exceeded": "Límite de tasa de API excedido",
+      "maintenance": "El servicio está en mantenimiento",
+      "invalid_response": "Se recibió una respuesta de API no válida",
+      "api_error": "Se produjo un error en el servicio API",
+      "timeout": "Tiempo de espera de la solicitud agotado",
+      "invalid_instance": "Instancia especificada no válida",
+      "unknown": "Se produjo un error inesperado",
+      "empty": "El nombre no puede estar vacío",
+      "invalid_characters": "El nombre solo puede contener letras, números, espacios, guiones bajos y guiones",
+      "name_too_long": "El nombre debe tener 50 caracteres o menos"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Actualizar configuración de la instancia",
+        "description": "Modifica la configuración de esta instancia de asistente de IA.",
+        "data": {
+          "model": "Modelo de IA",
+          "temperature": "Creatividad de la respuesta (0-2)",
+          "max_tokens": "Longitud máxima de la respuesta (1-4096)",
+          "request_interval": "Intervalo mínimo de solicitud (0,1-60 segundos)",
+          "context_messages": "Número de mensajes anteriores que se incluirán en el contexto (1-20)",
+          "max_history_size": "Tamaño máximo del historial de conversación (1-100)"
+        }
+      }
+    }
+  },
+  "services": {
+    "ask_question": {
+      "name": "Hacer pregunta (HA Text AI)",
+      "description": "Envía una pregunta al modelo de IA y recibe una respuesta detallada. La respuesta se almacenará en el historial de conversación y se podrá recuperar más tarde.",
+      "fields": {
+        "instance": {
+          "name": "Instancia",
+          "description": "Nombre de la instancia de HA Text AI a utilizar"
+        },
+        "question": {
+          "name": "Pregunta",
+          "description": "Tu pregunta o indicación para el asistente de IA"
+        },
+        "context_messages": {
+          "name": "Mensajes de contexto",
+          "description": "Número de mensajes anteriores que se incluirán en el contexto (1-20)"
+        },
+        "system_prompt": {
+          "name": "Indicación del sistema",
+          "description": "Indicación del sistema opcional para establecer el contexto de esta pregunta específica"
+        },
+        "model": {
+          "name": "Modelo",
+          "description": "Selecciona el modelo de IA que se va a utilizar (opcional, anula la configuración predeterminada)"
+        },
+        "temperature": {
+          "name": "Temperatura",
+          "description": "Controla la creatividad de la respuesta (0.0-2.0)"
+        },
+        "max_tokens": {
+          "name": "Máx. tokens",
+          "description": "Longitud máxima de la respuesta (1-4096 tokens)"
+        }
+      }
+    },
+    "clear_history": {
+      "name": "Borrar historial",
+      "description": "Elimina todas las preguntas y respuestas almacenadas del historial de conversación",
+      "fields": {
+        "instance": {
+          "name": "Instancia",
+          "description": "Nombre de la instancia de HA Text AI para la que se va a borrar el historial"
+        }
+      }
+    },
+    "get_history": {
+      "name": "Obtener historial",
+      "description": "Recupera el historial de conversaciones con filtrado y ordenación opcionales",
+      "fields": {
+        "instance": {
+          "name": "Instancia",
+          "description": "Nombre de la instancia de HA Text AI de la que se va a obtener el historial"
+        },
+        "limit": {
+          "name": "Límite",
+          "description": "Número de conversaciones que se van a devolver (1-100)"
+        },
+        "filter_model": {
+          "name": "Filtrar modelo",
+          "description": "Filtra las conversaciones por un modelo de IA específico"
+        },
+        "start_date": {
+          "name": "Fecha de inicio",
+          "description": "Filtra las conversaciones a partir de esta fecha/hora"
+        },
+        "include_metadata": {
+          "name": "Incluir metadatos",
+          "description": "Incluir información adicional como los tokens utilizados, el tiempo de respuesta, etc."
+        },
+        "sort_order": {
+          "name": "Orden de clasificación",
+          "description": "Orden de clasificación de los resultados (más recientes o más antiguos primero)"
+        }
+      }
+    },
+    "set_system_prompt": {
+      "name": "Establecer indicación del sistema",
+      "description": "Establece instrucciones predeterminadas de comportamiento del sistema para todas las conversaciones futuras",
+      "fields": {
+        "instance": {
+          "name": "Instancia",
+          "description": "Nombre de la instancia de HA Text AI para la que se va a establecer la indicación del sistema"
+        },
+        "prompt": {
+          "name": "Indicación del sistema",
+          "description": "Instrucciones que definen cómo debe comportarse y responder la IA"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "ha_text_ai": {
+        "name": "{name}",
+        "state": {
+          "ready": "Listo",
+          "processing": "Procesando",
+          "error": "Error",
+          "disconnected": "Desconectado",
+          "rate_limited": "Límite de tasa alcanzado",
+          "maintenance": "Mantenimiento",
+          "initializing": "Inicializando",
+          "retrying": "Reintentando",
+          "queued": "En cola"
+        },
+        "state_attributes": {
+          "question": {
+            "name": "Última pregunta"
+          },
+          "response": {
+            "name": "Última respuesta"
+          },
+          "model": {
+            "name": "Modelo actual"
+          },
+          "temperature": {
+            "name": "Temperatura"
+          },
+          "max_tokens": {
+            "name": "Máx. tokens"
+          },
+          "system_prompt": {
+            "name": "Indicación del sistema"
+          },
+          "response_time": {
+            "name": "Tiempo de la última respuesta"
+          },
+          "total_responses": {
+            "name": "Total de respuestas"
+          },
+          "error_count": {
+            "name": "Recuento de errores"
+          },
+          "last_error": {
+            "name": "Último error"
+          },
+          "api_status": {
+            "name": "Estado de la API"
+          },
+          "tokens_used": {
+            "name": "Total de tokens usados"
+          },
+          "average_response_time": {
+            "name": "Tiempo medio de respuesta"
+          },
+          "last_request_time": {
+            "name": "Tiempo de la última solicitud"
+          },
+          "is_processing": {
+            "name": "Estado de procesamiento"
+          },
+          "is_rate_limited": {
+            "name": "Estado de límite de tasa"
+          },
+          "is_maintenance": {
+            "name": "Estado de mantenimiento"
+          },
+          "api_version": {
+            "name": "Versión de la API"
+          },
+          "endpoint_status": {
+            "name": "Estado del punto final"
+          },
+          "performance_metrics": {
+            "name": "Métricas de rendimiento"
+          },
+          "history_size": {
+            "name": "Tamaño del historial"
+          },
+          "uptime": {
+            "name": "Tiempo de actividad"
+          },
+          "total_tokens": {
+            "name": "Total de tokens"
+          },
+          "prompt_tokens": {
+            "name": "Tokens de indicación"
+          },
+          "completion_tokens": {
+            "name": "Tokens de compleción"
+          },
+          "successful_requests": {
+            "name": "Solicitudes exitosas"
+          },
+          "failed_requests": {
+            "name": "Solicitudes fallidas"
+          },
+          "average_latency": {
+            "name": "Latencia media"
+          },
+          "max_latency": {
+            "name": "Latencia máxima"
+          },
+          "min_latency": {
+            "name": "Latencia mínima"
+          }
+        }
+      }
+    }
+  }
+}
