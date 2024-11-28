@@ -239,6 +239,12 @@ data:
 
 ### 🏷️ HA Text AI Sensor Naming Convention
 
+#### Character Restrictions  
+- Only lowercase letters (a-z)  
+- Numbers (0-9)  
+- Underscore (_)  
+- Maximum length: 50 characters (including `ha_text_ai_` prefix (14 characters)
+
 #### Sensor Name Structure
 ```yaml
 # Always starts with 'sensor.ha_text_ai_'

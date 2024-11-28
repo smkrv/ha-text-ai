@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import traceback
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -9,6 +10,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.const import CONF_NAME
+from .config_flow import normalize_name 
 
 from .const import (
     DOMAIN,
@@ -21,11 +24,16 @@ from .const import (
     DEFAULT_TEMPERATURE,
     DEFAULT_MAX_HISTORY,
     DEFAULT_CONTEXT_MESSAGES,
+    DEFAULT_NAME_PREFIX,
+    CONF_MAX_HISTORY_SIZE,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class HATextAICoordinator(DataUpdateCoordinator):
+    """The HA Text AI coordinator."""
+
     def __init__(
         self,
         hass: HomeAssistant,
@@ -41,6 +49,12 @@ class HATextAICoordinator(DataUpdateCoordinator):
     ) -> None:
         """Initialize coordinator."""
         self.instance_name = instance_name
+        self.normalized_name = None
+
+        # Use the normalize_name function from config_flow to ensure consistency
+        from .config_flow import normalize_name
+        self.normalized_name = normalize_name(instance_name)
+
         self.hass = hass
         self.client = client
         self.model = model
@@ -61,7 +75,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 "total_errors": 0,
                 "average_latency": 0,
                 "max_latency": 0,
-                "min_latency": float('inf'),
+                "min_latency": float("inf"),
             },
             "last_response": {
                 "timestamp": dt_util.utcnow().isoformat(),
@@ -69,7 +83,8 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 "response": "",
                 "model": model,
                 "instance": instance_name,
-                "error": None
+                "normalized_name": self.normalized_name,
+                "error": None,
             },
             "is_processing": False,
             "is_rate_limited": False,
@@ -105,13 +120,17 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self.last_response = self._initial_state["last_response"].copy()
         self._start_time = dt_util.utcnow()
 
-        _LOGGER.info(f"Initialized HA Text AI coordinator with instance: {instance_name}")
+        _LOGGER.info(
+            f"Initialized HA Text AI coordinator with instance: {instance_name}"
+        )
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Update data via library."""
         try:
             current_state = self._get_current_state()
-            _LOGGER.debug(f"Updating data for {self.instance_name}, current state: {current_state}")
+            _LOGGER.debug(
+                f"Updating data for {self.instance_name}, current state: {current_state}"
+            )
 
             data = {
                 "state": current_state,
@@ -125,6 +144,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 "system_prompt": self._system_prompt,
                 "history_size": len(self._conversation_history),
                 "conversation_history": self._conversation_history,
+                "normalized_name": self.normalized_name,
             }
 
             # Validate data
@@ -141,12 +161,15 @@ class HATextAICoordinator(DataUpdateCoordinator):
     async def async_update_ha_state(self) -> None:
         """Update Home Assistant state."""
         try:
-            _LOGGER.debug(f"Requesting state update for {self.instance_name}")
+            _LOGGER.debug(
+                f"Requesting state update for {self.instance_name} (normalized: {self.normalized_name})"
+            )
             await self.async_request_refresh()
 
             # Force update of all entities
+            entity_id_base = f"sensor.ha_text_ai_{self.normalized_name.lower()}"
             for entity_id in self.hass.states.async_entity_ids():
-                if entity_id.startswith(f"sensor.ha_text_ai_{self.instance_name}"):
+                if entity_id.startswith(entity_id_base):
                     self.hass.states.async_set(entity_id, self._get_current_state())
 
         except Exception as err:
@@ -164,15 +187,67 @@ class HATextAICoordinator(DataUpdateCoordinator):
             return STATE_ERROR
         return STATE_READY
 
-    def _calculate_context_tokens(self, messages: List[Dict[str, str]]) -> int:
+    def _calculate_context_tokens(self, messages: List[Dict[str, str]], model: str = None) -> int:
+        """
+        Estimate tokens for conversation context.
+
+        Args:
+            messages: List of message dictionaries
+            model: Optional model name for provider-specific estimation
+
+        Returns:
+            Estimated number of tokens
+        """
         try:
+            # Anthropic specific token counting
             if self.is_anthropic and hasattr(self.client, 'count_tokens'):
                 return sum(self.client.count_tokens(msg['content']) for msg in messages)
 
-            return sum(len(msg['content']) // 4 for msg in messages)
+            def estimate_tokens(text: str) -> int:
+                """
+                Flexible token estimation algorithm.
+
+                Heuristics:
+                - Count words
+                - Estimate special characters
+                - Fallback to character-based estimation
+                """
+                # Word-based estimation
+                words = len(text.split())
+
+                # Special character handling
+                special_chars = sum(1 for char in text if not char.isalnum())
+
+                # Character-based fallback
+                char_tokens = len(text) // 4
+
+                # Combine estimations with bias towards words
+                total_tokens = (words * 1.5) + (special_chars * 0.5) + char_tokens
+
+                return max(int(total_tokens), words)
+
+            # Calculate total tokens across all messages
+            total_tokens = sum(estimate_tokens(msg['content']) for msg in messages)
+
+            # Logging for debugging
+            _LOGGER.debug(
+                f"Token Estimation: "
+                f"Messages: {len(messages)}, "
+                f"Estimated Tokens: {total_tokens}"
+            )
+
+            return total_tokens
+
         except Exception as e:
-            _LOGGER.warning(f"Error calculating context tokens: {e}")
-        return 0
+            # Safe fallback with detailed logging
+            _LOGGER.warning(
+                f"Token estimation failed. "
+                f"Error: {e}. "
+                f"Using conservative estimation."
+            )
+
+            # Conservative token estimation
+            return len(messages) * 100
 
     async def async_ask_question(
         self,
@@ -183,80 +258,133 @@ class HATextAICoordinator(DataUpdateCoordinator):
         system_prompt: Optional[str] = None,
         context_messages: Optional[int] = None,
     ) -> dict:
-        """Process a question with optional parameters."""
+        """
+        Process a question with optional parameters.
+
+        This method is a direct wrapper around async_process_question,
+        allowing flexible AI interaction with optional model, temperature,
+        and context customization.
+
+        Args:
+            question: The input question or prompt
+            model: Optional AI model to use
+            temperature: Optional response creativity level
+            max_tokens: Optional maximum response length
+            system_prompt: Optional system-level instruction
+            context_messages: Optional number of context messages to include
+
+        Returns:
+            Full response dictionary from the AI
+        """
         return await self.async_process_question(
             question, model, temperature, max_tokens, system_prompt, context_messages
         )
 
     async def async_process_question(
-        self,
-        question: str,
-        model: Optional[str] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        system_prompt: Optional[str] = None,
-        context_messages: Optional[int] = None,
-    ) -> dict:
-        temp_context_messages = context_messages or self.context_messages
+            self,
+            question: str,
+            model: Optional[str] = None,
+            temperature: Optional[float] = None,
+            max_tokens: Optional[int] = None,
+            system_prompt: Optional[str] = None,
+            context_messages: Optional[int] = None,
+        ) -> dict:
+            """
+            Enhanced question processing with intelligent token management.
+            """
+            try:
+                self._is_processing = True
+                await self.async_update_ha_state()
 
-        if not question:
-            raise ValueError("Question cannot be empty")
+                temp_context_messages = context_messages or self.context_messages
+                temp_model = model or self.model
+                temp_temperature = temperature or self.temperature
+                temp_max_tokens = max_tokens or self.max_tokens
+                temp_system_prompt = system_prompt or self._system_prompt
 
-        _LOGGER.debug(f"Processing question for instance {self.instance_name}")
+                # Start timing
+                start_time = dt_util.utcnow()
 
-        try:
-            self._is_processing = True
-            await self.async_update_ha_state()
-
-            temp_model = model or self.model
-            temp_temperature = temperature or self.temperature
-            temp_max_tokens = max_tokens or self.max_tokens
-            temp_system_prompt = system_prompt or self._system_prompt
-
-            start_time = dt_util.utcnow()
-
-            messages = []
-            if temp_system_prompt:
-                if self.is_anthropic:
-                    system_content = f"\n\nHuman: {temp_system_prompt}\n\nAssistant: I understand and will follow these instructions."
-                    messages.append({"role": "user", "content": system_content})
-                else:
+                # Prepare messages with system prompt
+                messages = []
+                if temp_system_prompt:
                     messages.append({"role": "system", "content": temp_system_prompt})
 
-            # Add conversation history
-            context_history = self._conversation_history[-temp_context_messages:]
-            for entry in context_history:
-                messages.append({"role": "user", "content": entry["question"]})
-                messages.append({"role": "assistant", "content": entry["response"]})
+                # Context history management
+                context_history = self._conversation_history[-temp_context_messages:]
 
-            messages.append({"role": "user", "content": question})
+                # Comprehensive token calculation
+                context_tokens = self._calculate_context_tokens(
+                    [{"content": entry["question"]} for entry in context_history] +
+                    [{"content": entry["response"]} for entry in context_history] +
+                    [{"content": question}],
+                    temp_model
+                )
 
-            kwargs = {
-                "model": temp_model,
-                "temperature": temp_temperature,
-                "max_tokens": temp_max_tokens,
-                "messages": messages,
-            }
+                # Dynamic token allocation
+                available_tokens = max(0, temp_max_tokens - context_tokens)
 
-            response = await self.async_process_message(question, **kwargs)
+                # Context trimming if over token limit
+                if context_tokens > temp_max_tokens:
+                    _LOGGER.warning(
+                        f"Token limit exceeded. "
+                        f"Context: {context_tokens}, "
+                        f"Max: {temp_max_tokens}"
+                    )
 
-            # Update metrics
-            end_time = dt_util.utcnow()
-            latency = (end_time - start_time).total_seconds()
-            self._update_metrics(latency, response)
+                    # Intelligent context reduction
+                    while context_tokens > temp_max_tokens // 2 and context_history:
+                        context_history.pop(0)
+                        context_tokens = self._calculate_context_tokens(
+                            [{"content": entry["question"]} for entry in context_history] +
+                            [{"content": entry["response"]} for entry in context_history] +
+                            [{"content": question}],
+                            temp_model
+                        )
 
-            # Update history
-            self._update_history(question, response)
+                # Rebuild messages with trimmed context
+                for entry in context_history:
+                    messages.append({"role": "user", "content": entry["question"]})
+                    messages.append({"role": "assistant", "content": entry["response"]})
 
-            return response
+                messages.append({"role": "user", "content": question})
 
-        except Exception as err:
-            self._handle_error(err)
-            raise HomeAssistantError(f"Failed to process question: {err}")
+                # Detailed token logging
+                _LOGGER.debug(
+                    f"Token Analysis: "
+                    f"Context Tokens: {context_tokens}, "
+                    f"Max Tokens: {temp_max_tokens}, "
+                    f"Available Tokens: {available_tokens}"
+                )
 
-        finally:
-            self._is_processing = False
-            await self.async_update_ha_state()
+                # Prepare API call with dynamic token management
+                kwargs = {
+                    "model": temp_model,
+                    "temperature": temp_temperature,
+                    "max_tokens": min(temp_max_tokens, available_tokens),
+                    "messages": messages,
+                }
+
+                # Process message
+                response = await self.async_process_message(question, **kwargs)
+
+                # Update metrics
+                end_time = dt_util.utcnow()
+                latency = (end_time - start_time).total_seconds()
+                self._update_metrics(latency, response)
+
+                # Update history
+                self._update_history(question, response)
+
+                return response
+
+            except Exception as err:
+                self._handle_error(err)
+                raise HomeAssistantError(f"Failed to process question: {err}")
+
+            finally:
+                self._is_processing = False
+                await self.async_update_ha_state()
 
     async def async_process_message(self, question: str, **kwargs) -> dict:
         """Process message using the AI client."""
@@ -272,7 +400,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 "response": response["content"],
                 "model": kwargs.get("model", self.model),
                 "instance": self.instance_name,
-                "error": None
+                "error": None,
             }
 
             return response
@@ -283,20 +411,26 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
     async def _process_anthropic_message(self, question: str, **kwargs) -> dict:
         """Process message using Anthropic API."""
-        response = await self.client.messages.create(
-            model=kwargs["model"],
-            max_tokens=kwargs["max_tokens"],
-            messages=kwargs["messages"],
-            temperature=kwargs["temperature"],
-        )
-        return {
-            "content": response.content[0].text,
-            "tokens": {
-                "prompt": response.usage.input_tokens,
-                "completion": response.usage.output_tokens,
-                "total": response.usage.input_tokens + response.usage.output_tokens
+        try:
+            _LOGGER.debug(f"Anthropic API call: model={kwargs['model']}, max_tokens={kwargs['max_tokens']}")
+            response = await self.client.messages.create(
+                model=kwargs["model"],
+                max_tokens=kwargs["max_tokens"],
+                messages=kwargs["messages"],
+                temperature=kwargs["temperature"],
+            )
+            _LOGGER.debug(f"Anthropic response: tokens={response.usage}")
+            return {
+                "content": response.content[0].text,
+                "tokens": {
+                    "prompt": response.usage.input_tokens,
+                    "completion": response.usage.output_tokens,
+                    "total": response.usage.input_tokens + response.usage.output_tokens,
+                },
             }
-        }
+        except Exception as e:
+            _LOGGER.error(f"Anthropic API error: {str(e)}")
+            raise
 
     async def _process_openai_message(self, question: str, **kwargs) -> dict:
         """Process message using OpenAI API."""
@@ -313,8 +447,8 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 "tokens": {
                     "prompt": response["usage"]["prompt_tokens"],
                     "completion": response["usage"]["completion_tokens"],
-                    "total": response["usage"]["total_tokens"]
-                }
+                    "total": response["usage"]["total_tokens"],
+                },
             }
         except Exception as e:
             _LOGGER.error(f"Error in OpenAI API call: {str(e)}")
@@ -339,28 +473,67 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
     def _update_history(self, question: str, response: dict) -> None:
         """Update conversation history."""
-        self._conversation_history.append({
-            "timestamp": dt_util.utcnow().isoformat(),
-            "question": question,
-            "response": response["content"]
-        })
+        self._conversation_history.append(
+            {
+                "timestamp": dt_util.utcnow().isoformat(),
+                "question": question,
+                "response": response["content"],
+            }
+        )
 
         while len(self._conversation_history) > self.max_history_size:
             self._conversation_history.pop(0)
 
     def _handle_error(self, error: Exception) -> None:
-        """Handle error and update metrics."""
+        """
+        Enhanced error handling with comprehensive diagnostics.
+
+        Captures detailed error information, tracks error metrics,
+        and provides context for troubleshooting AI processing issues.
+        """
         self._performance_metrics["total_errors"] += 1
         self._performance_metrics["failed_requests"] += 1
 
-        self.last_response = {
+        error_details = {
             "timestamp": dt_util.utcnow().isoformat(),
-            "question": "",
-            "response": "",
             "model": self.model,
             "instance": self.instance_name,
-            "error": str(error)
+            "error_message": str(error),
+            "error_type": type(error).__name__,
+            "traceback": traceback.format_exc() if _LOGGER.isEnabledFor(logging.DEBUG) else None,
         }
+
+        # Specific error type handling
+        error_mapping = {
+            HomeAssistantError: {"is_ha_error": True},
+            ConnectionError: {
+                "is_connection_error": True,
+                "is_rate_limited": True
+            },
+            TimeoutError: {"is_timeout": True},
+            PermissionError: {"is_permission_denied": True},
+            ValueError: {"is_validation_error": True}
+        }
+
+        for error_type, error_flags in error_mapping.items():
+            if isinstance(error, error_type):
+                error_details.update(error_flags)
+                break
+
+        # Update system state based on error type
+        if error_details.get("is_rate_limited"):
+            self._is_rate_limited = True
+            _LOGGER.warning(f"Rate limit detected for {self.instance_name}")
+
+        if error_details.get("is_connection_error"):
+            self.endpoint_status = "unavailable"
+
+        self.last_response = error_details
+        _LOGGER.error(f"AI Processing Error: {error_details}")
+
+        # Optional: Add more sophisticated error tracking or notification logic
+        if _LOGGER.isEnabledFor(logging.DEBUG):
+            _LOGGER.debug(f"Full Error Traceback: {error_details['traceback']}")
 
     async def async_clear_history(self) -> None:
         """Clear conversation history."""
@@ -375,3 +548,8 @@ class HATextAICoordinator(DataUpdateCoordinator):
         """Set system prompt."""
         self._system_prompt = prompt
         await self.async_update_ha_state()
+
+    async def async_shutdown(self) -> None:
+        """Shutdown coordinator."""
+        _LOGGER.debug(f"Shutting down coordinator for {self.instance_name}")
+        self.hass.data[DOMAIN].pop(self.instance_name, None)

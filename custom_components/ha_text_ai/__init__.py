@@ -43,6 +43,8 @@ from .const import (
     SERVICE_CLEAR_HISTORY,
     SERVICE_GET_HISTORY,
     SERVICE_SET_SYSTEM_PROMPT,
+    DEFAULT_MAX_HISTORY,
+    CONF_MAX_HISTORY_SIZE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -197,11 +199,14 @@ async def async_check_api(session, endpoint: str, headers: dict, provider: str) 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up HA Text AI from a config entry."""
+    _LOGGER.debug(f"Setting up HA Text AI entry: {entry.data}")
+
     try:
         if CONF_API_PROVIDER not in entry.data:
             _LOGGER.error("API provider not specified")
             raise ConfigEntryNotReady("API provider is required")
 
+        # Get configuration
         session = aiohttp_client.async_get_clientsession(hass)
         api_provider = entry.data.get(CONF_API_PROVIDER)
         model = entry.data.get(CONF_MODEL, DEFAULT_MODEL)
@@ -212,6 +217,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ).rstrip('/')
         api_key = entry.data[CONF_API_KEY]
         instance_name = entry.data.get(CONF_NAME, entry.entry_id)
+        request_interval = entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)
+        max_tokens = entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)
+        temperature = entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
+        max_history_size = entry.data.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY)
+        context_messages = entry.data.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
         is_anthropic = api_provider == API_PROVIDER_ANTHROPIC
 
         headers = {
@@ -242,39 +252,33 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass=hass,
             client=api_client,
             model=model,
-            update_interval=entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL),
+            update_interval=request_interval,
             instance_name=instance_name,
-            max_tokens=entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
-            temperature=entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
+            max_tokens=max_tokens,
+            temperature=temperature,
+            max_history_size=max_history_size,
+            context_messages=context_messages,
             is_anthropic=is_anthropic,
-            context_messages=entry.data.get(
-                CONF_CONTEXT_MESSAGES,
-                DEFAULT_CONTEXT_MESSAGES
-            ),
         )
 
-        coordinator.data = coordinator._initial_state.copy()
-        _LOGGER.debug(f"Initial state set for coordinator {instance_name}")
+        _LOGGER.debug(f"Created coordinator for {instance_name}")
 
-        await coordinator.async_config_entry_first_refresh()
-
+        # Store coordinator
         hass.data.setdefault(DOMAIN, {})
         hass.data[DOMAIN][entry.entry_id] = coordinator
 
+        _LOGGER.debug(f"Stored coordinator in hass.data[{DOMAIN}][{entry.entry_id}]")
+
+        # Set up platforms
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-        _LOGGER.info(
-            "Successfully set up %s instance '%s' with model %s",
-            api_provider,
-            instance_name,
-            model
-        )
+        _LOGGER.debug(f"Setup completed for {instance_name}")
 
         return True
 
-    except Exception as ex:
-        _LOGGER.exception("Setup error: %s", str(ex))
-        raise ConfigEntryNotReady(f"Setup error: {str(ex)}") from ex
+    except Exception as err:
+        _LOGGER.exception(f"Error setting up HA Text AI: {err}")
+        raise
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""

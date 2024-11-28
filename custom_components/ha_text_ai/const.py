@@ -6,7 +6,7 @@ from homeassistant.helpers import config_validation as cv
 
 # Domain and platforms
 DOMAIN: Final = "ha_text_ai"
-PLATFORMS: Final = [Platform.SENSOR]
+PLATFORMS: list[str] = ["sensor"]
 
 # Provider configuration
 CONF_API_PROVIDER: Final = "api_provider"
@@ -29,7 +29,7 @@ CONF_MAX_TOKENS: Final = "max_tokens"
 CONF_API_ENDPOINT: Final = "api_endpoint"
 CONF_REQUEST_INTERVAL: Final = "request_interval"
 CONF_INSTANCE: Final = "instance"
-CONF_MAX_HISTORY_SIZE: Final = "max_history_size"
+CONF_MAX_HISTORY_SIZE: Final = "max_history_size"  # Correct constant name
 CONF_IS_ANTHROPIC: Final = "is_anthropic"
 CONF_CONTEXT_MESSAGES: Final = "context_messages"
 
@@ -41,6 +41,7 @@ DEFAULT_REQUEST_INTERVAL: Final = 1.0
 DEFAULT_TIMEOUT: Final = 30
 DEFAULT_MAX_HISTORY: Final = 50
 DEFAULT_NAME: Final = "HA Text AI"
+DEFAULT_NAME_PREFIX = "ha_text_ai"
 DEFAULT_CONTEXT_MESSAGES: Final = 5
 
 # Parameter constraints
@@ -164,7 +165,7 @@ SERVICE_SCHEMA_GET_HISTORY = vol.Schema({
     vol.Required(CONF_INSTANCE): cv.string,
     vol.Optional("limit", default=10): vol.All(
         vol.Coerce(int),
-        vol.Range(min=1, max=100)
+        vol.Range(min=1, max=100),
     ),
     vol.Optional("filter_model"): cv.string
 })
@@ -189,7 +190,7 @@ CONFIG_SCHEMA = vol.Schema({
             vol.Coerce(float),
             vol.Range(min=MIN_REQUEST_INTERVAL, max=MAX_REQUEST_INTERVAL)
         ),
-        vol.Optional(CONF_MAX_HISTORY_SIZE, default=DEFAULT_MAX_HISTORY): vol.All(
+        vol.Optional(CONF_MAX_HISTORY_SIZE, default=DEFAULT_MAX_HISTORY): vol.All(  # Correct usage
             vol.Coerce(int),
             vol.Range(min=1, max=100),
         ),

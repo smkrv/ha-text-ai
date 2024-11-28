@@ -34,9 +34,20 @@ from .const import (
     MIN_MAX_TOKENS,
     MAX_MAX_TOKENS,
     MIN_REQUEST_INTERVAL,
+    DEFAULT_NAME_PREFIX,
+    DEFAULT_MAX_HISTORY,
+    CONF_MAX_HISTORY_SIZE,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def normalize_name(name: str) -> str:
+    """Normalize name to conform to HA naming convention using underscores."""
+    normalized = ''.join(c if c.isalnum() or c == '_' else '_' for c in name)
+    normalized = '_'.join(filter(None, normalized.split('_')))
+    return normalized.lower()
+
 
 class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for HA text AI."""
@@ -69,18 +80,18 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_provider(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
         """Handle provider configuration step."""
+        self._errors = {}
+
         if user_input is None:
             default_endpoint = (
                 DEFAULT_OPENAI_ENDPOINT if self._provider == API_PROVIDER_OPENAI
                 else DEFAULT_ANTHROPIC_ENDPOINT
             )
 
-            suggested_name = f"HA Text AI {len(self._async_current_entries()) + 1}"
-
             return self.async_show_form(
                 step_id="provider",
                 data_schema=vol.Schema({
-                    vol.Required(CONF_NAME, default=suggested_name): str,
+                    vol.Required(CONF_NAME, default="my_assistant"): str,
                     vol.Required(CONF_API_KEY): str,
                     vol.Required(CONF_MODEL, default=DEFAULT_MODEL): str,
                     vol.Required(CONF_API_ENDPOINT, default=default_endpoint): str,
@@ -103,27 +114,86 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         vol.Coerce(int),
                         vol.Range(min=1, max=20)
                     ),
-                }),
-                errors=self._errors
+                    vol.Optional(
+                        CONF_MAX_HISTORY_SIZE,
+                        default=DEFAULT_MAX_HISTORY
+                    ): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(min=1, max=100)
+                    ),
+                })
             )
 
-        instance_name = user_input[CONF_NAME]
-        await self._async_validate_name(instance_name)
-        if self._errors:
-            return await self.async_step_provider()
+        input_copy = user_input.copy()
 
-        if not await self._async_validate_api(user_input):
-            return await self.async_step_provider()
+        try:
+            normalized_name = self._validate_and_normalize_name(input_copy[CONF_NAME])
+            input_copy[CONF_NAME] = normalized_name
+        except ValueError as e:
+            return self.async_show_form(
+                step_id="provider",
+                data_schema=vol.Schema({
+                    vol.Required(CONF_NAME, default=input_copy[CONF_NAME]): str,
+                    vol.Required(CONF_API_KEY, default=input_copy[CONF_API_KEY]): str,
+                    vol.Required(CONF_MODEL, default=input_copy[CONF_MODEL]): str,
+                    vol.Required(CONF_API_ENDPOINT, default=input_copy[CONF_API_ENDPOINT]): str,
+                    vol.Optional(CONF_TEMPERATURE, default=input_copy.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)): vol.All(
+                        vol.Coerce(float),
+                        vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
+                    ),
+                }),
+                errors={"name": str(e)}
+            )
 
-        return await self._create_entry(user_input)
+        try:
+            if not await self._async_validate_api(input_copy):
+                return self.async_show_form(
+                    step_id="provider",
+                    data_schema=vol.Schema({
+                    }),
+                    errors=self._errors
+                )
+        except Exception as e:
+            return self.async_show_form(
+                step_id="provider",
+                data_schema=vol.Schema({
+                }),
+                errors={"base": str(e)}
+            )
 
-    async def _async_validate_name(self, name: str) -> bool:
-        """Validate that the name is unique."""
+        return await self._create_entry(input_copy)
+
+    def _validate_and_normalize_name(self, name: str) -> str:
+        """
+        Validate and normalize name with detailed error handling.
+
+        Raises:
+            ValueError: If name is invalid
+
+        Returns:
+            Normalized name
+        """
+        if not name:
+            raise ValueError("empty")
+
+        name = name.strip()
+        normalized = ''.join(
+            c if c.isalnum() or c in ' _' else '_'  # Only allow underscores
+            for c in name
+        )
+
+        normalized = normalized.replace(' ', '_').lower()
+
         for entry in self._async_current_entries():
-            if entry.data.get(CONF_NAME) == name:
-                self._errors["name"] = "name_exists"
-                return False
-        return True
+            if entry.data.get(CONF_NAME, "") == normalized:
+                raise ValueError("name_exists")
+
+        normalized = normalized[:50]
+
+        if not normalized:
+            raise ValueError("empty")
+
+        return normalized
 
     async def _async_validate_api(self, user_input: Dict[str, Any]) -> bool:
         """Validate API connection."""
@@ -167,21 +237,36 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         }
 
     async def _create_entry(self, user_input: Dict[str, Any]) -> FlowResult:
-        """Create the config entry."""
+        """Create the config entry with comprehensive data preservation."""
         instance_name = user_input[CONF_NAME]
-        unique_id = f"{DOMAIN}_{instance_name}_{self._provider}".lower().replace(" ", "_")
+        normalized_name = normalize_name(instance_name)
+
+        unique_id = f"{DOMAIN}_{normalized_name}_{self._provider}".lower()
+
+        entry_data = {
+            CONF_API_PROVIDER: self._provider,
+            CONF_NAME: instance_name,
+            "normalized_name": normalized_name,
+            CONF_API_KEY: user_input.get(CONF_API_KEY),
+            CONF_API_ENDPOINT: user_input.get(CONF_API_ENDPOINT),
+            "unique_id": unique_id,
+            CONF_MODEL: user_input.get(CONF_MODEL, DEFAULT_MODEL),
+            CONF_TEMPERATURE: user_input.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
+            CONF_MAX_TOKENS: user_input.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
+            CONF_REQUEST_INTERVAL: user_input.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL),
+            CONF_CONTEXT_MESSAGES: user_input.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES),
+            CONF_MAX_HISTORY_SIZE: user_input.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY),
+        }
+
+        for key, value in user_input.items():
+            if key not in entry_data:
+                entry_data[key] = value
+
+        _LOGGER.debug(f"Creating config entry with data: {entry_data}")
 
         return self.async_create_entry(
             title=instance_name,
-            data={
-                CONF_API_PROVIDER: self._provider,
-                CONF_NAME: instance_name,
-                **user_input,
-                "unique_id": unique_id,
-                CONF_CONTEXT_MESSAGES: user_input.get(
-                CONF_CONTEXT_MESSAGES,
-                DEFAULT_CONTEXT_MESSAGES)
-        }
+            data=entry_data
         )
 
     @staticmethod
@@ -242,6 +327,16 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ): vol.All(
                     vol.Coerce(int),
                     vol.Range(min=1, max=20)
+                ),
+                vol.Optional(
+                    CONF_MAX_HISTORY_SIZE,
+                    default=current_data.get(
+                        CONF_MAX_HISTORY_SIZE,
+                        DEFAULT_MAX_HISTORY
+                    )
+                ): vol.All(
+                    vol.Coerce(int),
+                    vol.Range(min=1, max=100)
                 ),
             })
         )

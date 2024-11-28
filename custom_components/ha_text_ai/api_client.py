@@ -19,6 +19,7 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+
 class APIClient:
     """API Client for OpenAI and Anthropic."""
 
@@ -59,6 +60,7 @@ class APIClient:
         payload: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Make API request with retry logic."""
+        _LOGGER.debug(f"API Request: URL={url}, Payload={payload}")
         for attempt in range(API_RETRY_COUNT):
             try:
                 async with timeout(API_TIMEOUT):
@@ -66,20 +68,23 @@ class APIClient:
                         url,
                         json=payload,
                         headers=self.headers,
-                        timeout=self.timeout
+                        timeout=self.timeout,
                     ) as response:
+                        _LOGGER.debug(f"Response status: {response.status}")
                         if response.status != 200:
                             error_data = await response.json()
+                            _LOGGER.error(f"API error: {error_data}")
                             raise HomeAssistantError(f"API error: {error_data}")
                         return await response.json()
             except asyncio.TimeoutError:
+                _LOGGER.warning(f"Timeout on attempt {attempt + 1}")
                 if attempt == API_RETRY_COUNT - 1:
                     raise HomeAssistantError("API request timed out")
                 await asyncio.sleep(1 * (attempt + 1))
             except Exception as e:
+                _LOGGER.warning(f"API request failed on attempt {attempt + 1}: {str(e)}")
                 if attempt == API_RETRY_COUNT - 1:
                     raise
-                _LOGGER.warning("API request failed, retrying: %s", str(e))
                 await asyncio.sleep(1 * (attempt + 1))
 
     async def create(
@@ -125,16 +130,14 @@ class APIClient:
         return {
             "choices": [
                 {
-                    "message": {
-                        "content": data["choices"][0]["message"]["content"]
-                    }
+                    "message": {"content": data["choices"][0]["message"]["content"]},
                 }
             ],
             "usage": {
                 "prompt_tokens": data["usage"]["prompt_tokens"],
                 "completion_tokens": data["usage"]["completion_tokens"],
-                "total_tokens": data["usage"]["total_tokens"]
-            }
+                "total_tokens": data["usage"]["total_tokens"],
+            },
         }
 
     async def _create_anthropic_completion(
@@ -147,19 +150,24 @@ class APIClient:
         """Create completion using Anthropic API."""
         url = f"{self.endpoint}/v1/messages"
 
-        # Convert messages to Anthropic format
-        system_prompt = next(
-            (msg["content"] for msg in messages if msg["role"] == "system"),
-            None
-        )
-        conversation = [msg for msg in messages if msg["role"] != "system"]
+        system_prompt = None
+        filtered_messages = []
+        for msg in messages:
+            if msg['role'] == 'system':
+                if system_prompt is None:
+                    system_prompt = msg['content']
+                else:
+                    system_prompt += f" {msg['content']}"
+            else:
+                filtered_messages.append(msg)
 
         payload = {
             "model": model,
-            "messages": conversation,
+            "messages": filtered_messages,
             "max_tokens": max_tokens,
             "temperature": temperature,
         }
+
         if system_prompt:
             payload["system"] = system_prompt
 
@@ -167,14 +175,26 @@ class APIClient:
         return {
             "choices": [
                 {
-                    "message": {
-                        "content": data["content"][0]["text"]
-                    }
+                    "message": {"content": data["content"][0]["text"]},
                 }
             ],
             "usage": {
                 "prompt_tokens": data["usage"]["input_tokens"],
                 "completion_tokens": data["usage"]["output_tokens"],
-                "total_tokens": data["usage"]["input_tokens"] + data["usage"]["output_tokens"]
-            }
+                "total_tokens": data["usage"]["input_tokens"] + data["usage"]["output_tokens"],
+            },
         }
+
+    async def check_connection(self) -> bool:
+        """Check API connection."""
+        try:
+            await self._make_request(self.endpoint, {"test": "connection"})
+            return True
+        except Exception as e:
+            _LOGGER.error(f"Connection check failed: {str(e)}")
+            return False
+
+    async def shutdown(self) -> None:
+        """Shutdown API client."""
+        _LOGGER.debug("Shutting down API client")
+        await self.session.close()
