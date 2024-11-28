@@ -21,7 +21,7 @@ We welcome contributions to the HA Text AI project! This document will help you 
    git remote add upstream https://github.com/smkrv/ha-text-ai.git
    ```
 
-### 2. Creating a Development Branch
+### 2. Creating a Development Branch 
 
 ```bash
 # Update the main branch
