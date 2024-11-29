@@ -1,4 +1,11 @@
-"""Config flow for HA text AI integration."""
+"""
+Config flow for HA text AI integration.
+
+@license: CC BY-NC-SA 4.0 International
+@author: SMKRV
+@github: https://github.com/smkrv/ha-text-ai
+@source: https://github.com/smkrv/ha-text-ai
+"""
 import logging
 from typing import Any, Dict, Optional
 

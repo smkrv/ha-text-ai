@@ -1,4 +1,11 @@
-"""Constants for the HA text AI integration."""
+"""
+Constants for the HA text AI integration.
+
+@license: CC BY-NC-SA 4.0 International
+@author: SMKRV
+@github: https://github.com/smkrv/ha-text-ai
+@source: https://github.com/smkrv/ha-text-ai
+"""
 from typing import Final
 import voluptuous as vol
 from homeassistant.const import Platform, CONF_API_KEY, CONF_NAME

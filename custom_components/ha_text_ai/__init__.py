@@ -1,4 +1,11 @@
-"""The HA Text AI integration."""
+"""
+The HA Text AI integration.
+
+@license: CC BY-NC-SA 4.0 International
+@author: SMKRV
+@github: https://github.com/smkrv/ha-text-ai
+@source: https://github.com/smkrv/ha-text-ai
+"""
 from __future__ import annotations
 
 import logging

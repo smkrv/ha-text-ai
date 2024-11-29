@@ -1,4 +1,11 @@
-"""The HA Text AI coordinator."""
+"""
+The HA Text AI coordinator.
+
+@license: CC BY-NC-SA 4.0 International
+@author: SMKRV
+@github: https://github.com/smkrv/ha-text-ai
+@source: https://github.com/smkrv/ha-text-ai
+"""
 from __future__ import annotations
 
 import logging
@@ -11,7 +18,7 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.const import CONF_NAME
-from .config_flow import normalize_name 
+from .config_flow import normalize_name
 
 from .const import (
     DOMAIN,

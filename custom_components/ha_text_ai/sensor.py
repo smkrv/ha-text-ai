@@ -1,4 +1,11 @@
-"""Sensor platform for HA Text AI."""
+"""
+Sensor platform for HA Text AI.
+
+@license: CC BY-NC-SA 4.0 International
+@author: SMKRV
+@github: https://github.com/smkrv/ha-text-ai
+@source: https://github.com/smkrv/ha-text-ai
+"""
 import logging
 import math
 from typing import Any, Dict

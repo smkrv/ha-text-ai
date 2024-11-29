@@ -1,4 +1,11 @@
-"""API Client for HA Text AI."""
+"""
+API Client for HA Text AI.
+
+@license: CC BY-NC-SA 4.0 International
+@author: SMKRV
+@github: https://github.com/smkrv/ha-text-ai
+@source: https://github.com/smkrv/ha-text-ai
+"""
 import logging
 import asyncio
 from typing import Any, Dict, List, Optional
