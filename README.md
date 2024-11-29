@@ -17,7 +17,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 ---
 
 > [!IMPORTANT]
-> 🚧 ALPHA VERSION 🚧  
+> 🚧 BETA VERSION
 > Expect: potential bugs, frequent changes, incomplete features.  
 > 🤝 Community Driven  
 >
@@ -428,7 +428,7 @@ DEALINGS IN THE SOFTWARE.
 ## 📝 License
 
 Author: SMKRV
-[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) - see [LICENSE](LICENSE) for details. 
+[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) - see [LICENSE](LICENSE) for details.
 
 ## 💡 Support the Project
 
