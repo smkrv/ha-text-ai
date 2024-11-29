@@ -17,7 +17,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 ---
 
 > [!IMPORTANT]
-> 🚧 BETA VERSION
+> 🚧 BETA VERSION  
 > Expect: potential bugs, frequent changes, incomplete features.  
 > 🤝 Community Driven  
 >
