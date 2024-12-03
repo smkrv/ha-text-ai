@@ -10,6 +10,9 @@ from __future__ import annotations
 
 import logging
 import traceback
+import aiofiles
+import os
+import asyncio
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 
@@ -18,8 +21,8 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.util import dt as dt_util
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.const import CONF_NAME
-from .config_flow import normalize_name
 
+from .config_flow import normalize_name
 from .const import (
     DOMAIN,
     STATE_READY,
@@ -31,22 +34,35 @@ from .const import (
     DEFAULT_TEMPERATURE,
     DEFAULT_MAX_HISTORY,
     DEFAULT_CONTEXT_MESSAGES,
-    DEFAULT_NAME_PREFIX,
-    CONF_MAX_HISTORY_SIZE,
+    ABSOLUTE_MAX_HISTORY_SIZE,
+    MAX_ENTRY_SIZE,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
+class AsyncFileHandler:
+    """Async context manager for file operations."""
+
+    def __init__(self, file_path: str, mode: str = 'a'):
+        self.file_path = file_path
+        self.mode = mode
+
+    async def __aenter__(self):
+        self.file = await aiofiles.open(self.file_path, self.mode)
+        return self.file
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        await self.file.close()
 
 class HATextAICoordinator(DataUpdateCoordinator):
-    """The HA Text AI coordinator."""
+    """Home Assistant Text AI Conversation Coordinator."""
 
     def __init__(
         self,
         hass: HomeAssistant,
         client: Any,
         model: str,
-        update_interval: int,
+        update_interval: int,  # Moved up
         instance_name: str,
         max_tokens: int = DEFAULT_MAX_TOKENS,
         temperature: float = DEFAULT_TEMPERATURE,
@@ -60,6 +76,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
         # Use the normalize_name function from config_flow to ensure consistency
         from .config_flow import normalize_name
+
         self.normalized_name = normalize_name(instance_name)
 
         self.hass = hass
@@ -67,44 +84,45 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.max_history_size = max_history_size
+        self.max_history_size = min(
+            max(1, max_history_size),
+            ABSOLUTE_MAX_HISTORY_SIZE
+        )
         self.is_anthropic = is_anthropic
 
-        # Initialize with default state
-        self._initial_state = {
-            "state": STATE_READY,
-            "metrics": {
-                "total_tokens": 0,
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "successful_requests": 0,
-                "failed_requests": 0,
-                "total_errors": 0,
-                "average_latency": 0,
-                "max_latency": 0,
-                "min_latency": float("inf"),
-            },
-            "last_response": {
-                "timestamp": dt_util.utcnow().isoformat(),
-                "question": "",
-                "response": "",
-                "model": model,
-                "instance": instance_name,
-                "normalized_name": self.normalized_name,
-                "error": None,
-            },
-            "is_processing": False,
-            "is_rate_limited": False,
-            "is_maintenance": False,
-            "endpoint_status": "ready",
-            "uptime": 0,
-            "system_prompt": None,
-            "history_size": 0,
-            "conversation_history": [],
+        # Initialize essential attributes first
+        self._is_processing = False
+        self._is_rate_limited = False
+        self._is_maintenance = False
+        self.endpoint_status = "ready"
+        self._system_prompt = None
+        self._conversation_history = []
+
+        self._performance_metrics = {
+            "total_tokens": 0,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "successful_requests": 0,
+            "failed_requests": 0,
+            "total_errors": 0,
+            "average_latency": 0,
+            "max_latency": 0,
+            "min_latency": float("inf"),
+        }
+
+        self._last_response = {
+            "timestamp": dt_util.utcnow().isoformat(),
+            "question": "",
+            "response": "",
+            "model": model,
+            "instance": instance_name,
+            "normalized_name": self.normalized_name,
+            "error": None,
         }
 
         update_interval_td = timedelta(seconds=update_interval)
 
+        # Call super().__init__ BEFORE other property access
         super().__init__(
             hass,
             _LOGGER,
@@ -112,24 +130,262 @@ class HATextAICoordinator(DataUpdateCoordinator):
             update_interval=update_interval_td,
         )
 
+        # Now initialize _initial_state (after super().__init__)
+        self._initial_state = {
+            "state": STATE_READY,
+            "metrics": self._performance_metrics.copy(),
+            "last_response": self.last_response.copy(),  # Accessing here
+            "is_processing": self._is_processing,
+            "is_rate_limited": self._is_rate_limited,
+            "is_maintenance": self._is_maintenance,
+            "endpoint_status": self.endpoint_status,
+            "uptime": 0,
+            "system_prompt": self._system_prompt,
+            "history_size": len(self._conversation_history),
+            "conversation_history": self._conversation_history.copy(),
+        }
+
+        self.available = True
+        self._state = STATE_READY
+        self._conversation_history = []  # Full conversation history
+
+        self._start_time = dt_util.utcnow()
+
+        # Create history directory with safe mechanism
+        self._history_dir = os.path.join(
+            hass.config.path(".storage"),
+            "ha_text_ai_history"
+        )
+        os.makedirs(self._history_dir, exist_ok=True)
+
+        hass.async_create_task(self._check_history_directory())
+
+        # History file path using instance name
+        self._history_file = os.path.join(
+            self._history_dir,
+            f"{self.normalized_name}_history.txt"
+        )
+        # Maximum history file size (10 MB)
+        self._max_history_file_size = 10 * 1024 * 1024
+
+        # Asynchronous file initialization
+        hass.async_create_task(self.async_initialize_history_file())
+
+        _LOGGER.info(f"Initialized HA Text AI coordinator with instance: {instance_name}")
+
         # Register instance
         self.hass.data.setdefault(DOMAIN, {})
         self.hass.data[DOMAIN][instance_name] = self
         self.context_messages = context_messages
 
-        self._system_prompt = None
-        self._conversation_history = []
-        self._performance_metrics = self._initial_state["metrics"].copy()
-        self._is_processing = False
-        self._is_rate_limited = False
-        self._is_maintenance = False
-        self.endpoint_status = "ready"
-        self.last_response = self._initial_state["last_response"].copy()
-        self._start_time = dt_util.utcnow()
+    @property
+    def last_response(self) -> Dict[str, Any]:
+        """
+        Get the last response with fallback to conversation history.
 
-        _LOGGER.info(
-            f"Initialized HA Text AI coordinator with instance: {instance_name}"
-        )
+        Returns:
+            Dict containing last response information
+        """
+        if self._last_response:
+            return self._last_response
+
+        if self._conversation_history:
+            latest = self._conversation_history[-1]
+            return {
+                "timestamp": latest.get("timestamp"),
+                "question": latest.get("question", ""),
+                "response": latest.get("response", ""),
+                "model": self.model,
+                "instance": self.instance_name,
+                "normalized_name": self.normalized_name,
+                "error": None
+            }
+
+        return {
+            "timestamp": dt_util.utcnow().isoformat(),
+            "question": "",
+            "response": "",
+            "model": self.model,
+            "instance": self.instance_name,
+            "normalized_name": self.normalized_name,
+            "error": None
+        }
+
+    @last_response.setter
+    def last_response(self, value: Dict[str, Any]) -> None:
+        """
+        Set the last response value.
+
+        Args:
+            value: Dictionary containing response information
+        """
+        self._last_response = value
+
+    async def async_initialize_history_file(self) -> None:
+        """
+        Asynchronously initialize history file.
+
+        Creates the file and writes an initialization timestamp
+        without blocking the event loop.
+        """
+        try:
+            # Use asyncio.to_thread to perform file I/O in a separate thread
+            await asyncio.to_thread(self._sync_initialize_history_file)
+        except Exception as e:
+            _LOGGER.error(f"Could not initialize history file: {e}")
+            _LOGGER.debug(traceback.format_exc())
+
+    def _sync_initialize_history_file(self) -> None:
+        """
+        Synchronous method to create and initialize history file.
+
+        Runs in a separate thread to avoid blocking the event loop.
+        """
+        try:
+            with open(self._history_file, 'a') as f:
+                f.write(f"History initialized at: {dt_util.utcnow().isoformat()}\n")
+        except Exception as e:
+            _LOGGER.error(f"Synchronous history file initialization failed: {e}")
+
+    # Add size check to _update_history method
+    async def _update_history(self, question: str, response: dict) -> None:
+        """Update conversation history with size limits."""
+        try:
+            # Limit entry size
+            question = question[:MAX_ENTRY_SIZE]
+            response_content = response.get("content", "")[:MAX_ENTRY_SIZE]
+
+            history_entry = {
+                "timestamp": dt_util.utcnow().isoformat(),
+                "question": question,
+                "response": response_content,
+            }
+
+            self._conversation_history.append(history_entry)
+
+            # Enforce size limit
+            while len(self._conversation_history) > self.max_history_size:
+                self._conversation_history.pop(0)
+
+            await self._write_history_entry(history_entry)
+
+            await self._rotate_history()
+
+        except Exception as e:
+            _LOGGER.error(f"Error updating history: {e}")
+            _LOGGER.debug(traceback.format_exc())
+
+    # Update _write_history_entry method
+    async def _write_history_entry(self, entry: dict) -> None:
+        """Write a single history entry to file asynchronously."""
+        try:
+            if not os.path.exists(self._history_dir):
+                os.makedirs(self._history_dir, exist_ok=True)
+
+            _LOGGER.debug(f"Writing history entry to {self._history_file}")
+
+            async with AsyncFileHandler(self._history_file) as f:
+                await f.write(
+                    f"{entry['timestamp']}: "
+                    f"Question: {entry['question']} - "
+                    f"Response: {entry['response']}\n"
+                )
+                await f.flush()
+
+            _LOGGER.debug(f"Successfully wrote history entry")
+
+        except Exception as e:
+            _LOGGER.error(f"Error writing history entry: {e}")
+            _LOGGER.debug(traceback.format_exc())
+
+    def _sync_write_history_entry(self, entry: dict) -> None:
+        """
+        Synchronous method to write history entry.
+
+        Runs in a separate thread to avoid blocking the event loop.
+        """
+        try:
+            with open(self._history_file, 'a') as f:
+                f.write(
+                    f"{entry['timestamp']}: "
+                    f"Question: {entry['question']} - "
+                    f"Response: {entry['response']}\n"
+                )
+        except Exception as e:
+            _LOGGER.error(f"Synchronous history entry writing failed: {e}")
+
+    async def _rotate_history(self) -> None:
+        """Rotate conversation history with file management."""
+        try:
+            _LOGGER.debug(f"Starting history rotation for {self._history_file}")
+            await asyncio.to_thread(self._sync_rotate_history)
+            _LOGGER.debug(f"Completed history rotation")
+
+        except Exception as e:
+            _LOGGER.error(f"Error rotating history: {e}")
+            _LOGGER.debug(traceback.format_exc())
+
+    async def _check_history_directory(self) -> None:
+        """
+        Asynchronously check history directory permissions and writability.
+        """
+        try:
+            # Test write permission in a separate thread
+            test_file_path = os.path.join(self._history_dir, ".write_test")
+            await asyncio.to_thread(self._sync_test_directory_write, test_file_path)
+
+        except PermissionError:
+            _LOGGER.error(f"No write permissions for history directory: {self._history_dir}")
+        except Exception as e:
+            _LOGGER.error(f"Error checking history directory: {e}")
+
+    def _sync_test_directory_write(self, test_file_path: str) -> None:
+        """
+        Synchronous method to test directory write permissions.
+        """
+        try:
+            with open(test_file_path, 'w') as f:
+                f.write("Permission test")
+            os.remove(test_file_path)
+        except Exception as e:
+            _LOGGER.error(f"Directory write test failed: {e}")
+
+    def _sync_rotate_history(self) -> None:
+        """
+        Synchronous method to rotate history files.
+
+        Runs in a separate thread to avoid blocking the event loop.
+        """
+        try:
+            # Check and manage file size
+            if os.path.exists(self._history_file):
+                file_size = os.path.getsize(self._history_file)
+                if file_size > self._max_history_file_size:
+                    # Create timestamped archive
+                    archive_file = os.path.join(
+                        self._history_dir,
+                        f"{self.normalized_name}_history_{dt_util.utcnow().strftime('%Y%m%d_%H%M%S')}.txt"
+                    )
+                    os.rename(self._history_file, archive_file)
+
+                    # Optional: Log rotation event
+                    _LOGGER.info(f"History file rotated: {archive_file}")
+
+            # Ensure history doesn't exceed max size
+            if len(self._conversation_history) > self.max_history_size:
+                # Trim in-memory history
+                self._conversation_history = self._conversation_history[-self.max_history_size:]
+
+            # Write history entries
+            with open(self._history_file, 'a') as f:
+                for entry in self._conversation_history:
+                    f.write(
+                        f"{entry['timestamp']}: {entry['question']} - {entry['response']}\n"
+                    )
+
+        except Exception as e:
+            _LOGGER.error(f"Synchronous history rotation failed: {e}")
+            _LOGGER.debug(traceback.format_exc())
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Update data via library."""
@@ -139,18 +395,34 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 f"Updating data for {self.instance_name}, current state: {current_state}"
             )
 
+            limited_history = []
+            if self._conversation_history:
+                for entry in self._conversation_history[-3:]:
+                    limited_entry = {
+                        "timestamp": entry["timestamp"],
+                        "question": entry["question"][:4096],
+                        "response": entry["response"][:4096],
+                    }
+                    limited_history.append(limited_entry)
+
+            limited_last_response = self.last_response.copy()
+            if "response" in limited_last_response:
+                limited_last_response["response"] = limited_last_response["response"][:4096]
+            if "question" in limited_last_response:
+                limited_last_response["question"] = limited_last_response["question"][:4096]
+
             data = {
                 "state": current_state,
                 "metrics": self._performance_metrics,
-                "last_response": self.last_response,
+                "last_response": limited_last_response,
                 "is_processing": self._is_processing,
                 "is_rate_limited": self._is_rate_limited,
                 "is_maintenance": self._is_maintenance,
                 "endpoint_status": self.endpoint_status,
                 "uptime": (dt_util.utcnow() - self._start_time).total_seconds(),
-                "system_prompt": self._system_prompt,
+                "system_prompt": self._system_prompt[:4096] if self._system_prompt else None,
                 "history_size": len(self._conversation_history),
-                "conversation_history": self._conversation_history,
+                "conversation_history": limited_history,
                 "normalized_name": self.normalized_name,
             }
 
@@ -380,8 +652,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 latency = (end_time - start_time).total_seconds()
                 self._update_metrics(latency, response)
 
-                # Update history
-                self._update_history(question, response)
+                await self._update_history(question, response)
 
                 return response
 
@@ -478,19 +749,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
         metrics["max_latency"] = max(metrics["max_latency"], latency)
         metrics["min_latency"] = min(metrics["min_latency"], latency)
 
-    def _update_history(self, question: str, response: dict) -> None:
-        """Update conversation history."""
-        self._conversation_history.append(
-            {
-                "timestamp": dt_util.utcnow().isoformat(),
-                "question": question,
-                "response": response["content"],
-            }
-        )
-
-        while len(self._conversation_history) > self.max_history_size:
-            self._conversation_history.pop(0)
-
     def _handle_error(self, error: Exception) -> None:
         """
         Enhanced error handling with comprehensive diagnostics.
@@ -543,9 +801,25 @@ class HATextAICoordinator(DataUpdateCoordinator):
             _LOGGER.debug(f"Full Error Traceback: {error_details['traceback']}")
 
     async def async_clear_history(self) -> None:
-        """Clear conversation history."""
-        self._conversation_history = []
-        await self.async_update_ha_state()
+        """
+        Asynchronously clear conversation history.
+
+        Removes in-memory history and deletes history file.
+        """
+        try:
+            # Clear in-memory history
+            self._conversation_history = []
+
+            # Safely remove history file
+            if os.path.exists(self._history_file):
+                await asyncio.to_thread(os.remove, self._history_file)
+
+            await self.async_update_ha_state()
+            _LOGGER.info(f"History for {self.instance_name} cleared successfully")
+
+        except Exception as e:
+            _LOGGER.error(f"Error clearing history: {e}")
+            _LOGGER.debug(traceback.format_exc())
 
     async def async_get_history(self) -> List[Dict[str, str]]:
         """Get conversation history."""

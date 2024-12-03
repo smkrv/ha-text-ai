@@ -3,151 +3,181 @@
     "step": {
       "provider": {
         "title": "Seleccionar proveedor de IA",
-        "description": "Elige qué proveedor de servicios de IA usar para esta instancia.",
+        "description": "Elige qué proveedor de servicio de IA utilizar para esta instancia.",
         "data": {
           "api_provider": "Proveedor de API",
-          "context_messages": "Número de mensajes de contexto que conservar (1-20)"
+          "context_messages": "Número de mensajes de contexto a retener (1-20)",
+          "max_history_size": "Tamaño máximo del historial de conversación (1-100)"
+        }
+      },
+      "provider": {
+        "title": "Configuración del proveedor",
+        "description": "Proporciona los detalles de conexión para tu proveedor de IA elegido.",
+        "data": {
+          "name": "Nombre de la instancia (por ejemplo, 'Asistente GPT', 'Ayudante Claude')",
+          "api_key": "Clave API para autenticación",
+          "model": "Modelo de IA a utilizar",
+          "api_endpoint": "URL del endpoint de API personalizado (opcional)",
+          "temperature": "Creatividad de la respuesta (0-2, menor = más enfocado)",
+          "max_tokens": "Longitud máxima de la respuesta (1-4096 tokens)",
+          "request_interval": "Tiempo mínimo entre solicitudes (0.1-60 segundos)",
+          "context_messages": "Número de mensajes de contexto a retener (1-20)",
+          "max_history_size": "Tamaño máximo del historial de conversación (1-100)"
         }
       },
       "user": {
-        "title": "Configurar instancia de HA Text AI",
-        "description": "Configura una nueva instancia de asistente de IA con el proveedor seleccionado.",
+        "title": "Configurar instancia de IA de texto de HA",
+        "description": "Configura una nueva instancia de asistente de IA con tu proveedor seleccionado.",
         "data": {
-          "name": "Nombre de la instancia (p. ej., 'Asistente GPT', 'Ayudante de Claude')",
-          "api_key": "Clave API para la autenticación",
-          "model": "Modelo de IA a usar",
-          "temperature": "Creatividad de la respuesta (0-2, cuanto menor, más enfocada)",
+          "name": "Nombre de la instancia (por ejemplo, 'Asistente GPT', 'Ayudante Claude')",
+          "api_key": "Clave API para autenticación",
+          "model": "Modelo de IA a utilizar",
+          "temperature": "Creatividad de la respuesta (0-2, menor = más enfocado)",
           "max_tokens": "Longitud máxima de la respuesta (1-4096 tokens)",
-          "api_endpoint": "URL del punto final de la API personalizada (opcional)",
+          "api_endpoint": "URL del endpoint de API personalizado (opcional)",
           "api_provider": "Proveedor de API",
-          "request_interval": "Tiempo mínimo entre solicitudes (0,1-60 segundos)",
-          "context_messages": "Número de mensajes de contexto que conservar (1-20)",
+          "request_interval": "Tiempo mínimo entre solicitudes (0.1-60 segundos)",
+          "context_messages": "Número de mensajes de contexto a retener (1-20)",
           "max_history_size": "Tamaño máximo del historial de conversación (1-100)"
         }
       }
     },
     "error": {
+      "history_storage_error": "Error al inicializar el almacenamiento del historial. Verifica los permisos.",
+      "history_rotation_error": "Error durante la rotación del archivo de historial.",
+      "history_file_access_error": "No se puede acceder al directorio de almacenamiento del historial.",
       "name_exists": "Ya existe una instancia con este nombre",
       "invalid_name": "Nombre de instancia no válido",
-      "invalid_auth": "Error de autenticación: comprueba tu clave API",
-      "invalid_api_key": "Clave API no válida: verifica tus credenciales",
-      "cannot_connect": "No se pudo conectar al servicio API",
+      "invalid_auth": "La autenticación falló - verifica tu clave API",
+      "invalid_api_key": "Clave API no válida - verifica tus credenciales",
+      "cannot_connect": "Error al conectar con el servicio de API",
       "invalid_model": "El modelo seleccionado no está disponible",
       "rate_limit": "Límite de tasa excedido",
-      "context_length": "Longitud de contexto excedida",
+      "context_length": "Longitud del contexto excedida",
       "rate_limit_exceeded": "Límite de tasa de API excedido",
       "maintenance": "El servicio está en mantenimiento",
-      "invalid_response": "Se recibió una respuesta de API no válida",
-      "api_error": "Se produjo un error en el servicio API",
-      "timeout": "Tiempo de espera de la solicitud agotado",
-      "invalid_instance": "Instancia especificada no válida",
-      "unknown": "Se produjo un error inesperado",
+      "invalid_response": "Respuesta de API no válida recibida",
+      "api_error": "Ocurrió un error en el servicio de API",
+      "timeout": "Se agotó el tiempo de la solicitud",
+      "invalid_instance": "Instancia no válida especificada",
+      "unknown": "Ocurrió un error inesperado",
       "empty": "El nombre no puede estar vacío",
       "invalid_characters": "El nombre solo puede contener letras, números, espacios, guiones bajos y guiones",
       "name_too_long": "El nombre debe tener 50 caracteres o menos"
+    },
+    "abort": {
+      "already_configured": "Instancia ya configurada"
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Actualizar configuración de la instancia",
-        "description": "Modifica la configuración de esta instancia de asistente de IA.",
+        "description": "Modifica la configuración para esta instancia de asistente de IA.",
         "data": {
           "model": "Modelo de IA",
           "temperature": "Creatividad de la respuesta (0-2)",
           "max_tokens": "Longitud máxima de la respuesta (1-4096)",
-          "request_interval": "Intervalo mínimo de solicitud (0,1-60 segundos)",
-          "context_messages": "Número de mensajes anteriores que se incluirán en el contexto (1-20)",
+          "request_interval": "Intervalo mínimo de solicitud (0.1-60 segundos)",
+          "context_messages": "Número de mensajes anteriores a incluir en el contexto (1-20)",
           "max_history_size": "Tamaño máximo del historial de conversación (1-100)"
         }
       }
     }
   },
+  "selector": {
+    "api_provider": {
+      "options": {
+        "openai": "OpenAI (compatible)",
+        "anthropic": "Anthropic (compatible)"
+      }
+    }
+  },
   "services": {
     "ask_question": {
-      "name": "Hacer pregunta (HA Text AI)",
+      "name": "Hacer Pregunta (IA de Texto de HA)",
       "description": "Envía una pregunta al modelo de IA y recibe una respuesta detallada. La respuesta se almacenará en el historial de conversación y se podrá recuperar más tarde.",
       "fields": {
         "instance": {
           "name": "Instancia",
-          "description": "Nombre de la instancia de HA Text AI a utilizar"
+          "description": "Nombre de la instancia de IA de Texto de HA a utilizar"
         },
         "question": {
           "name": "Pregunta",
-          "description": "Tu pregunta o indicación para el asistente de IA"
+          "description": "Tu pregunta o solicitud para el asistente de IA"
         },
         "context_messages": {
-          "name": "Mensajes de contexto",
-          "description": "Número de mensajes anteriores que se incluirán en el contexto (1-20)"
+          "name": "Mensajes de Contexto",
+          "description": "Número de mensajes anteriores a incluir en el contexto (1-20)"
         },
         "system_prompt": {
-          "name": "Indicación del sistema",
-          "description": "Indicación del sistema opcional para establecer el contexto de esta pregunta específica"
+          "name": "Indicaciones del Sistema",
+          "description": "Indicaciones opcionales para establecer contexto para esta pregunta específica"
         },
         "model": {
           "name": "Modelo",
-          "description": "Selecciona el modelo de IA que se va a utilizar (opcional, anula la configuración predeterminada)"
+          "description": "Selecciona el modelo de IA a utilizar (opcional, anula la configuración predeterminada)"
         },
         "temperature": {
           "name": "Temperatura",
           "description": "Controla la creatividad de la respuesta (0.0-2.0)"
         },
         "max_tokens": {
-          "name": "Máx. tokens",
+          "name": "Máx. Tokens",
           "description": "Longitud máxima de la respuesta (1-4096 tokens)"
         }
       }
     },
     "clear_history": {
-      "name": "Borrar historial",
+      "name": "Borrar Historial",
       "description": "Elimina todas las preguntas y respuestas almacenadas del historial de conversación",
       "fields": {
         "instance": {
           "name": "Instancia",
-          "description": "Nombre de la instancia de HA Text AI para la que se va a borrar el historial"
+          "description": "Nombre de la instancia de IA de Texto de HA para borrar el historial"
         }
       }
     },
     "get_history": {
-      "name": "Obtener historial",
-      "description": "Recupera el historial de conversaciones con filtrado y ordenación opcionales",
+      "name": "Obtener Historial",
+      "description": "Recupera el historial de conversación con filtrado y ordenación opcionales",
       "fields": {
         "instance": {
           "name": "Instancia",
-          "description": "Nombre de la instancia de HA Text AI de la que se va a obtener el historial"
+          "description": "Nombre de la instancia de IA de Texto de HA para obtener historial"
         },
         "limit": {
           "name": "Límite",
-          "description": "Número de conversaciones que se van a devolver (1-100)"
+          "description": "Número de conversaciones a devolver (1-100)"
         },
         "filter_model": {
-          "name": "Filtrar modelo",
-          "description": "Filtra las conversaciones por un modelo de IA específico"
+          "name": "Filtrar Modelo",
+          "description": "Filtrar conversaciones por modelo de IA específico"
         },
         "start_date": {
-          "name": "Fecha de inicio",
-          "description": "Filtra las conversaciones a partir de esta fecha/hora"
+          "name": "Fecha de Inicio",
+          "description": "Filtrar conversaciones a partir de esta fecha/hora"
         },
         "include_metadata": {
-          "name": "Incluir metadatos",
-          "description": "Incluir información adicional como los tokens utilizados, el tiempo de respuesta, etc."
+          "name": "Incluir Metadatos",
+          "description": "Incluir información adicional como tokens utilizados, tiempo de respuesta, etc."
         },
         "sort_order": {
-          "name": "Orden de clasificación",
-          "description": "Orden de clasificación de los resultados (más recientes o más antiguos primero)"
+          "name": "Orden de Clasificación",
+          "description": "Orden de clasificación para los resultados (más recientes o más antiguos primero)"
         }
       }
     },
     "set_system_prompt": {
-      "name": "Establecer indicación del sistema",
-      "description": "Establece instrucciones predeterminadas de comportamiento del sistema para todas las conversaciones futuras",
+      "name": "Establecer Indicaciones del Sistema",
+      "description": "Establecer instrucciones de comportamiento del sistema predeterminadas para todas las futuras conversaciones",
       "fields": {
         "instance": {
           "name": "Instancia",
-          "description": "Nombre de la instancia de HA Text AI para la que se va a establecer la indicación del sistema"
+          "description": "Nombre de la instancia de IA de Texto de HA para establecer indicaciones del sistema"
         },
         "prompt": {
-          "name": "Indicación del sistema",
+          "name": "Indicaciones del Sistema",
           "description": "Instrucciones que definen cómo debe comportarse y responder la IA"
         }
       }
@@ -162,7 +192,7 @@
           "processing": "Procesando",
           "error": "Error",
           "disconnected": "Desconectado",
-          "rate_limited": "Límite de tasa alcanzado",
+          "rate_limited": "Limitado por tasa",
           "maintenance": "Mantenimiento",
           "initializing": "Inicializando",
           "retrying": "Reintentando",
@@ -170,94 +200,94 @@
         },
         "state_attributes": {
           "question": {
-            "name": "Última pregunta"
+            "name": "Última Pregunta"
           },
           "response": {
-            "name": "Última respuesta"
+            "name": "Última Respuesta"
           },
           "model": {
-            "name": "Modelo actual"
+            "name": "Modelo Actual"
           },
           "temperature": {
             "name": "Temperatura"
           },
           "max_tokens": {
-            "name": "Máx. tokens"
+            "name": "Máx. Tokens"
           },
           "system_prompt": {
-            "name": "Indicación del sistema"
+            "name": "Indicaciones del Sistema"
           },
           "response_time": {
-            "name": "Tiempo de la última respuesta"
+            "name": "Último Tiempo de Respuesta"
           },
           "total_responses": {
-            "name": "Total de respuestas"
+            "name": "Total de Respuestas"
           },
           "error_count": {
-            "name": "Recuento de errores"
+            "name": "Conteo de Errores"
           },
           "last_error": {
-            "name": "Último error"
+            "name": "Último Error"
           },
           "api_status": {
-            "name": "Estado de la API"
+            "name": "Estado de API"
           },
           "tokens_used": {
-            "name": "Total de tokens usados"
+            "name": "Total de Tokens Usados"
           },
           "average_response_time": {
-            "name": "Tiempo medio de respuesta"
+            "name": "Tiempo de Respuesta Promedio"
           },
           "last_request_time": {
-            "name": "Tiempo de la última solicitud"
+            "name": "Último Tiempo de Solicitud"
           },
           "is_processing": {
-            "name": "Estado de procesamiento"
+            "name": "Estado de Procesamiento"
           },
           "is_rate_limited": {
-            "name": "Estado de límite de tasa"
+            "name": "Estado Limitado por Tasa"
           },
           "is_maintenance": {
-            "name": "Estado de mantenimiento"
+            "name": "Estado de Mantenimiento"
           },
           "api_version": {
-            "name": "Versión de la API"
+            "name": "Versión de API"
           },
           "endpoint_status": {
-            "name": "Estado del punto final"
+            "name": "Estado del Endpoint"
           },
           "performance_metrics": {
-            "name": "Métricas de rendimiento"
+            "name": "Métricas de Rendimiento"
           },
           "history_size": {
-            "name": "Tamaño del historial"
+            "name": "Tamaño del Historial"
           },
           "uptime": {
-            "name": "Tiempo de actividad"
+            "name": "Tiempo de Actividad"
           },
           "total_tokens": {
-            "name": "Total de tokens"
+            "name": "Total de Tokens"
           },
           "prompt_tokens": {
-            "name": "Tokens de indicación"
+            "name": "Tokens de Solicitud"
           },
           "completion_tokens": {
-            "name": "Tokens de compleción"
+            "name": "Tokens de Finalización"
           },
           "successful_requests": {
-            "name": "Solicitudes exitosas"
+            "name": "Solicitudes Exitosas"
           },
           "failed_requests": {
-            "name": "Solicitudes fallidas"
+            "name": "Solicitudes Fallidas"
           },
           "average_latency": {
-            "name": "Latencia media"
+            "name": "Latencia Promedio"
           },
           "max_latency": {
-            "name": "Latencia máxima"
+            "name": "Latencia Máxima"
           },
           "min_latency": {
-            "name": "Latencia mínima"
+            "name": "Latencia Mínima"
           }
         }
       }

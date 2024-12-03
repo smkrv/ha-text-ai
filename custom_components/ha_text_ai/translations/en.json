@@ -6,7 +6,23 @@
         "description": "Choose which AI service provider to use for this instance.",
         "data": {
           "api_provider": "API Provider",
-          "context_messages": "Number of context messages to retain (1-20)"
+          "context_messages": "Number of context messages to retain (1-20)",
+          "max_history_size": "Maximum conversation history size (1-100)"
+        }
+      },
+      "provider": {
+        "title": "Provider Settings",
+        "description": "Provide connection details for your chosen AI provider.",
+        "data": {
+          "name": "Instance name (e.g., 'GPT Assistant', 'Claude Helper')",
+          "api_key": "API key for authentication",
+          "model": "AI model to use",
+          "api_endpoint": "Custom API endpoint URL (optional)",
+          "temperature": "Response creativity (0-2, lower = more focused)",
+          "max_tokens": "Maximum response length (1-4096 tokens)",
+          "request_interval": "Minimum time between requests (0.1-60 seconds)",
+          "context_messages": "Number of context messages to retain (1-20)",
+          "max_history_size": "Maximum conversation history size (1-100)"
         }
       },
       "user": {
@@ -27,6 +43,9 @@
       }
     },
     "error": {
+      "history_storage_error": "Failed to initialize history storage. Check permissions.",
+      "history_rotation_error": "Error during history file rotation.",
+      "history_file_access_error": "Cannot access history storage directory.",
       "name_exists": "An instance with this name already exists",
       "invalid_name": "Invalid instance name",
       "invalid_auth": "Authentication failed - check your API key",
@@ -45,6 +64,9 @@
       "empty": "Name cannot be empty",
       "invalid_characters": "Name can only contain letters, numbers, spaces, underscores and hyphens",
       "name_too_long": "Name must be 50 characters or less"
+    },
+    "abort": {
+      "already_configured": "Instance already configured"
     }
   },
   "options": {
@@ -63,6 +85,14 @@
       }
     }
   },
+  "selector": {
+  "api_provider": {
+    "options": {
+      "openai": "OpenAI (compatible)",
+      "anthropic": "Anthropic (compatible)"
+    }
+  }
+},
   "services": {
     "ask_question": {
       "name": "Ask Question (HA Text AI)",

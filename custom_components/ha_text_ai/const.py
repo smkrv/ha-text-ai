@@ -40,6 +40,9 @@ CONF_MAX_HISTORY_SIZE: Final = "max_history_size"  # Correct constant name
 CONF_IS_ANTHROPIC: Final = "is_anthropic"
 CONF_CONTEXT_MESSAGES: Final = "context_messages"
 
+ABSOLUTE_MAX_HISTORY_SIZE = 500
+MAX_ENTRY_SIZE = 1 * 1024 * 1024
+
 # Default values
 DEFAULT_MODEL: Final = "gpt-4o-mini"
 DEFAULT_TEMPERATURE: Final = 0.1

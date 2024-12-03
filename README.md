@@ -40,10 +40,10 @@ Transform your smart home experience with powerful AI assistance powered by mult
   - Natural conversation flow
 
 - 📝 **Enhanced Memory Management**:
-  - Persistent conversation history
-  - Context-aware responses
-  - Customizable history limits
-  - Model-specific filtering
+  - File-based conversation history storage
+  - Automatic history rotation
+  - Configurable history size limits
+  - Secure storage in Home Assistant
 
 - ⚡ **Performance Optimization**:
   - Efficient token usage
@@ -188,6 +188,8 @@ sensor:
 | `request_interval` | Float | ❌ | 1.0 | Delay between API requests |
 | `api_endpoint` | URL | ⚠️ | Provider default | Custom API endpoint |
 | `system_prompt` | String | ❌ | - | Default context for AI interactions |
+| `max_history_size` | Integer | ❌ | 100 | Maximum number of conversation entries to store |
+| `history_file_size` | Integer | ⚠️  | 1 | Maximum history file size in MB |
 
 #### Sensor Configuration
 
@@ -344,6 +346,13 @@ automation:
 
 # Tokens used in the AI's generated responses  
 {{ state_attr('sensor.ha_text_ai_gpt', 'Completion tokens') }}     # 0
+
+# Number of entries in current history file
+{{ state_attr('sensor.ha_text_ai_gpt', 'History size') }}          # 0  
+
+# Last few conversation entries (limited to 3 for performance)
+{{ state_attr('sensor.ha_text_ai_gpt', 'conversation_history') }}  # [...]
+
 ```
 
 #### Last Interaction Details
@@ -369,6 +378,13 @@ automation:
 # Total continuous operational time of the AI service (in hours or days)  
 {{ state_attr('sensor.ha_text_ai_gpt', 'Uptime') }}          # 547,58
 ```
+
+### History Storage
+Conversation history stored in `.storage/ha_text_ai_history/` directory:
+- Each instance has its own history file
+- Files are automatically rotated when size limit is reached
+- Archived history files are timestamped
+- Default maximum file size: 1MB
 
 ### 💡 Pro Tips
 - Always check attribute existence
@@ -401,6 +417,16 @@ A: Yes, your data is secure. The system operates entirely on your local machine,
 
 **Q: How do context messages work?**
 A: Context messages allow the AI to remember and reference previous conversation history. By default, 5 previous messages are included, but you can customize this from 1 to 20 messages to control the conversation depth and token usage.
+
+**Q: Where is conversation history stored?**  
+A: History is stored in files under the `.storage/ha_text_ai_history/` directory, with automatic rotation and size management.
+
+**Q: Can I access old conversation history?**  
+A: Yes, archived history files are stored with timestamps and can be accessed manually if needed.
+
+**Q: How much history is kept?**  
+A: By default, up to 100 conversations are stored, but this can be configured. Files are automatically rotated when they reach 1MB.
+
 
 ## 🤝 Contributing
 
