@@ -282,7 +282,7 @@ sensor.ha_text_ai_YOUR_UNIQUE_SUFFIX
 # Examples:
 sensor.ha_text_ai_gpt      # GPT-based sensor
 sensor.ha_text_ai_claude   # Claude-based sensor
-sensor.ha_text_ai_gpt   # Custom suffix
+sensor.ha_text_ai_abc      # Custom suffix
 ```
 
 #### Response Retrieval
