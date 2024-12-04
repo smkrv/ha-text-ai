@@ -145,7 +145,7 @@ To be compatible, a provider should support:
 3. Search for "HA Text AI"
 4. Follow the configuration steps
 
-### Via YAML (Advanced) 
+### Via YAML (Advanced)
 
 ### Platform Configuration (Global Settings)
 
@@ -427,7 +427,7 @@ A: Yes, archived history files are stored with timestamps and can be accessed ma
 
 **Q: How much history is kept?**  
 A: By default, up to 100 conversations are stored, but this can be configured. Files are automatically rotated when they reach 1MB.
- 
+
 ## 🤝 Contributing
 
 Contributions welcome! Please read our [Contributing Guide](CONTRIBUTING.md).
