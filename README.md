@@ -99,38 +99,44 @@ Transform your smart home experience with powerful AI assistance powered by mult
 - Python 3.9 or newer
 - Stable internet connection
 
-### Configuration Options
-- API Provider (OpenAI/Anthropic)
-- API Key (provider-specific)
-- Model Selection (flexible, provider-specific models)
-- Temperature (Creativity control, 0.0-2.0)
-- Max Tokens (Response length limit)
-- Request Interval (API call throttling)
-- Number of messages in history to keep (controls conversation memory size)
-- Custom API Endpoint (optional)
+## Configuration Options
 
-#### ⓘ Potentially Compatible Providers  
-The integration is designed to be flexible and may work with other providers offering OpenAI-compatible APIs:  
-- Groq  
-- Together AI  
-- Perplexity AI  
-- Mistral AI  
-- Google AI  
-- Local AI servers (like Ollama)  
-- Custom OpenAI-compatible endpoints  
+### 🔧 **Core Configuration Settings**
+- 🌐 **API Provider**: OpenAI/Anthropic
+- 🔑 **API Key**: Provider-specific authentication
+- 🤖 **Model Selection**: Flexible, provider-specific models
+- 🌡️ **Temperature**: Creativity control (0.0-2.0)
+- 📏 **Max Tokens**: Response length limit
+- ⏱️ **Request Interval**: API call throttling
+- 💾 **History Size**: Number of messages to retain
+- 🌍 **Custom API Endpoint**: Optional advanced configuration
 
-#### Additional Notes  
-- Not all providers guarantee full compatibility  
-- Performance may vary between providers  
-- Check individual provider's documentation  
+<details>
+<summary>🌐 Potentially Compatible Providers</summary>
+
+#### Flexible Provider Ecosystem
+The integration is designed to be flexible and may work with other providers offering OpenAI-compatible APIs:
+- Groq
+- Together AI
+- Perplexity AI
+- Mistral AI
+- Google AI
+- Local AI servers (like Ollama)
+- Custom OpenAI-compatible endpoints
+
+#### 🚨 Compatibility Notes
+- Not all providers guarantee full compatibility
+- Performance may vary between providers
+- Check individual provider's documentation
 - Ensure your API key has sufficient credits/quota
 
-#### Provider Compatibility Requirements  
-To be compatible, a provider should support:  
-- OpenAI-like REST API structure  
-- JSON request/response format  
-- Standard authentication method  
+#### 🔍 Provider Compatibility Requirements
+To be compatible, a provider should support:
+- OpenAI-like REST API structure
+- JSON request/response format
+- Standard authentication method
 - Similar model parameter handling
+</details>
 
 ## ⚡ Installation
 
@@ -159,7 +165,8 @@ To be compatible, a provider should support:
 3. Search for "HA Text AI"
 4. Follow the configuration steps
 
-### Via YAML (Advanced)
+<details>
+<summary>📦 Via YAML (Advanced)</summary>
 
 ### Platform Configuration (Global Settings)
 
@@ -216,6 +223,8 @@ sensor:
 | `model` | String | ⚠️ | Platform setting | Recommended: Override global model. If not specified, uses platform or provider default |
 | `temperature` | Float | ❌ | Platform setting | Override global temperature |
 | `max_tokens` | Integer | ❌ | Platform setting | Override global max tokens |
+
+</details>
 
 ## 🛠️ Available Services
 
