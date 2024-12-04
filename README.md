@@ -27,67 +27,67 @@ Transform your smart home experience with powerful AI assistance powered by mult
 
 ## 🌟 Features
 
-<table border="0" cellpadding="0" cellspacing="0" style="border: none; border-collapse: collapse; width: 100%;">  
-<tr>  
-<td width="33%" valign="top" style="border: none; padding: 10px;">  
+- 🧠 **Multi-Provider AI Integration**: Support for OpenAI GPT and Anthropic Claude models
+- 💬 **Advanced Language Processing**: Context-aware, multi-turn conversations
+- 📝 **Enhanced Memory Management**: Secure file-based history storage
+- ⚡ **Performance Optimization**: Efficient token usage and smart rate limiting
+- 🎯 **Advanced Customization**: Per-request model and parameter selection
+- 🔒 **Enhanced Security**: Secure API key management and usage monitoring
+- 🎨 **Improved User Experience**: Intuitive configuration and rich interfaces
+- 🔄 **Automation Integration**: Event-driven responses and template compatibility
 
-#### 🧠 **Multi-Provider AI Integration**  
-- Support for OpenAI GPT models  
-- Anthropic Claude integration  
-- Custom API endpoints  
-- Flexible model selection  
+<details>
+<summary>📦 Detailed Feature Breakdown</summary>
 
-#### 💬 **Advanced Language Processing**  
-- Context-aware responses  
-- Multi-turn conversations  
-- Custom system instructions  
-- Natural conversation flow  
+### 🧠 **Multi-Provider AI Integration**
+- Support for OpenAI GPT models
+- Anthropic Claude integration
+- Custom API endpoints
+- Flexible model selection
 
-#### 📝 **Enhanced Memory Management**  
-- File-based conversation history storage  
-- Automatic history rotation  
-- Configurable history size limits  
-- Secure storage in Home Assistant  
+### 💬 **Advanced Language Processing**
+- Context-aware responses
+- Multi-turn conversations
+- Custom system instructions
+- Natural conversation flow
 
-</td>  
-<td width="33%" valign="top" style="border: none; padding: 10px;">  
+### 📝 **Enhanced Memory Management**
+- File-based conversation history storage
+- Automatic history rotation
+- Configurable history size limits
+- Secure storage in Home Assistant
 
-#### ⚡ **Performance Optimization**  
-- Efficient token usage  
-- Smart rate limiting  
-- Response caching  
-- Request interval control  
+### ⚡ **Performance Optimization**
+- Efficient token usage
+- Smart rate limiting
+- Response caching
+- Request interval control
 
-#### 🎯 **Advanced Customization**  
-- Per-request model selection  
-- Adjustable parameters  
-- Custom system prompts  
-- Temperature control  
+### 🎯 **Advanced Customization**
+- Per-request model selection
+- Adjustable parameters
+- Custom system prompts
+- Temperature control
 
-#### 🔒 **Enhanced Security**  
-- Secure API key storage  
-- Rate limiting protection  
-- Error handling  
-- Usage monitoring  
+### 🔒 **Enhanced Security**
+- Secure API key storage
+- Rate limiting protection
+- Error handling
+- Usage monitoring
 
-</td>  
-<td width="33%" valign="top" style="border: none; padding: 10px;">  
+### 🎨 **Improved User Experience**
+- Intuitive configuration UI
+- Detailed sensor attributes
+- Rich service interface
+- Model selection UI
 
-#### 🎨 **Improved User Experience**  
-- Intuitive configuration UI  
-- Detailed sensor attributes  
-- Rich service interface  
-- Model selection UI  
+### 🔄 **Automation Integration**
+- Event-driven responses
+- Conditional logic support
+- Template compatibility
+- Model-specific automation
 
-#### 🔄 **Automation Integration**  
-- Event-driven responses  
-- Conditional logic support  
-- Template compatibility  
-- Model-specific automation  
-
-</td>  
-</tr>  
-</table>
+</details>
 
 ## 📋 Prerequisites
 
