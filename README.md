@@ -4,7 +4,7 @@
 
 ![GitHub release](https://img.shields.io/github/release/smkrv/ha-text-ai.svg?style=flat-square) ![GitHub last commit](https://img.shields.io/github/last-commit/smkrv/ha-text-ai.svg?style=flat-square) [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?style=flat-square)](https://creativecommons.org/licenses/by-nc-sa/4.0/) [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration) ![/README.md](https://img.shields.io/badge/language-English-green?style=flat-square) ![/README_RU.md](https://img.shields.io/badge/language-Russian-green?style=flat-square) ![](https://img.shields.io/badge/language-Deutch-green?style=flat-square)
 
-  <img src="https://github.com/smkrv/ha-text-ai/blob/e03b5315c2cc7b489a6e1175da728075275ed614/misc/icons/logo.png" alt="HA Text AI" style="width:90%; max-width: 720px; height: auto;"/>
+  <img src="https://github.com/smkrv/ha-text-ai/blob/e03b5315c2cc7b489a6e1175da728075275ed614/misc/icons/logo.png" alt="HA Text AI" style="width: 80%; max-width: 720px; height: auto;"/>
 
 ### Advanced AI Integration for [Home Assistant](https://www.home-assistant.io/) with LLM multi-provider support
 </div>
@@ -92,6 +92,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 - Temperature (Creativity control, 0.0-2.0)
 - Max Tokens (Response length limit)
 - Request Interval (API call throttling)
+- Number of messages in history to keep (controls conversation memory size)
 - Custom API Endpoint (optional)
 
 #### ⓘ Potentially Compatible Providers  
@@ -144,7 +145,7 @@ To be compatible, a provider should support:
 3. Search for "HA Text AI"
 4. Follow the configuration steps
 
-### Via YAML
+### Via YAML (Advanced) 
 
 ### Platform Configuration (Global Settings)
 
@@ -426,8 +427,7 @@ A: Yes, archived history files are stored with timestamps and can be accessed ma
 
 **Q: How much history is kept?**  
 A: By default, up to 100 conversations are stored, but this can be configured. Files are automatically rotated when they reach 1MB.
-
-
+ 
 ## 🤝 Contributing
 
 Contributions welcome! Please read our [Contributing Guide](CONTRIBUTING.md).
@@ -474,6 +474,7 @@ If you want to say thanks financially, you can send a small token of appreciatio
 
 ---
 
+<div align="center"><img src="https://github.com/smkrv/ha-text-ai/blob/f2a41aaa2cd88adaf6929ba5f228205a315efdfa/custom_components/ha_text_ai/icons/dark_icon%402x.png" alt="HA Text AI" style="width: 128px; height: auto;"/></div>  
 <div align="center">
 
 Made with ❤️ and Claude 3.5 Sonnet for the Home Assistant Community
