@@ -27,53 +27,67 @@ Transform your smart home experience with powerful AI assistance powered by mult
 
 ## 🌟 Features
 
-- 🧠 **Multi-Provider AI Integration**:
-  - Support for OpenAI GPT models
-  - Anthropic Claude integration
-  - Custom API endpoints
-  - Flexible model selection
+<table border="0" cellpadding="0" cellspacing="0" style="border: none; border-collapse: collapse; width: 100%;">  
+<tr>  
+<td width="33%" valign="top" style="border: none; padding: 10px;">  
 
-- 💬 **Advanced Language Processing**:
-  - Context-aware responses
-  - Multi-turn conversations
-  - Custom system instructions
-  - Natural conversation flow
+#### 🧠 **Multi-Provider AI Integration**  
+- Support for OpenAI GPT models  
+- Anthropic Claude integration  
+- Custom API endpoints  
+- Flexible model selection  
 
-- 📝 **Enhanced Memory Management**:
-  - File-based conversation history storage
-  - Automatic history rotation
-  - Configurable history size limits
-  - Secure storage in Home Assistant
+#### 💬 **Advanced Language Processing**  
+- Context-aware responses  
+- Multi-turn conversations  
+- Custom system instructions  
+- Natural conversation flow  
 
-- ⚡ **Performance Optimization**:
-  - Efficient token usage
-  - Smart rate limiting
-  - Response caching
-  - Request interval control
+#### 📝 **Enhanced Memory Management**  
+- File-based conversation history storage  
+- Automatic history rotation  
+- Configurable history size limits  
+- Secure storage in Home Assistant  
 
-- 🎯 **Advanced Customization**:
-  - Per-request model selection
-  - Adjustable parameters
-  - Custom system prompts
-  - Temperature control
+</td>  
+<td width="33%" valign="top" style="border: none; padding: 10px;">  
 
-- 🔒 **Enhanced Security**:
-  - Secure API key storage
-  - Rate limiting protection
-  - Error handling
-  - Usage monitoring
+#### ⚡ **Performance Optimization**  
+- Efficient token usage  
+- Smart rate limiting  
+- Response caching  
+- Request interval control  
 
-- 🎨 **Improved User Experience**:
-  - Intuitive configuration UI
-  - Detailed sensor attributes
-  - Rich service interface
-  - Model selection UI
+#### 🎯 **Advanced Customization**  
+- Per-request model selection  
+- Adjustable parameters  
+- Custom system prompts  
+- Temperature control  
 
-- 🔄 **Automation Integration**:
-  - Event-driven responses
-  - Conditional logic support
-  - Template compatibility
-  - Model-specific automation
+#### 🔒 **Enhanced Security**  
+- Secure API key storage  
+- Rate limiting protection  
+- Error handling  
+- Usage monitoring  
+
+</td>  
+<td width="33%" valign="top" style="border: none; padding: 10px;">  
+
+#### 🎨 **Improved User Experience**  
+- Intuitive configuration UI  
+- Detailed sensor attributes  
+- Rich service interface  
+- Model selection UI  
+
+#### 🔄 **Automation Integration**  
+- Event-driven responses  
+- Conditional logic support  
+- Template compatibility  
+- Model-specific automation  
+
+</td>  
+</tr>  
+</table>
 
 ## 📋 Prerequisites
 
