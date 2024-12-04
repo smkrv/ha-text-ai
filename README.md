@@ -4,7 +4,7 @@
 
 ![GitHub release](https://img.shields.io/github/release/smkrv/ha-text-ai.svg?style=flat-square) ![GitHub last commit](https://img.shields.io/github/last-commit/smkrv/ha-text-ai.svg?style=flat-square) [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?style=flat-square)](https://creativecommons.org/licenses/by-nc-sa/4.0/) [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration) ![/README.md](https://img.shields.io/badge/language-English-green?style=flat-square) ![/README_RU.md](https://img.shields.io/badge/language-Russian-green?style=flat-square) ![](https://img.shields.io/badge/language-Deutch-green?style=flat-square)
 
-  <img src="https://github.com/smkrv/ha-text-ai/misc/icons/logo.png" alt="HA Text AI" height="260"/>
+  <img src="https://github.com/smkrv/ha-text-ai/blob/f26df2993783d4f5f2af0d0b7902449a28afb320/misc/icons/logo.png" alt="HA Text AI" height="260"/>
 
 ### Advanced AI Integration for [Home Assistant](https://www.home-assistant.io/) with LLM multi-provider support
 </div>
