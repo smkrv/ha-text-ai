@@ -315,6 +315,16 @@ automation:
 
 ### 🔍 HA Text AI Sensor Attributes
 
+- 🤖 **Model and Provider Information**: Tracking current AI model and service provider
+- 🚦 **System Status**: Real-time API and processing readiness
+- 📊 **Performance Metrics**: Request success rates and response times
+- 💬 **Conversation Tracking**: Token usage and interaction history
+- 🕒 **Last Interaction Details**: Recent query and response tracking
+- ❤️ **System Health**: Error monitoring and service uptime
+
+<details>
+<summary>📦 Detailed Sensor Attributes</summary>
+
 #### Model and Provider Information
 ```yaml
 # Name of the AI model currently in use (e.g., latest version of GPT)  
@@ -376,7 +386,6 @@ automation:
 
 # Last few conversation entries (limited to 3 for performance)
 {{ state_attr('sensor.ha_text_ai_gpt', 'conversation_history') }}  # [...]
-
 ```
 
 #### Last Interaction Details
@@ -415,6 +424,7 @@ Conversation history stored in `.storage/ha_text_ai_history/` directory:
 - Use these attributes for monitoring and automation
 - Some values might be 0 or empty initially
 
+</details>
 
 ## 📘 FAQ
 
