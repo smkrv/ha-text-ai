@@ -41,7 +41,9 @@ CONF_IS_ANTHROPIC: Final = "is_anthropic"
 CONF_CONTEXT_MESSAGES: Final = "context_messages"
 
 ABSOLUTE_MAX_HISTORY_SIZE = 500
-MAX_ENTRY_SIZE = 1 * 1024 * 1024
+MAX_ATTRIBUTE_SIZE = 4 * 1024
+MAX_HISTORY_FILE_SIZE = 1 * 1024 * 1024
+ICONS_SUBDOMAIN = "icons"
 
 # Default values
 DEFAULT_MODEL: Final = "gpt-4o-mini"

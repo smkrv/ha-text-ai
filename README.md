@@ -318,7 +318,7 @@ automation:
 - 🤖 **Model and Provider Information**: Tracking current AI model and service provider
 - 🚦 **System Status**: Real-time API and processing readiness
 - 📊 **Performance Metrics**: Request success rates and response times
-- 💬 **Conversation Tracking**: Token usage and interaction history
+- 💬 **Conversation Tracking**: Token usage and interaction history (for more precise token counting, install `tiktoken`; otherwise, a fallback estimation method is automatically used)
 - 🕒 **Last Interaction Details**: Recent query and response tracking
 - ❤️ **System Health**: Error monitoring and service uptime
 

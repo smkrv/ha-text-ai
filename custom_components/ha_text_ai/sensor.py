@@ -67,6 +67,7 @@ from .const import (
     ENTITY_ICON_PROCESSING,
     DEFAULT_NAME_PREFIX,
     CONF_MAX_HISTORY_SIZE,
+    MAX_ATTRIBUTE_SIZE,
 )
 
 from .coordinator import HATextAICoordinator
@@ -178,11 +179,28 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
 
     def _sanitize_attributes(self, attributes: Dict[str, Any]) -> Dict[str, Any]:
         """Sanitize all attributes for JSON serialization."""
-        return {
+        sanitized = {
             key: self._sanitize_value(value)
             for key, value in attributes.items()
             if value is not None
         }
+
+        # Log metrics for debugging
+        metrics_keys = [
+            METRIC_TOTAL_TOKENS,
+            METRIC_PROMPT_TOKENS,
+            METRIC_COMPLETION_TOKENS,
+            METRIC_SUCCESSFUL_REQUESTS,
+            METRIC_FAILED_REQUESTS,
+            METRIC_AVERAGE_LATENCY,
+            METRIC_MAX_LATENCY,
+            METRIC_MIN_LATENCY,
+        ]
+
+        metrics_values = {k: sanitized.get(k) for k in metrics_keys if k in sanitized}
+        _LOGGER.debug(f"Metrics for {self.entity_id}: {metrics_values}")
+
+        return sanitized
 
     @property
     def native_value(self) -> StateType:
@@ -212,68 +230,65 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
 
         try:
             data = self.coordinator.data
+            metrics = data.get("metrics", {})
+
+            # Base attributes
             attributes = {
                 ATTR_MODEL: self._config_entry.data.get(CONF_MODEL, "Unknown"),
-                ATTR_API_PROVIDER: self._config_entry.data.get(
-                    CONF_API_PROVIDER, "Unknown"
-                ),
+                ATTR_API_PROVIDER: self._config_entry.data.get(CONF_API_PROVIDER, "Unknown"),
                 ATTR_API_STATUS: self._current_state,
-                ATTR_TOTAL_ERRORS: self._error_count,
-                ATTR_LAST_ERROR: self._last_error,
+                ATTR_TOTAL_ERRORS: metrics.get("total_errors", 0),
                 "instance_name": self._instance_name,
                 "normalized_name": self._normalized_name,
-                ATTR_SYSTEM_PROMPT: data.get("system_prompt"),
+                ATTR_SYSTEM_PROMPT: (data.get("system_prompt", "")[:MAX_ATTRIBUTE_SIZE]
+                                   if data.get("system_prompt") else None),
                 ATTR_IS_PROCESSING: data.get("is_processing", False),
                 ATTR_IS_RATE_LIMITED: data.get("is_rate_limited", False),
                 ATTR_IS_MAINTENANCE: data.get("is_maintenance", False),
                 ATTR_ENDPOINT_STATUS: data.get("endpoint_status", "unknown"),
-                ATTR_UPTIME: data.get("uptime", 0),
+                ATTR_UPTIME: round(data.get("uptime", 0), 2),
                 ATTR_HISTORY_SIZE: data.get("history_size", 0),
-                ATTR_CONVERSATION_HISTORY: data.get("conversation_history", []),
             }
 
-            # Add metrics
-            metrics = data.get("metrics", {})
-            if isinstance(metrics, dict):
-                self._metrics = metrics
-                attributes.update(
-                    {
-                        METRIC_TOTAL_TOKENS: metrics.get("total_tokens", 0),
-                        METRIC_PROMPT_TOKENS: metrics.get("prompt_tokens", 0),
-                        METRIC_COMPLETION_TOKENS: metrics.get("completion_tokens", 0),
-                        METRIC_SUCCESSFUL_REQUESTS: metrics.get(
-                            "successful_requests", 0
-                        ),
-                        METRIC_FAILED_REQUESTS: metrics.get("failed_requests", 0),
-                        METRIC_AVERAGE_LATENCY: metrics.get("average_latency", 0),
-                        METRIC_MAX_LATENCY: metrics.get("max_latency", 0),
-                        METRIC_MIN_LATENCY: metrics.get("min_latency", float("inf")),
+            # History limit
+            conversation_history = data.get("conversation_history", [])
+            if conversation_history:
+                limited_history = []
+                for entry in conversation_history:
+                    limited_entry = {
+                        "timestamp": entry["timestamp"],
+                        "question": entry["question"][:MAX_ATTRIBUTE_SIZE],
+                        "response": entry["response"][:MAX_ATTRIBUTE_SIZE]
                     }
-                )
+                    limited_history.append(limited_entry)
+                attributes[ATTR_CONVERSATION_HISTORY] = limited_history
 
-            # Add last response
+            # Metrics
+            if isinstance(metrics, dict):
+                attributes.update({
+                    METRIC_TOTAL_TOKENS: metrics.get("total_tokens", 0),
+                    METRIC_PROMPT_TOKENS: metrics.get("prompt_tokens", 0),
+                    METRIC_COMPLETION_TOKENS: metrics.get("completion_tokens", 0),
+                    METRIC_SUCCESSFUL_REQUESTS: metrics.get("successful_requests", 0),
+                    METRIC_FAILED_REQUESTS: metrics.get("failed_requests", 0),
+                    METRIC_AVERAGE_LATENCY: round(metrics.get("average_latency", 0), 2),
+                    METRIC_MAX_LATENCY: round(metrics.get("max_latency", 0), 2),
+                    METRIC_MIN_LATENCY: (metrics.get("min_latency")
+                                       if metrics.get("min_latency") != float("inf")
+                                       else None),
+                })
+
+            # Last response handling
             last_response = data.get("last_response", {})
             if isinstance(last_response, dict):
-                self._last_response = last_response
-                attributes.update(
-                    {
-                        ATTR_RESPONSE: last_response.get("response", ""),
-                        ATTR_QUESTION: last_response.get("question", ""),
-                        "last_model": last_response.get("model", ""),
-                        "last_timestamp": last_response.get("timestamp", ""),
-                        "last_error": last_response.get("error"),
-                    }
-                )
-
-            # Add performance metrics if available
-            if ATTR_PERFORMANCE_METRICS in data:
-                attributes[ATTR_PERFORMANCE_METRICS] = data[
-                    ATTR_PERFORMANCE_METRICS
-                ]
-
-            # Add API version if available
-            if ATTR_API_VERSION in data:
-                attributes[ATTR_API_VERSION] = data[ATTR_API_VERSION]
+                attributes.update({
+                    ATTR_RESPONSE: last_response.get("response", "")[:MAX_ATTRIBUTE_SIZE],
+                    ATTR_QUESTION: last_response.get("question", "")[:MAX_ATTRIBUTE_SIZE],
+                    "last_model": last_response.get("model", ""),
+                    "last_timestamp": last_response.get("timestamp", ""),
+                    "last_error": (last_response.get("error", "")[:MAX_ATTRIBUTE_SIZE]
+                                 if last_response.get("error") else None),
+                })
 
             return self._sanitize_attributes(attributes)
 
@@ -298,6 +313,12 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
                 return
 
             self._is_processing = data.get("is_processing", False)
+
+            # Update metrics
+            metrics = data.get("metrics", {})
+            if isinstance(metrics, dict):
+                self._metrics.update(metrics)
+                _LOGGER.debug(f"Updated metrics for {self.entity_id}: {self._metrics}")
 
             # Update conversation history and system prompt
             self._conversation_history = data.get("conversation_history", [])

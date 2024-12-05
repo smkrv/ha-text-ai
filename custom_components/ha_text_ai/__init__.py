@@ -11,8 +11,9 @@ from __future__ import annotations
 import logging
 import os
 import shutil
+import hashlib
 from datetime import datetime, timedelta
-from typing import Any, Dict
+from typing import Any, Dict, TypeVar
 
 import voluptuous as vol
 from async_timeout import timeout
@@ -52,11 +53,13 @@ from .const import (
     SERVICE_SET_SYSTEM_PROMPT,
     DEFAULT_MAX_HISTORY,
     CONF_MAX_HISTORY_SIZE,
+    ICONS_SUBDOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
+ConfigType = TypeVar("ConfigType", bound=Dict[str, Any])
 
 SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
     vol.Required("instance"): cv.string,
@@ -90,19 +93,18 @@ def get_coordinator_by_instance(hass: HomeAssistant, instance: str) -> HATextAIC
 
     raise HomeAssistantError(f"Instance {instance} not found")
 
-async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
-    """Set up the HA Text AI component."""
-    hass.data.setdefault(DOMAIN, {})
+def get_file_hash(file_path: str) -> str:
+    """Calculate SHA256 hash of file."""
+    sha256_hash = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for byte_block in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(byte_block)
+    return sha256_hash.hexdigest()
 
-    try:
-        source = os.path.join(os.path.dirname(__file__), 'icons', 'icon.svg')
-        dest_dir = os.path.join(hass.config.path('www'), 'icons')
-        os.makedirs(dest_dir, exist_ok=True)
-        dest = os.path.join(dest_dir, 'icon.png')
-        if not os.path.exists(dest):
-            shutil.copyfile(source, dest)
-    except Exception as ex:
-        _LOGGER.warning("Failed to copy custom icon: %s", str(ex))
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up the Home Assistant Text AI component."""
+    # Initialize domain data storage
+    hass.data.setdefault(DOMAIN, {})
 
     async def async_ask_question(call: ServiceCall) -> None:
         """Handle ask_question service."""
@@ -150,6 +152,7 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
             _LOGGER.error("Error setting system prompt: %s", str(err))
             raise HomeAssistantError(f"Failed to set system prompt: {str(err)}")
 
+    # Register services
     hass.services.async_register(
         DOMAIN,
         SERVICE_ASK_QUESTION,
@@ -177,6 +180,53 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
         async_set_system_prompt,
         schema=SERVICE_SCHEMA_SET_SYSTEM_PROMPT
     )
+
+    # Handle icons
+    try:
+        source_icon_path = os.path.join(
+            os.path.dirname(__file__),
+            ICONS_SUBDOMAIN,
+            'icon@2x.png'
+        )
+
+        destination_directory = os.path.join(
+            hass.config.path('www'),
+            DOMAIN,
+            ICONS_SUBDOMAIN
+        )
+
+        destination_icon_path = os.path.join(
+            destination_directory,
+            'icon.png'
+        )
+
+        if not os.path.exists(source_icon_path):
+            _LOGGER.error("Source icon not found: %s", source_icon_path)
+            return True
+
+        def create_directory():
+            os.makedirs(destination_directory, exist_ok=True)
+
+        await hass.async_add_executor_job(create_directory)
+
+        should_copy = True
+
+        if os.path.exists(destination_icon_path):
+            source_hash = await hass.async_add_executor_job(get_file_hash, source_icon_path)
+            dest_hash = await hass.async_add_executor_job(get_file_hash, destination_icon_path)
+            should_copy = source_hash != dest_hash
+
+        if should_copy:
+            def copy_file():
+                shutil.copyfile(source_icon_path, destination_icon_path)
+
+            await hass.async_add_executor_job(copy_file)
+            _LOGGER.debug("Icon updated: %s", destination_icon_path)
+
+    except PermissionError as e:
+        _LOGGER.error("Permission denied when managing icons: %s", str(e))
+    except Exception as e:
+        _LOGGER.error("Failed to manage icons: %s", str(e))
 
     return True
 
