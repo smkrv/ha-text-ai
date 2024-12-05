@@ -106,7 +106,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 - 🔑 **API Key**: Provider-specific authentication
 - 🤖 **Model Selection**: Flexible, provider-specific models
 - 🌡️ **Temperature**: Creativity control (0.0-2.0)
-- 📏 **Max Tokens**: Response length limit
+- 📏 **Max Tokens**: Response length limit (token usage is estimated using a heuristic method based on word count and specific word characteristics, which may differ from actual token usage)
 - ⏱️ **Request Interval**: API call throttling
 - 💾 **History Size**: Number of messages to retain
 - 🌍 **Custom API Endpoint**: Optional advanced configuration
@@ -318,7 +318,7 @@ automation:
 - 🤖 **Model and Provider Information**: Tracking current AI model and service provider
 - 🚦 **System Status**: Real-time API and processing readiness
 - 📊 **Performance Metrics**: Request success rates and response times
-- 💬 **Conversation Tracking**: Token usage and interaction history (for more precise token counting, install `tiktoken`; otherwise, a fallback estimation method is automatically used)
+- 💬 **Conversation Tracking**: Token usage and interaction history are estimated using a heuristic method based on word count and specific word characteristics, which may differ from actual token usage.
 - 🕒 **Last Interaction Details**: Recent query and response tracking
 - ❤️ **System Health**: Error monitoring and service uptime
 
@@ -414,7 +414,7 @@ automation:
 
 ### History Storage
 Conversation history stored in `.storage/ha_text_ai_history/` directory:
-- Each instance has its own history file
+- Each instance has its own history file (JSON)
 - Files are automatically rotated when size limit is reached
 - Archived history files are timestamped
 - Default maximum file size: 1MB
