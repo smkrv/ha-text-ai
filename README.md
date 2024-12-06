@@ -4,7 +4,7 @@
 
 ![GitHub release](https://img.shields.io/github/release/smkrv/ha-text-ai.svg?style=flat-square) ![GitHub last commit](https://img.shields.io/github/last-commit/smkrv/ha-text-ai.svg?style=flat-square) [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?style=flat-square)](https://creativecommons.org/licenses/by-nc-sa/4.0/) [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration) ![/README.md](https://img.shields.io/badge/language-English-green?style=flat-square) ![/README_RU.md](https://img.shields.io/badge/language-Russian-green?style=flat-square) ![](https://img.shields.io/badge/language-Deutch-green?style=flat-square)
 
-  <img src="https://github.com/smkrv/ha-text-ai/blob/e03b5315c2cc7b489a6e1175da728075275ed614/misc/icons/logo.png" alt="HA Text AI" style="width: 80%; max-width: 640px; max-height: 150px; aspect-ratio: 2/1; object-fit: contain;"/>
+  <img src="https://github.com/smkrv/ha-text-ai/blob/2aaf3405759eb2d97624834594e24ace896131df/assets/images/icons/logo.png" alt="HA Text AI" style="width: 80%; max-width: 640px; max-height: 150px; aspect-ratio: 2/1; object-fit: contain;"/>
 
 ### Advanced AI Integration for [Home Assistant](https://www.home-assistant.io/) with LLM multi-provider support
 </div>
@@ -23,7 +23,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 >
 >  <a href="https://community.home-assistant.io/t/ha-text-ai-transforming-home-automation-with-multi-provider-language-models/799741"><img src="https://img.shields.io/badge/Community-blue?style=for-the-badge&logo=homeassistant&logoColor=white&color=03a9f4"/></a>  
 >  
-> [Screenshots](misc/screenshots/screenshot.jpg)
+> [Screenshots](assets/images/screenshots/screenshot.jpg)
 
 ## 🌟 Features
 
@@ -507,7 +507,7 @@ If you want to say thanks financially, you can send a small token of appreciatio
 
 ---
 
-<div align="center"><img src="https://github.com/smkrv/ha-text-ai/blob/f2a41aaa2cd88adaf6929ba5f228205a315efdfa/custom_components/ha_text_ai/icons/dark_icon%402x.png" alt="HA Text AI" style="width: 128px; height: auto;"/></div>  
+<div align="center"><img src="https://github.com/smkrv/ha-text-ai/blob/2aaf3405759eb2d97624834594e24ace896131df/assets/images/icons/footer_icon.png" alt="HA Text AI" style="width: 128px; height: auto;"/></div>  
 <div align="center">
 
 Made with ❤️ and Claude 3.5 Sonnet for the Home Assistant Community
