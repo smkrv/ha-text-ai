@@ -865,8 +865,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 context_tokens = self._calculate_context_tokens(
                     [{"content": entry["question"]} for entry in context_history] +
                     [{"content": entry["response"]} for entry in context_history] +
-                    [{"content": question}],
-                    temp_model
+                    [{"content": question}]
                 )
 
                 # Dynamic token allocation
@@ -886,8 +885,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
                         context_tokens = self._calculate_context_tokens(
                             [{"content": entry["question"]} for entry in context_history] +
                             [{"content": entry["response"]} for entry in context_history] +
-                            [{"content": question}],
-                            temp_model
+                            [{"content": question}]
                         )
 
                 # Rebuild messages with trimmed context
