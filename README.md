@@ -136,7 +136,21 @@ To be compatible, a provider should support:
 - JSON request/response format
 - Standard authentication method
 - Similar model parameter handling
+
 </details>
+
+## 🌐 Translations
+
+| Code | Language | Status |
+|------|----------|--------|
+| 🇩🇪 de | Deutsch | Full |
+| 🇬🇧 en | English | Primary |
+| 🇪🇸 es | Español | Full |
+| 🇮🇳 hi | हिन्दी | Full |
+| 🇮🇹 it | Italiano | Full |
+| 🇷🇺 ru | Русский | Full |
+| 🇷🇸 sr | Srpski | Full |
+| 🇨🇳 zh | 中文 | Full |
 
 ## ⚡ Installation
 

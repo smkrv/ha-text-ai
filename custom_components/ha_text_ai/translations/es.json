@@ -95,7 +95,7 @@
   },
   "services": {
     "ask_question": {
-      "name": "Hacer Pregunta (IA de Texto de HA)",
+      "name": "Hacer Pregunta (HA Text AI)",
       "description": "Envía una pregunta al modelo de IA y recibe una respuesta detallada. La respuesta se almacenará en el historial de conversación y se podrá recuperar más tarde.",
       "fields": {
         "instance": {

@@ -95,7 +95,7 @@
   },
   "services": {
     "ask_question": {
-      "name": "提问（HA文本AI）",
+      "name": "提问 (HA Text AI)",
       "description": "向AI模型发送问题并接收详细响应。响应将存储在对话历史中，可以稍后检索。",
       "fields": {
         "instance": {
