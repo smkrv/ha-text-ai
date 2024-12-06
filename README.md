@@ -253,12 +253,14 @@ data:
   max_tokens: 500  # optional
   context_messages: 10  #optional, number of previous messages to include in context, default: 5
   system_prompt: "You are a sleep optimization expert"  # optional
+  instance: sensor.ha_text_ai_gpt
 ```
 
 ### set_system_prompt
 ```yaml
 service: ha_text_ai.set_system_prompt
 data:
+  instance: sensor.ha_text_ai_gpt
   prompt: |
     You are a home automation expert focused on:
     1. Energy efficiency
@@ -314,6 +316,7 @@ automation:
       - service: ha_text_ai.ask_question
         data:
           question: "Home automation advice"
+          instance: sensor.ha_text_ai_gpt
       - service: notify.mobile
         data:
           message: >
