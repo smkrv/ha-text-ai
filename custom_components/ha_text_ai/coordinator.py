@@ -182,13 +182,13 @@ class HATextAICoordinator(DataUpdateCoordinator):
             hass.config.path(".storage"),
             "ha_text_ai_history"
         )
-        hass.async_create_task(self._create_history_dir())
 
-        hass.async_create_task(self._check_history_directory())
-
-        hass.async_create_task(self._migrate_history_from_txt_to_json())
-
-        hass.async_create_task(self._initialize_metrics())
+        # Initialize all async tasks in proper order
+        self.hass.async_create_task(self._create_history_dir())
+        self.hass.async_create_task(self._check_history_directory())
+        self.hass.async_create_task(self._initialize_metrics())
+        self.hass.async_create_task(self.async_initialize_history_file())
+        self.hass.async_create_task(self._migrate_history_from_txt_to_json())
 
         # History file path using instance name
         self._history_file = os.path.join(
@@ -273,18 +273,17 @@ class HATextAICoordinator(DataUpdateCoordinator):
             _LOGGER.error(f"Error checking file existence for {path}: {e}")
             return False
 
-    async def _create_history_dir(self):
+    async def _create_history_dir(self) -> None:
         """
         Asynchronously create history directory.
-
-        Creates the directory for storing history files
-        without blocking the event loop.
         """
         try:
-            await self.hass.async_add_executor_job(
-                lambda: os.makedirs(self._history_dir, exist_ok=True)
-            )
-            _LOGGER.debug(f"Directory creation details: exist_ok=True")
+            def mkdir_sync():
+                os.makedirs(self._history_dir, exist_ok=True)
+
+            await self.hass.async_add_executor_job(mkdir_sync)
+            _LOGGER.debug(f"History directory created/verified: {self._history_dir}")
+
         except PermissionError:
             _LOGGER.error(f"Permission denied when creating history directory: {self._history_dir}")
             raise
@@ -406,25 +405,21 @@ class HATextAICoordinator(DataUpdateCoordinator):
     async def async_initialize_history_file(self) -> None:
         """
         Asynchronously initialize history file.
-
-        Creates the file and writes an initialization timestamp
-        without blocking the event loop using Home Assistant's executor.
         """
         try:
-            await self.hass.async_add_executor_job(self._sync_initialize_history_file)
+            # Ensure directory exists first
+            await self._create_history_dir()
+
+            # Initialize file
+            if not await self._file_exists(self._history_file):
+                async with AsyncFileHandler(self._history_file, 'w') as f:
+                    await f.write(json.dumps([]))
+
+            _LOGGER.debug(f"History file initialized: {self._history_file}")
+
         except Exception as e:
             _LOGGER.error(f"Could not initialize history file: {e}")
             _LOGGER.debug(traceback.format_exc())
-
-    async def _sync_initialize_history_file(self) -> None:
-        try:
-            if not await self._file_exists(self._history_file):
-                def write_empty_history():
-                    with open(self._history_file, 'w') as f:
-                        json.dump([], f)
-                await self.hass.async_add_executor_job(write_empty_history)
-        except Exception as e:
-            _LOGGER.error(f"History file initialization failed: {e}")
 
     # Size check to _update_history method
     async def _update_history(self, question: str, response: dict) -> None:
@@ -565,7 +560,10 @@ class HATextAICoordinator(DataUpdateCoordinator):
         Asynchronously check history directory permissions and writability.
         """
         try:
-            # Test write permission in a separate thread
+            # First ensure directory exists
+            await self._create_history_dir()
+
+            # Then test write permission in a separate thread
             test_file_path = os.path.join(self._history_dir, ".write_test")
             await self.hass.async_add_executor_job(self._sync_test_directory_write, test_file_path)
 
@@ -754,7 +752,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
             "normalized_name": self.normalized_name,
         }
 
-    def _calculate_context_tokens(self, messages: List[Dict[str, str]]) -> int:
+    def _calculate_context_tokens(self, messages: List[Dict[str, str]], model: Optional[str] = None) -> int:
         total_tokens = 0
 
         # Compile regular expressions for performance
@@ -865,7 +863,8 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 context_tokens = self._calculate_context_tokens(
                     [{"content": entry["question"]} for entry in context_history] +
                     [{"content": entry["response"]} for entry in context_history] +
-                    [{"content": question}]
+                    [{"content": question}],
+                    temp_model
                 )
 
                 # Dynamic token allocation
@@ -885,7 +884,8 @@ class HATextAICoordinator(DataUpdateCoordinator):
                         context_tokens = self._calculate_context_tokens(
                             [{"content": entry["question"]} for entry in context_history] +
                             [{"content": entry["response"]} for entry in context_history] +
-                            [{"content": question}]
+                            [{"content": question}],
+                            temp_model
                         )
 
                 # Rebuild messages with trimmed context
