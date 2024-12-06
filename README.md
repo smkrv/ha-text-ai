@@ -109,6 +109,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
   - OpenAI ([Get key](https://platform.openai.com/account/api-keys))
   - Anthropic ([Get key](https://console.anthropic.com/))
   - OpenRouter ([Get key](https://openrouter.ai/keys))
+  - Any OpenAI-compatible API provider
 - Python 3.9 or newer
 - Stable internet connection
 
