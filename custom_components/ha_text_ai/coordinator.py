@@ -173,7 +173,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
         self.available = True
         self._state = STATE_READY
-        self._conversation_history = []  # Full conversation history
 
         self._start_time = dt_util.utcnow()
 
@@ -404,16 +403,31 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
     async def async_initialize_history_file(self) -> None:
         """
-        Asynchronously initialize history file.
+        Asynchronously initialize history file and load existing history.
         """
         try:
-            # Ensure directory exists first
             await self._create_history_dir()
 
-            # Initialize file
-            if not await self._file_exists(self._history_file):
+            if await self._file_exists(self._history_file):
+                # Load existing history
+                async with AsyncFileHandler(self._history_file, 'r') as f:
+                    content = await f.read()
+                    if content:
+                        history = json.loads(content)
+                        # Validate and load history
+                        if isinstance(history, list):
+                            self._conversation_history = history[-self.max_history_size:]
+                            _LOGGER.debug(
+                                f"Loaded {len(self._conversation_history)} history entries "
+                                f"for {self.instance_name}"
+                            )
+            else:
+                # Create new history file
                 async with AsyncFileHandler(self._history_file, 'w') as f:
                     await f.write(json.dumps([]))
+
+            await self._check_history_size()
+            await self.async_update_ha_state()
 
             _LOGGER.debug(f"History file initialized: {self._history_file}")
 
@@ -503,6 +517,15 @@ class HATextAICoordinator(DataUpdateCoordinator):
         except Exception as e:
             _LOGGER.error(f"Error writing history entry: {e}")
             _LOGGER.debug(traceback.format_exc())
+
+    async def _check_history_size(self) -> None:
+        """Verify and adjust history size if needed."""
+        if len(self._conversation_history) > self.max_history_size:
+            _LOGGER.warning(
+                f"History size ({len(self._conversation_history)}) exceeds "
+                f"maximum ({self.max_history_size}). Trimming..."
+            )
+            self._conversation_history = self._conversation_history[-self.max_history_size:]
 
     async def _check_file_size(self, file_path: str) -> int:
         """
