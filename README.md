@@ -99,7 +99,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 | 🇮🇳 hi | हिन्दी | Full |
 | 🇮🇹 it | Italiano | Full |
 | 🇷🇺 ru | Русский | Full |
-| 🇷🇸 sr | Srpski | Full |
+| 🇷🇸 sr | Српски | Full |
 | 🇨🇳 zh | 中文 | Full |
 
 ## 📋 Prerequisites
