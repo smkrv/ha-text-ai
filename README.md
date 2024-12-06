@@ -525,7 +525,7 @@ If you want to say thanks financially, you can send a small token of appreciatio
 <div align="center"><img src="https://github.com/smkrv/ha-text-ai/blob/2aaf3405759eb2d97624834594e24ace896131df/assets/images/icons/footer_icon.png" alt="HA Text AI" style="width: 128px; height: auto;"/></div>  
 <div align="center">
 
-Made with ❤️ and Claude 3.5 Sonnet for the Home Assistant Community
+Made with ❤️ for the Home Assistant Community, utilizing Claude 3.5 Sonnet, Gemini Pro 1.5, and Qwen 2.5 Coder 32B Instruct.
 
 [Report Bug](https://github.com/smkrv/ha-text-ai/issues) · [Request Feature](https://github.com/smkrv/ha-text-ai/issues)
 
