@@ -32,7 +32,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 - 🎯 **Advanced Customization**: Per-request model and parameter selection
 - 🔒 **Enhanced Security**: Secure API key management and usage monitoring
 - 🎨 **Improved User Experience**: Intuitive configuration and rich interfaces
-- 🔄 **Automation Integration**: Event-driven responses and template compatibility
+- 🔄 **Automation Integration**: Event-driven responses and template compatibility 
 
 <details>
 <summary>📦 Detailed Feature Breakdown</summary>
