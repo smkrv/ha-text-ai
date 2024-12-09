@@ -32,7 +32,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 - 🎯 **Advanced Customization**: Per-request model and parameter selection
 - 🔒 **Enhanced Security**: Secure API key management and usage monitoring
 - 🎨 **Improved User Experience**: Intuitive configuration and rich interfaces
-- 🔄 **Automation Integration**: Event-driven responses and template compatibility 
+- 🔄 **Automation Integration**: Event-driven responses and template compatibility
 
 <details>
 <summary>📦 Detailed Feature Breakdown</summary>
@@ -163,6 +163,8 @@ To be compatible, a provider should support:
 6. Choose "Integration" as category
 7. Click "Download"
 8. Restart Home Assistant
+
+Note: Also Integration has been submitted to HACS store and is currently pending review in [pull request #2893](https://github.com/hacs/default/pull/2893).
 
 ### Manual Installation
 1. Download the latest release
