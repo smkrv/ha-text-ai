@@ -164,7 +164,7 @@ To be compatible, a provider should support:
 7. Click "Download"
 8. Restart Home Assistant
 
-Note: Also Integration has been submitted to HACS store and is currently pending review in [pull request #2893](https://github.com/hacs/default/pull/2893).
+Note: Also Integration has been submitted to HACS store and is currently pending review in [pull request #2893](https://github.com/hacs/default/pull/2896).
 
 ### Manual Installation
 1. Download the latest release
