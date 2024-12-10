@@ -274,6 +274,8 @@ data:
 ### clear_history
 ```yaml
 service: ha_text_ai.clear_history
+data:
+  instance: sensor.ha_text_ai_gpt
 ```
 
 ### get_history
@@ -282,6 +284,7 @@ service: ha_text_ai.get_history
 data:
   limit: 5  # optional
   filter_model: "gpt-4o"  # optional
+  instance: sensor.ha_text_ai_gpt
 ```
 
 ### 🏷️ HA Text AI Sensor Naming Convention
@@ -404,7 +407,7 @@ automation:
 # Number of entries in current history file
 {{ state_attr('sensor.ha_text_ai_gpt', 'History size') }}          # 0  
 
-# Last few conversation entries (limited to 3 for performance)
+# Last few conversation entries (limited to 1 for performance)
 {{ state_attr('sensor.ha_text_ai_gpt', 'conversation_history') }}  # [...]
 ```
 
