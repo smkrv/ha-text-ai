@@ -2,7 +2,9 @@
 
 <div align="center">  
 
-![GitHub release](https://img.shields.io/github/release/smkrv/ha-text-ai.svg?style=flat-square) ![GitHub last commit](https://img.shields.io/github/last-commit/smkrv/ha-text-ai.svg?style=flat-square) [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?style=flat-square)](https://creativecommons.org/licenses/by-nc-sa/4.0/) [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration) ![/README.md](https://img.shields.io/badge/language-English-green?style=flat-square) ![/README_RU.md](https://img.shields.io/badge/language-Russian-green?style=flat-square) ![](https://img.shields.io/badge/language-Deutch-green?style=flat-square)
+  ![GitHub release](https://img.shields.io/github/release/smkrv/ha-text-ai.svg?style=flat-square) ![GitHub last commit](https://img.shields.io/github/last-commit/smkrv/ha-text-ai.svg?style=flat-square) [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?style=flat-square)](https://creativecommons.org/licenses/by-nc-sa/4.0/) [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration)
+![Deutsch](https://img.shields.io/badge/de-Deutsch-blue?style=flat-square) ![English](https://img.shields.io/badge/en-English-blue?style=flat-square) ![Español](https://img.shields.io/badge/es-Español-blue?style=flat-square) ![हिन्दी](https://img.shields.io/badge/hi-हिन्दी-blue?style=flat-square) ![Italiano](https://img.shields.io/badge/it-Italiano-blue?style=flat-square) ![Русский](https://img.shields.io/badge/ru-Русский-blue?style=flat-square) ![Српски](https://img.shields.io/badge/sr-Српски-blue?style=flat-square) ![中文](https://img.shields.io/badge/zh-中文-blue?style=flat-square)
+
 
   <img src="https://github.com/smkrv/ha-text-ai/blob/15c717fcb0204bf4a0d4b4b4c6f0bb93e9f6c9a9/custom_components/ha_text_ai/icons/logo%402x.png" alt="HA Text AI" style="width: 50%; max-width: 256px; max-height: 128px; aspect-ratio: 2/1; object-fit: contain;"/>
 
