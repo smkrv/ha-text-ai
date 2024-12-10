@@ -56,7 +56,7 @@ DEFAULT_NAME: Final = "HA Text AI"
 DEFAULT_NAME_PREFIX = "ha_text_ai"
 DEFAULT_CONTEXT_MESSAGES: Final = 5
 
-TRUNCATION_INDICATOR = " … "
+TRUNCATION_INDICATOR = " ... "
 
 # Parameter constraints
 MIN_TEMPERATURE: Final = 0.0
