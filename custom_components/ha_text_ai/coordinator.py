@@ -41,6 +41,7 @@ from .const import (
     ABSOLUTE_MAX_HISTORY_SIZE,
     MAX_ATTRIBUTE_SIZE,
     MAX_HISTORY_FILE_SIZE,
+    TRUNCATION_INDICATOR,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -647,15 +648,14 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
     async def _async_update_data(self) -> Dict[str, Any]:
         """Update coordinator data with improved error handling and performance."""
-
         try:
             async with asyncio.Semaphore(1):
                 current_state = self._get_current_state()
 
-                limited_history = await self._get_limited_history()
+                # Get limited history with info
+                history_data = await self._get_limited_history()
 
                 metrics = await self._get_current_metrics()
-
                 if metrics is None:
                     metrics = {}
 
@@ -670,46 +670,67 @@ class HATextAICoordinator(DataUpdateCoordinator):
                     "uptime": self._calculate_uptime(),
                     "system_prompt": self._get_truncated_system_prompt(),
                     "history_size": len(self._conversation_history),
-                    "conversation_history": limited_history,
+                    "conversation_history": history_data["entries"],
+                    "history_info": history_data["info"],
                     "normalized_name": self.normalized_name,
                 }
 
                 await self._validate_update_data(data)
-
                 return data
 
-        except asyncio.CancelledError:
-            _LOGGER.warning("Update was cancelled")
-            raise
         except Exception as err:
             _LOGGER.error(f"Error updating data: {err}", exc_info=True)
             return self._get_safe_initial_state()
 
-    async def _get_limited_history(self) -> List[Dict[str, Any]]:
-        """Get limited conversation history with size constraints."""
+    async def _get_limited_history(self) -> Dict[str, Any]:
+        """Get limited conversation history showing only last Q&A."""
         limited_history = []
+
         if self._conversation_history:
-            for entry in self._conversation_history[-3:]:
-                limited_entry = {
-                    "timestamp": entry["timestamp"],
-                    "question": self._truncate_text(entry["question"]),
-                    "response": self._truncate_text(entry["response"]),
-                }
-                limited_history.append(limited_entry)
-        return limited_history
+            last_entry = self._conversation_history[-1]
+            limited_entry = {
+                "timestamp": last_entry["timestamp"],
+                "question": last_entry["question"][:4096] + (TRUNCATION_INDICATOR if len(last_entry["question"]) > 4096 else ""),
+                "response": last_entry["response"][:4096] + (TRUNCATION_INDICATOR if len(last_entry["response"]) > 4096 else ""),
+            }
+            limited_history.append(limited_entry)
+
+        history_info = {
+            "total_entries": len(self._conversation_history),
+            "displayed_entries": len(limited_history),
+            "full_history_available": True,
+            "history_path": self._history_file,
+        }
+
+        return {
+            "entries": limited_history,
+            "full_history": self._conversation_history,
+            "info": history_info
+        }
+
+    async def _get_sanitized_last_response(self) -> Dict[str, Any]:
+        """Get sanitized version of last response with truncation indicators."""
+        response = self.last_response.copy()
+
+        if "response" in response:
+            original_response = response["response"]
+            is_response_truncated = len(original_response) > 4096
+            response["response"] = original_response[:4096] + (TRUNCATION_INDICATOR if is_response_truncated else "")
+            response["is_response_truncated"] = is_response_truncated
+            response["full_response_length"] = len(original_response)
+
+        if "question" in response:
+            original_question = response["question"]
+            is_question_truncated = len(original_question) > 4096
+            response["question"] = original_question[:4096] + (TRUNCATION_INDICATOR if is_question_truncated else "")
+            response["is_question_truncated"] = is_question_truncated
+            response["full_question_length"] = len(original_question)
+
+        return response
 
     def _truncate_text(self, text: str, max_length: int = MAX_ATTRIBUTE_SIZE) -> str:
         """Safely truncate text to maximum length."""
         return text[:max_length] if text else ""
-
-    async def _get_sanitized_last_response(self) -> Dict[str, Any]:
-        """Get sanitized version of last response."""
-        response = self.last_response.copy()
-        if "response" in response:
-            response["response"] = self._truncate_text(response["response"])
-        if "question" in response:
-            response["question"] = self._truncate_text(response["question"])
-        return response
 
     def _calculate_uptime(self) -> float:
         """Calculate current uptime in seconds."""
