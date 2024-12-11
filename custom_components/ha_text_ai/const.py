@@ -6,6 +6,7 @@ Constants for the HA text AI integration.
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai
 """
+import os
 from typing import Final
 import voluptuous as vol
 from homeassistant.const import Platform, CONF_API_KEY, CONF_NAME
@@ -24,6 +25,15 @@ API_PROVIDERS: Final = [
     API_PROVIDER_OPENAI,
     API_PROVIDER_ANTHROPIC
 ]
+
+# Read version from manifest.json
+MANIFEST_PATH = os.path.join(os.path.dirname(__file__), "manifest.json")
+try:
+    with open(MANIFEST_PATH) as manifest_file:
+        manifest = json.load(manifest_file)
+        VERSION = manifest.get("version", "unknown")
+except Exception:
+    VERSION = "unknown"
 
 # Default endpoints
 DEFAULT_OPENAI_ENDPOINT: Final = "https://api.openai.com/v1"
