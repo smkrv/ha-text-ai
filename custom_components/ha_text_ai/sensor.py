@@ -68,6 +68,7 @@ from .const import (
     DEFAULT_NAME_PREFIX,
     CONF_MAX_HISTORY_SIZE,
     MAX_ATTRIBUTE_SIZE,
+    VERSION,
 )
 
 from .coordinator import HATextAICoordinator
@@ -154,7 +155,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             name=self._attr_name,
             manufacturer="Community",
             model=f"{model} ({api_provider} provider)",
-            sw_version="1.0.0",
+            sw_version=VERSION, 
         )
 
         _LOGGER.debug(
