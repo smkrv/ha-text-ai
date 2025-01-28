@@ -12,7 +12,7 @@
 </div>
 
 <p align="center">
-Transform your smart home experience with powerful AI assistance powered by multiple AI providers including OpenAI GPT and Anthropic Claude models. Get intelligent responses, automate complex scenarios, and enhance your home automation with advanced natural language processing.
+Transform your smart home experience with powerful AI assistance powered by multiple AI providers including OpenAI GPT, DeepSeek and Anthropic Claude models. Get intelligent responses, automate complex scenarios, and enhance your home automation with advanced natural language processing.
 
 </p>
 
@@ -27,7 +27,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 
 ## 🌟 Features
 
-- 🧠 **Multi-Provider AI Integration**: Support for OpenAI GPT and Anthropic Claude models
+- 🧠 **Multi-Provider AI Integration**: Support for OpenAI GPT, DeepSeek and Anthropic Claude models
 - 💬 **Advanced Language Processing**: Context-aware, multi-turn conversations
 - 📝 **Enhanced Memory Management**: Secure file-based history storage
 - ⚡ **Performance Optimization**: Efficient token usage and smart rate limiting
@@ -42,6 +42,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 ### 🧠 **Multi-Provider AI Integration**
 - Support for OpenAI GPT models
 - Anthropic Claude integration
+- DeepSeek integration
 - Custom API endpoints
 - Flexible model selection
 
@@ -108,7 +109,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 - Active API key from:
   - OpenAI ([Get key](https://platform.openai.com/account/api-keys))
   - Anthropic ([Get key](https://console.anthropic.com/))
-  - DeepSeek 🆕 ([Get key](https://platform.deepseek.com/api_keys)) 
+  - DeepSeek 🆕 ([Get key](https://platform.deepseek.com/api_keys))
   - OpenRouter ([Get key](https://openrouter.ai/keys))
   - Any OpenAI-compatible API provider
 - Python 3.9 or newer
@@ -117,7 +118,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 ## Configuration Options
 
 ### 🔧 **Core Configuration Settings**
-- 🌐 **API Provider**: OpenAI/Anthropic
+- 🌐 **API Provider**: OpenAI/Anthropic/DeepSeek
 - 🔑 **API Key**: Provider-specific authentication
 - 🤖 **Model Selection**: Flexible, provider-specific models
 - 🌡️ **Temperature**: Creativity control (0.0-2.0)
