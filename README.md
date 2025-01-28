@@ -2,7 +2,8 @@
 
 <div align="center">  
 
-  ![GitHub release](https://img.shields.io/github/v/release/smkrv/ha-text-ai?style=flat-square) ![GitHub last commit](https://img.shields.io/github/last-commit/smkrv/ha-text-ai?style=flat-square) [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?style=flat-square)](https://creativecommons.org/licenses/by-nc-sa/4.0/) [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration)
+  ![GitHub release](https://img.shields.io/github/v/release/smkrv/ha-text-ai?style=flat-square) ![GitHub last commit](https://img.shields.io/github/last-commit/smkrv/ha-text-ai?style=flat-square) [![License: CC BY-NC-SA 4.0](https://img.shields.io/badge/License-CC%20BY--NC--SA%204.0-lightgrey.svg?style=flat-square)](https://creativecommons.org/licenses/by-nc-sa/4.0/) [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg?style=flat-square)](https://github.com/hacs/integration)  
+  
   ![Deutsch](https://img.shields.io/badge/lang-DE-blue?style=flat-square) ![English](https://img.shields.io/badge/lang-EN-blue?style=flat-square) ![Español](https://img.shields.io/badge/lang-ES-blue?style=flat-square) ![हिन्दी](https://img.shields.io/badge/lang-HI-blue?style=flat-square) ![Italiano](https://img.shields.io/badge/lang-IT-blue?style=flat-square) ![Русский](https://img.shields.io/badge/lang-RU-blue?style=flat-square) ![Српски](https://img.shields.io/badge/lang-SR-blue?style=flat-square) ![中文](https://img.shields.io/badge/lang-ZH-blue?style=flat-square)
 
 
