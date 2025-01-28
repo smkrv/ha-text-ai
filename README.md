@@ -19,7 +19,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 ---
 
 > [!IMPORTANT]
-> 🤝 Community Driven  
+> 🤝 Community Driven: for more details on the integration, check out the discussion on the **[Home Assistant Community forum](https://community.home-assistant.io/t/ha-text-ai-transforming-home-automation-through-multi-llm-integration/799741)**
 >
 >  <a href="https://community.home-assistant.io/t/ha-text-ai-transforming-home-automation-with-multi-provider-language-models/799741"><img src="https://img.shields.io/badge/Community-blue?style=for-the-badge&logo=homeassistant&logoColor=white&color=03a9f4"/></a>  
 >  
