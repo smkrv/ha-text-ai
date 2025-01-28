@@ -108,6 +108,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 - Active API key from:
   - OpenAI ([Get key](https://platform.openai.com/account/api-keys))
   - Anthropic ([Get key](https://console.anthropic.com/))
+  - DeepSeek 🆕 ([Get key](https://platform.deepseek.com/api_keys)) 
   - OpenRouter ([Get key](https://openrouter.ai/keys))
   - Any OpenAI-compatible API provider
 - Python 3.9 or newer
@@ -120,7 +121,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 - 🔑 **API Key**: Provider-specific authentication
 - 🤖 **Model Selection**: Flexible, provider-specific models
 - 🌡️ **Temperature**: Creativity control (0.0-2.0)
-- 📏 **Max Tokens**: Response length limit (token usage is estimated using a heuristic method based on word count and specific word characteristics, which may differ from actual token usage)
+- 📏 **Max Tokens**: Response length limit (passed directly to the LLM API to control the maximum length of the response)
 - ⏱️ **Request Interval**: API call throttling
 - 💾 **History Size**: Number of messages to retain
 - 🌍 **Custom API Endpoint**: Optional advanced configuration

@@ -19,7 +19,7 @@
           "model": "AI model to use",
           "api_endpoint": "Custom API endpoint URL (optional)",
           "temperature": "Response creativity (0-2, lower = more focused)",
-          "max_tokens": "Maximum response length (1-4096 tokens)",
+          "max_tokens": "Maximum response length (1-100000 tokens)",
           "request_interval": "Minimum time between requests (0.1-60 seconds)",
           "context_messages": "Number of context messages to retain (1-20)",
           "max_history_size": "Maximum conversation history size (1-100)"
@@ -33,7 +33,7 @@
           "api_key": "API key for authentication",
           "model": "AI model to use",
           "temperature": "Response creativity (0-2, lower = more focused)",
-          "max_tokens": "Maximum response length (1-4096 tokens)",
+          "max_tokens": "Maximum response length (1-100000 tokens)",
           "api_endpoint": "Custom API endpoint URL (optional)",
           "api_provider": "API Provider",
           "request_interval": "Minimum time between requests (0.1-60 seconds)",
@@ -77,7 +77,7 @@
         "data": {
           "model": "AI model",
           "temperature": "Response creativity (0-2)",
-          "max_tokens": "Maximum response length (1-4096)",
+          "max_tokens": "Maximum response length (1-100000)",
           "request_interval": "Minimum request interval (0.1-60 seconds)",
           "context_messages": "Number of previous messages to include in context (1-20)",
           "max_history_size": "Maximum conversation history size (1-100)"
@@ -89,7 +89,8 @@
   "api_provider": {
     "options": {
       "openai": "OpenAI (compatible)",
-      "anthropic": "Anthropic (compatible)"
+      "anthropic": "Anthropic (compatible)",
+      "deepseek": "DeepSeek"
     }
   }
 },
@@ -124,7 +125,7 @@
         },
         "max_tokens": {
           "name": "Max Tokens",
-          "description": "Maximum length of the response (1-4096 tokens)"
+          "description": "Maximum length of the response (1-100000 tokens)"
         }
       }
     },

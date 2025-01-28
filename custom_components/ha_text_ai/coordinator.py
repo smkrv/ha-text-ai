@@ -796,46 +796,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
             "normalized_name": self.normalized_name,
         }
 
-    def _calculate_context_tokens(self, messages: List[Dict[str, str]], model: Optional[str] = None) -> int:
-        total_tokens = 0
-
-        # Compile regular expressions for performance
-        number_pattern = re.compile(r'[0-9]')
-        special_char_pattern = re.compile(r'[^\w\s]')
-        whitespace_pattern = re.compile(r'\s+')
-
-        try:
-            for message in messages:
-                text = message.get('content', '')
-                if text:
-                    # Normalize whitespace
-                    text = whitespace_pattern.sub(' ', text.strip())
-
-                    # Advanced token estimation heuristics
-                    words = text.split()
-                    for word in words:
-                        # Complexity-based token calculation
-                        if len(word) > 8:  # Long words
-                            total_tokens += 2
-                        elif number_pattern.search(word):  # Words with numbers
-                            total_tokens += 1.5
-                        elif special_char_pattern.search(word):  # Words with special characters
-                            total_tokens += 1.5
-                        elif word.isupper():  # Acronyms and technical terms
-                            total_tokens += 1.5
-                        else:  # Regular words
-                            total_tokens += 1
-
-                    # Additional correction for technical texts
-                    total_tokens = math.ceil(total_tokens * 1.2)
-
-            return int(total_tokens)
-
-        except Exception as e:
-            _LOGGER.error(f"Token calculation error: {e}. Processed {len(messages)} messages.")
-            # Safe fallback with minimal token estimation
-            return len(messages) * 100
-
     async def async_ask_question(
         self,
         question: str,
@@ -876,9 +836,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
             system_prompt: Optional[str] = None,
             context_messages: Optional[int] = None,
         ) -> dict:
-            """
-            Enhanced question processing with intelligent token management.
-            """
+            """Process question with context management."""
             if self.client is None:
                 raise HomeAssistantError("AI client not initialized")
 
@@ -900,62 +858,23 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 if temp_system_prompt:
                     messages.append({"role": "system", "content": temp_system_prompt})
 
-                # Context history management
+                # Add context from history
                 context_history = self._conversation_history[-temp_context_messages:]
-
-                # Comprehensive token calculation
-                context_tokens = self._calculate_context_tokens(
-                    [{"content": entry["question"]} for entry in context_history] +
-                    [{"content": entry["response"]} for entry in context_history] +
-                    [{"content": question}],
-                    temp_model
-                )
-
-                # Dynamic token allocation
-                available_tokens = max(0, temp_max_tokens - context_tokens)
-
-                # Context trimming if over token limit
-                if context_tokens > temp_max_tokens:
-                    _LOGGER.warning(
-                        f"Token limit exceeded. "
-                        f"Context: {context_tokens}, "
-                        f"Max: {temp_max_tokens}"
-                    )
-
-                    # Intelligent context reduction
-                    while context_tokens > temp_max_tokens // 2 and context_history:
-                        context_history.pop(0)
-                        context_tokens = self._calculate_context_tokens(
-                            [{"content": entry["question"]} for entry in context_history] +
-                            [{"content": entry["response"]} for entry in context_history] +
-                            [{"content": question}],
-                            temp_model
-                        )
-
-                # Rebuild messages with trimmed context
                 for entry in context_history:
                     messages.append({"role": "user", "content": entry["question"]})
                     messages.append({"role": "assistant", "content": entry["response"]})
 
+                # Add current question
                 messages.append({"role": "user", "content": question})
 
-                # Detailed token logging
-                _LOGGER.debug(
-                    f"Token Analysis: "
-                    f"Context Tokens: {context_tokens}, "
-                    f"Max Tokens: {temp_max_tokens}, "
-                    f"Available Tokens: {available_tokens}"
-                )
-
-                # Prepare API call with dynamic token management
+                # Process message
                 kwargs = {
                     "model": temp_model,
                     "temperature": temp_temperature,
-                    "max_tokens": min(temp_max_tokens, available_tokens),
+                    "max_tokens": temp_max_tokens,
                     "messages": messages,
                 }
 
-                # Process message
                 response = await self.async_process_message(question, **kwargs)
 
                 # Update metrics

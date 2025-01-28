@@ -155,7 +155,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             name=self._attr_name,
             manufacturer="Community",
             model=f"{model} ({api_provider} provider)",
-            sw_version=VERSION, 
+            sw_version=VERSION,
         )
 
         _LOGGER.debug(

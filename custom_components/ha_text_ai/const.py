@@ -7,7 +7,7 @@ Constants for the HA text AI integration.
 @source: https://github.com/smkrv/ha-text-ai
 """
 import os
-import json 
+import json
 from typing import Final
 import voluptuous as vol
 from homeassistant.const import Platform, CONF_API_KEY, CONF_NAME
@@ -21,10 +21,12 @@ PLATFORMS: list[str] = ["sensor"]
 CONF_API_PROVIDER: Final = "api_provider"
 API_PROVIDER_OPENAI: Final = "openai"
 API_PROVIDER_ANTHROPIC: Final = "anthropic"
+API_PROVIDER_DEEPSEEK: Final = "deepseek"
 
 API_PROVIDERS: Final = [
     API_PROVIDER_OPENAI,
-    API_PROVIDER_ANTHROPIC
+    API_PROVIDER_ANTHROPIC,
+    API_PROVIDER_DEEPSEEK
 ]
 
 # Read version from manifest.json
@@ -46,6 +48,7 @@ except Exception as err:
 # Default endpoints
 DEFAULT_OPENAI_ENDPOINT: Final = "https://api.openai.com/v1"
 DEFAULT_ANTHROPIC_ENDPOINT: Final = "https://api.anthropic.com"
+DEFAULT_DEEPSEEK_ENDPOINT: Final = "https://api.deepseek.com"
 
 # Configuration constants
 CONF_MODEL: Final = "model"
@@ -65,6 +68,7 @@ ICONS_SUBDOMAIN = "icons"
 
 # Default values
 DEFAULT_MODEL: Final = "gpt-4o-mini"
+DEFAULT_DEEPSEEK_MODEL: Final = "deepseek-chat"
 DEFAULT_TEMPERATURE: Final = 0.1
 DEFAULT_MAX_TOKENS: Final = 1000
 DEFAULT_REQUEST_INTERVAL: Final = 1.0
@@ -80,7 +84,7 @@ TRUNCATION_INDICATOR = " ... "
 MIN_TEMPERATURE: Final = 0.0
 MAX_TEMPERATURE: Final = 2.0
 MIN_MAX_TOKENS: Final = 1
-MAX_MAX_TOKENS: Final = 4096
+MAX_MAX_TOKENS: Final = 100000
 MIN_REQUEST_INTERVAL: Final = 0.1
 MAX_REQUEST_INTERVAL: Final = 60.0
 

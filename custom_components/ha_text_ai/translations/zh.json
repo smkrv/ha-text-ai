@@ -19,7 +19,7 @@
           "model": "要使用的AI模型",
           "api_endpoint": "自定义API端点URL（可选）",
           "temperature": "响应创造力（0-2，越低越专注）",
-          "max_tokens": "最大响应长度（1-4096个标记）",
+          "max_tokens": "最大响应长度（1-100000个标记）",
           "request_interval": "请求之间的最小时间（0.1-60秒）",
           "context_messages": "保留的上下文消息数量（1-20）",
           "max_history_size": "最大对话历史大小（1-100）"
@@ -33,7 +33,7 @@
           "api_key": "用于身份验证的API密钥",
           "model": "要使用的AI模型",
           "temperature": "响应创造力（0-2，越低越专注）",
-          "max_tokens": "最大响应长度（1-4096个标记）",
+          "max_tokens": "最大响应长度（1-100000个标记）",
           "api_endpoint": "自定义API端点URL（可选）",
           "api_provider": "API提供者",
           "request_interval": "请求之间的最小时间（0.1-60秒）",
@@ -77,7 +77,7 @@
         "data": {
           "model": "AI模型",
           "temperature": "响应创造力（0-2）",
-          "max_tokens": "最大响应长度（1-4096）",
+          "max_tokens": "最大响应长度（1-100000）",
           "request_interval": "最小请求间隔（0.1-60秒）",
           "context_messages": "要包含在上下文中的先前消息数量（1-20）",
           "max_history_size": "最大对话历史大小（1-100）"
@@ -89,7 +89,8 @@
     "api_provider": {
       "options": {
         "openai": "OpenAI（兼容）",
-        "anthropic": "Anthropic（兼容）"
+        "anthropic": "Anthropic（兼容）",
+        "deepseek": "DeepSeek "
       }
     }
   },
@@ -124,7 +125,7 @@
         },
         "max_tokens": {
           "name": "最大标记数",
-          "description": "响应的最大长度（1-4096个标记）"
+          "description": "响应的最大长度（1-100000个标记）"
         }
       }
     },

@@ -18,6 +18,8 @@ from .const import (
     API_TIMEOUT,
     API_RETRY_COUNT,
     API_PROVIDER_ANTHROPIC,
+    API_PROVIDER_DEEPSEEK,
+    API_PROVIDER_OPENAI,
     MIN_TEMPERATURE,
     MAX_TEMPERATURE,
     MIN_MAX_TOKENS,
@@ -109,18 +111,48 @@ class APIClient:
                 return await self._create_anthropic_completion(
                     model, messages, temperature, max_tokens
                 )
+            elif self.api_provider == API_PROVIDER_DEEPSEEK:
+                return await self._create_deepseek_completion(
+                    model, messages, temperature, max_tokens
+                )
             else:
                 return await self._create_openai_completion(
                     model, messages, temperature, max_tokens
                 )
-        except (KeyError, IndexError) as e:
-            if "'choices'" in str(e) or "'message'" in str(e):
-                raise HomeAssistantError("Failed to get a response from the AI model. Please check your internet connection and try again later.")
-            else:
-                raise
         except Exception as e:
             _LOGGER.error("API request failed: %s", str(e))
             raise HomeAssistantError(f"API request failed: {str(e)}")
+
+    async def _create_deepseek_completion(
+        self,
+        model: str,
+        messages: List[Dict[str, str]],
+        temperature: float,
+        max_tokens: int,
+    ) -> Dict[str, Any]:
+        """Create completion using DeepSeek API."""
+        url = f"{self.endpoint}/chat/completions"
+        payload = {
+            "model": model,
+            "messages": messages,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "stream": False
+        }
+
+        data = await self._make_request(url, payload)
+        return {
+            "choices": [
+                {
+                    "message": {"content": data["choices"][0]["message"]["content"]},
+                }
+            ],
+            "usage": {
+                "prompt_tokens": data["usage"]["prompt_tokens"],
+                "completion_tokens": data["usage"]["completion_tokens"],
+                "total_tokens": data["usage"]["total_tokens"],
+            },
+        }
 
     async def _create_openai_completion(
         self,

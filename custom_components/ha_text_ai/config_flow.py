@@ -28,13 +28,16 @@ from .const import (
     CONF_CONTEXT_MESSAGES,
     API_PROVIDER_OPENAI,
     API_PROVIDER_ANTHROPIC,
+    API_PROVIDER_DEEPSEEK,
     API_PROVIDERS,
     DEFAULT_MODEL,
+    DEFAULT_DEEPSEEK_MODEL,
     DEFAULT_TEMPERATURE,
     DEFAULT_MAX_TOKENS,
     DEFAULT_REQUEST_INTERVAL,
     DEFAULT_OPENAI_ENDPOINT,
     DEFAULT_ANTHROPIC_ENDPOINT,
+    DEFAULT_DEEPSEEK_ENDPOINT,
     DEFAULT_CONTEXT_MESSAGES,
     MIN_TEMPERATURE,
     MAX_TEMPERATURE,
@@ -90,17 +93,22 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is None:
-            default_endpoint = (
-                DEFAULT_OPENAI_ENDPOINT if self._provider == API_PROVIDER_OPENAI
-                else DEFAULT_ANTHROPIC_ENDPOINT
-            )
+            # Выбор endpoint по провайдеру
+            default_endpoint = {
+                API_PROVIDER_OPENAI: DEFAULT_OPENAI_ENDPOINT,
+                API_PROVIDER_ANTHROPIC: DEFAULT_ANTHROPIC_ENDPOINT,
+                API_PROVIDER_DEEPSEEK: DEFAULT_DEEPSEEK_ENDPOINT,
+            }.get(self._provider, DEFAULT_OPENAI_ENDPOINT)
+
+            # Выбор модели по умолчанию по провайдеру
+            default_model = DEFAULT_DEEPSEEK_MODEL if self._provider == API_PROVIDER_DEEPSEEK else DEFAULT_MODEL
 
             return self.async_show_form(
                 step_id="provider",
                 data_schema=vol.Schema({
                     vol.Required(CONF_NAME, default="my_assistant"): str,
                     vol.Required(CONF_API_KEY): str,
-                    vol.Required(CONF_MODEL, default=DEFAULT_MODEL): str,
+                    vol.Required(CONF_MODEL, default=default_model): str,
                     vol.Required(CONF_API_ENDPOINT, default=default_endpoint): str,
                     vol.Optional(CONF_TEMPERATURE, default=DEFAULT_TEMPERATURE): vol.All(
                         vol.Coerce(float),
@@ -156,15 +164,13 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not await self._async_validate_api(input_copy):
                 return self.async_show_form(
                     step_id="provider",
-                    data_schema=vol.Schema({
-                    }),
+                    data_schema=vol.Schema({}),
                     errors=self._errors
                 )
         except Exception as e:
             return self.async_show_form(
                 step_id="provider",
-                data_schema=vol.Schema({
-                }),
+                data_schema=vol.Schema({}),
                 errors={"base": str(e)}
             )
 
@@ -250,6 +256,8 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         unique_id = f"{DOMAIN}_{normalized_name}_{self._provider}".lower()
 
+        default_model = DEFAULT_DEEPSEEK_MODEL if self._provider == API_PROVIDER_DEEPSEEK else DEFAULT_MODEL
+
         entry_data = {
             CONF_API_PROVIDER: self._provider,
             CONF_NAME: instance_name,
@@ -257,7 +265,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_API_KEY: user_input.get(CONF_API_KEY),
             CONF_API_ENDPOINT: user_input.get(CONF_API_ENDPOINT),
             "unique_id": unique_id,
-            CONF_MODEL: user_input.get(CONF_MODEL, DEFAULT_MODEL),
+            CONF_MODEL: user_input.get(CONF_MODEL, default_model),
             CONF_TEMPERATURE: user_input.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
             CONF_MAX_TOKENS: user_input.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
             CONF_REQUEST_INTERVAL: user_input.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL),
@@ -302,7 +310,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             data_schema=vol.Schema({
                 vol.Optional(
                     CONF_MODEL,
-                    default=current_data.get(CONF_MODEL, DEFAULT_MODEL)
+                    default=current_data.get(CONF_MODEL, default_model)
                 ): str,
                 vol.Optional(
                     CONF_TEMPERATURE,

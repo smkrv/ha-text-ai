@@ -19,7 +19,7 @@
           "model": "Modelo de IA a utilizar",
           "api_endpoint": "URL del endpoint de API personalizado (opcional)",
           "temperature": "Creatividad de la respuesta (0-2, menor = más enfocado)",
-          "max_tokens": "Longitud máxima de la respuesta (1-4096 tokens)",
+          "max_tokens": "Longitud máxima de la respuesta (1-100000 tokens)",
           "request_interval": "Tiempo mínimo entre solicitudes (0.1-60 segundos)",
           "context_messages": "Número de mensajes de contexto a retener (1-20)",
           "max_history_size": "Tamaño máximo del historial de conversación (1-100)"
@@ -33,7 +33,7 @@
           "api_key": "Clave API para autenticación",
           "model": "Modelo de IA a utilizar",
           "temperature": "Creatividad de la respuesta (0-2, menor = más enfocado)",
-          "max_tokens": "Longitud máxima de la respuesta (1-4096 tokens)",
+          "max_tokens": "Longitud máxima de la respuesta (1-100000 tokens)",
           "api_endpoint": "URL del endpoint de API personalizado (opcional)",
           "api_provider": "Proveedor de API",
           "request_interval": "Tiempo mínimo entre solicitudes (0.1-60 segundos)",
@@ -77,7 +77,7 @@
         "data": {
           "model": "Modelo de IA",
           "temperature": "Creatividad de la respuesta (0-2)",
-          "max_tokens": "Longitud máxima de la respuesta (1-4096)",
+          "max_tokens": "Longitud máxima de la respuesta (1-100000)",
           "request_interval": "Intervalo mínimo de solicitud (0.1-60 segundos)",
           "context_messages": "Número de mensajes anteriores a incluir en el contexto (1-20)",
           "max_history_size": "Tamaño máximo del historial de conversación (1-100)"
@@ -89,7 +89,8 @@
     "api_provider": {
       "options": {
         "openai": "OpenAI (compatible)",
-        "anthropic": "Anthropic (compatible)"
+        "anthropic": "Anthropic (compatible)",
+        "deepseek": "DeepSeek"
       }
     }
   },
@@ -124,7 +125,7 @@
         },
         "max_tokens": {
           "name": "Máx. Tokens",
-          "description": "Longitud máxima de la respuesta (1-4096 tokens)"
+          "description": "Longitud máxima de la respuesta (1-100000 tokens)"
         }
       }
     },

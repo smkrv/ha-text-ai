@@ -19,7 +19,7 @@
           "model": "Zu verwendendes AI-Modell",
           "api_endpoint": "Benutzerdefinierte API-Endpunkt-URL (optional)",
           "temperature": "Kreativität der Antwort (0-2, niedriger = fokussierter)",
-          "max_tokens": "Maximale Länge der Antwort (1-4096 Token)",
+          "max_tokens": "Maximale Länge der Antwort (1-100000 Token)",
           "request_interval": "Minimale Zeit zwischen Anfragen (0,1-60 Sekunden)",
           "context_messages": "Anzahl der zu behaltenden Kontextnachrichten (1-20)",
           "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)"
@@ -33,7 +33,7 @@
           "api_key": "API-Schlüssel zur Authentifizierung",
           "model": "Zu verwendendes AI-Modell",
           "temperature": "Kreativität der Antwort (0-2, niedriger = fokussierter)",
-          "max_tokens": "Maximale Länge der Antwort (1-4096 Token)",
+          "max_tokens": "Maximale Länge der Antwort (1-100000 Token)",
           "api_endpoint": "Benutzerdefinierte API-Endpunkt-URL (optional)",
           "api_provider": "API-Anbieter",
           "request_interval": "Minimale Zeit zwischen Anfragen (0,1-60 Sekunden)",
@@ -77,7 +77,7 @@
         "data": {
           "model": "AI-Modell",
           "temperature": "Kreativität der Antwort (0-2)",
-          "max_tokens": "Maximale Länge der Antwort (1-4096)",
+          "max_tokens": "Maximale Länge der Antwort (1-100000)",
           "request_interval": "Minimale Anfrageintervall (0,1-60 Sekunden)",
           "context_messages": "Anzahl der vorherigen Nachrichten, die im Kontext enthalten sein sollen (1-20)",
           "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)"
@@ -89,7 +89,8 @@
     "api_provider": {
       "options": {
         "openai": "OpenAI (kompatibel)",
-        "anthropic": "Anthropic (kompatibel)"
+        "anthropic": "Anthropic (kompatibel)",
+        "deepseek": "DeepSeek"
       }
     }
   },
@@ -124,7 +125,7 @@
         },
         "max_tokens": {
           "name": "Max Tokens",
-          "description": "Maximale Länge der Antwort (1-4096 Token)"
+          "description": "Maximale Länge der Antwort (1-100000 Token)"
         }
       }
     },

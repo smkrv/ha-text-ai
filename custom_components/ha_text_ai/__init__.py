@@ -39,11 +39,14 @@ from .const import (
     CONF_CONTEXT_MESSAGES,
     API_PROVIDER_OPENAI,
     API_PROVIDER_ANTHROPIC,
+    API_PROVIDER_DEEPSEEK,
     DEFAULT_MODEL,
+    DEFAULT_DEEPSEEK_MODEL,
     DEFAULT_TEMPERATURE,
     DEFAULT_MAX_TOKENS,
     DEFAULT_OPENAI_ENDPOINT,
     DEFAULT_ANTHROPIC_ENDPOINT,
+    DEFAULT_DEEPSEEK_ENDPOINT,
     DEFAULT_REQUEST_INTERVAL,
     DEFAULT_CONTEXT_MESSAGES,
     API_TIMEOUT,
@@ -235,6 +238,8 @@ async def async_check_api(session, endpoint: str, headers: dict, provider: str) 
     try:
         if provider == API_PROVIDER_ANTHROPIC:
             check_url = f"{endpoint}/v1/models"
+        elif provider == API_PROVIDER_DEEPSEEK:
+            check_url = f"{endpoint}/models"  # DeepSeek
         else:  # OpenAI
             check_url = f"{endpoint}/models"
 
