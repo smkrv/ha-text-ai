@@ -69,7 +69,7 @@ ask_question:
       selector:
         number:
           min: 1
-          max: 4096
+          max: 100000
           step: 1
           mode: box
 
