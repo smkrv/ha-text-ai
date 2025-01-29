@@ -39,3 +39,4 @@ Thumbs.db
 *.zip
 *.txt
 *.pdf
+.gitignore
