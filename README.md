@@ -19,7 +19,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 ---
 
 > [!IMPORTANT]
-> 🤝 Community Driven: for more details on the integration,
+> 🤝 Community Driven: for more details on the integration,   
 > check out the discussion on the **[Home Assistant Community forum](https://community.home-assistant.io/t/ha-text-ai-transforming-home-automation-through-multi-llm-integration/799741)**
 >
 >  <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=smkrv&repository=ha-text-ai&category=Integration"><img src="https://my.home-assistant.io/badges/hacs_repository.svg" width="180" height="auto"></a>
