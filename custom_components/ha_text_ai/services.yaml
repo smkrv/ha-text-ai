@@ -63,7 +63,7 @@ ask_question:
 
     max_tokens:
       name: Max Tokens
-      description: Maximum length of the response (1-4096 tokens)
+      description: Maximum length of the response (tokens)
       required: false
       default: 1000
       selector:
