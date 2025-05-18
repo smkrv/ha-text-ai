@@ -29,6 +29,7 @@ from .const import (
     API_PROVIDER_OPENAI,
     API_PROVIDER_ANTHROPIC,
     API_PROVIDER_DEEPSEEK,
+    API_PROVIDER_GEMINI,
     API_PROVIDERS,
     DEFAULT_MODEL,
     DEFAULT_DEEPSEEK_MODEL,
@@ -98,10 +99,15 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 API_PROVIDER_OPENAI: DEFAULT_OPENAI_ENDPOINT,
                 API_PROVIDER_ANTHROPIC: DEFAULT_ANTHROPIC_ENDPOINT,
                 API_PROVIDER_DEEPSEEK: DEFAULT_DEEPSEEK_ENDPOINT,
+                API_PROVIDER_GEMINI: DEFAULT_GEMINI_ENDPOINT,
             }.get(self._provider, DEFAULT_OPENAI_ENDPOINT)
 
             # Выбор модели по умолчанию по провайдеру
-            default_model = DEFAULT_DEEPSEEK_MODEL if self._provider == API_PROVIDER_DEEPSEEK else DEFAULT_MODEL
+            default_model = (
+                DEFAULT_DEEPSEEK_MODEL if self._provider == API_PROVIDER_DEEPSEEK else
+                DEFAULT_GEMINI_MODEL if self._provider == API_PROVIDER_GEMINI else
+                DEFAULT_MODEL
+            )
 
             return self.async_show_form(
                 step_id="provider",
