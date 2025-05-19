@@ -22,11 +22,13 @@ CONF_API_PROVIDER: Final = "api_provider"
 API_PROVIDER_OPENAI: Final = "openai"
 API_PROVIDER_ANTHROPIC: Final = "anthropic"
 API_PROVIDER_DEEPSEEK: Final = "deepseek"
+API_PROVIDER_GEMINI: Final = "gemini"
 
 API_PROVIDERS: Final = [
     API_PROVIDER_OPENAI,
     API_PROVIDER_ANTHROPIC,
-    API_PROVIDER_DEEPSEEK
+    API_PROVIDER_DEEPSEEK,
+    API_PROVIDER_GEMINI
 ]
 
 # Read version from manifest.json
@@ -49,6 +51,7 @@ except Exception as err:
 DEFAULT_OPENAI_ENDPOINT: Final = "https://api.openai.com/v1"
 DEFAULT_ANTHROPIC_ENDPOINT: Final = "https://api.anthropic.com"
 DEFAULT_DEEPSEEK_ENDPOINT: Final = "https://api.deepseek.com"
+DEFAULT_GEMINI_ENDPOINT: Final = "https://generativelanguage.googleapis.com/v1beta"
 
 # Configuration constants
 CONF_MODEL: Final = "model"
@@ -69,6 +72,7 @@ ICONS_SUBDOMAIN = "icons"
 # Default values
 DEFAULT_MODEL: Final = "gpt-4o-mini"
 DEFAULT_DEEPSEEK_MODEL: Final = "deepseek-chat"
+DEFAULT_GEMINI_MODEL: Final = "gemini-pro"
 DEFAULT_TEMPERATURE: Final = 0.1
 DEFAULT_MAX_TOKENS: Final = 1000
 DEFAULT_REQUEST_INTERVAL: Final = 1.0

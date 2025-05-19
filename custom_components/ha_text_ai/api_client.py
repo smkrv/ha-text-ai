@@ -20,6 +20,7 @@ from .const import (
     API_PROVIDER_ANTHROPIC,
     API_PROVIDER_DEEPSEEK,
     API_PROVIDER_OPENAI,
+    API_PROVIDER_GEMINI,
     MIN_TEMPERATURE,
     MAX_TEMPERATURE,
     MIN_MAX_TOKENS,
@@ -113,6 +114,10 @@ class APIClient:
                 )
             elif self.api_provider == API_PROVIDER_DEEPSEEK:
                 return await self._create_deepseek_completion(
+                    model, messages, temperature, max_tokens
+                )
+            elif self.api_provider == API_PROVIDER_GEMINI:
+                return await self._create_gemini_completion(
                     model, messages, temperature, max_tokens
                 )
             else:
@@ -237,6 +242,57 @@ class APIClient:
         except Exception as e:
             _LOGGER.error(f"Connection check failed: {str(e)}")
             return False
+
+    async def _create_gemini_completion(
+        self,
+        model: str,
+        messages: List[Dict[str, str]],
+        temperature: float,
+        max_tokens: int,
+    ) -> Dict[str, Any]:
+        """Create completion using Gemini API."""
+        # Extract API key from headers (Bearer token)
+        api_key = self.headers.get("Authorization", "").replace("Bearer ", "")
+        url = f"{self.endpoint}/models/{model}:generateContent?key={api_key}"
+        
+        # Convert messages to Gemini format
+        contents = []
+        system_instruction = ""
+        
+        for msg in messages:
+            if msg['role'] == 'system':
+                system_instruction += msg['content'] + "\n"
+            else:
+                contents.append({
+                    "role": "user" if msg['role'] == 'user' else "model",
+                    "parts": [{"text": msg['content']}]
+                })
+
+        payload = {
+            "contents": contents,
+            "generationConfig": {
+                "temperature": temperature,
+                "maxOutputTokens": max_tokens
+            }
+        }
+        if system_instruction:
+            payload["systemInstruction"] = {
+                "parts": [{"text": system_instruction}]
+            }
+
+        data = await self._make_request(url, payload)
+        return {
+            "choices": [{
+                "message": {
+                    "content": data["candidates"][0]["content"]["parts"][0]["text"]
+                }
+            }],
+            "usage": {
+                "prompt_tokens": data["usageMetadata"]["promptTokenCount"],
+                "completion_tokens": data["usageMetadata"]["candidatesTokenCount"],
+                "total_tokens": data["usageMetadata"]["totalTokenCount"]
+            }
+        }
 
     async def shutdown(self) -> None:
         """Shutdown API client."""
