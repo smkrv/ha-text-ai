@@ -254,45 +254,112 @@ class APIClient:
         # Extract API key from headers (Bearer token)
         api_key = self.headers.get("Authorization", "").replace("Bearer ", "")
         url = f"{self.endpoint}/models/{model}:generateContent?key={api_key}"
-        
+
         # Convert messages to Gemini format
         contents = []
         system_instruction = ""
-        
+
+        # Process messages and ensure proper role alternation
+        current_role = None
+        current_content = ""
+
         for msg in messages:
             if msg['role'] == 'system':
                 system_instruction += msg['content'] + "\n"
             else:
-                contents.append({
-                    "role": "user" if msg['role'] == 'user' else "model",
-                    "parts": [{"text": msg['content']}]
-                })
+                role = "user" if msg['role'] == 'user' else "model"
 
+                # If same role as previous, combine content
+                if role == current_role:
+                    current_content += "\n" + msg['content']
+                else:
+                    # Add previous message if exists
+                    if current_role is not None:
+                        contents.append({
+                            "role": current_role,
+                            "parts": [{"text": current_content}]
+                        })
+                    # Start new message
+                    current_role = role
+                    current_content = msg['content']
+
+        # Add the last message if exists
+        if current_role is not None:
+            contents.append({
+                "role": current_role,
+                "parts": [{"text": current_content}]
+            })
+
+        # Ensure contents starts with user message if not empty
+        if contents and contents[0]["role"] != "user":
+            # Add a placeholder user message if needed
+            contents.insert(0, {
+                "role": "user",
+                "parts": [{"text": "I need your assistance."}]
+            })
+
+        # Ensure contents is not empty
+        if not contents:
+            contents.append({
+                "role": "user",
+                "parts": [{"text": "I need your assistance."}]
+            })
+
+        # Create payload with snake_case keys as required by Gemini API
         payload = {
             "contents": contents,
-            "generationConfig": {
+            "generation_config": {  # Changed from camelCase to snake_case
                 "temperature": temperature,
-                "maxOutputTokens": max_tokens
+                "max_output_tokens": max_tokens  # Changed from camelCase to snake_case
             }
         }
+
         if system_instruction:
-            payload["systemInstruction"] = {
-                "parts": [{"text": system_instruction}]
+            payload["system_instruction"] = {  # Changed from camelCase to snake_case
+                "parts": [{"text": system_instruction.strip()}]
             }
 
-        data = await self._make_request(url, payload)
-        return {
-            "choices": [{
-                "message": {
-                    "content": data["candidates"][0]["content"]["parts"][0]["text"]
+        try:
+            data = await self._make_request(url, payload)
+
+            # Safely extract response data with fallbacks
+            candidates = data.get("candidates", [])
+            if not candidates:
+                raise HomeAssistantError("Gemini API returned no candidates")
+
+            content = candidates[0].get("content", {})
+            parts = content.get("parts", [])
+            if not parts:
+                raise HomeAssistantError("Gemini API response contains no content parts")
+
+            answer_text = parts[0].get("text", "")
+
+            # Safely extract usage data
+            usage = data.get("usageMetadata", {})
+            prompt_tokens = usage.get("promptTokenCount", 0)
+            completion_tokens = usage.get("candidatesTokenCount", 0)
+
+            # Handle case where candidatesTokenCount might be a list
+            if isinstance(completion_tokens, list):
+                completion_tokens = sum(completion_tokens)
+
+            total_tokens = usage.get("totalTokenCount", prompt_tokens + completion_tokens)
+
+            return {
+                "choices": [{
+                    "message": {
+                        "content": answer_text
+                    }
+                }],
+                "usage": {
+                    "prompt_tokens": prompt_tokens,
+                    "completion_tokens": completion_tokens,
+                    "total_tokens": total_tokens
                 }
-            }],
-            "usage": {
-                "prompt_tokens": data["usageMetadata"]["promptTokenCount"],
-                "completion_tokens": data["usageMetadata"]["candidatesTokenCount"],
-                "total_tokens": data["usageMetadata"]["totalTokenCount"]
             }
-        }
+        except Exception as e:
+            _LOGGER.error(f"Gemini API error: {str(e)}")
+            raise HomeAssistantError(f"Gemini API error: {str(e)}")
 
     async def shutdown(self) -> None:
         """Shutdown API client."""
