@@ -12,6 +12,8 @@ from typing import Final
 import voluptuous as vol
 from homeassistant.const import Platform, CONF_API_KEY, CONF_NAME
 from homeassistant.helpers import config_validation as cv
+import logging
+_LOGGER = logging.getLogger(__name__)
 
 # Domain and platforms
 DOMAIN: Final = "ha_text_ai"
