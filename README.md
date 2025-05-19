@@ -106,12 +106,13 @@ Transform your smart home experience with powerful AI assistance powered by mult
 
 ## 📋 Prerequisites
 
-- Home Assistant 2024.11 or later
+- Home Assistant 2024.2.2 or later
 - Active API key from:
   - OpenAI ([Get key](https://platform.openai.com/account/api-keys))
   - Anthropic ([Get key](https://console.anthropic.com/))
-  - DeepSeek 🆕 ([Get key](https://platform.deepseek.com/api_keys))
+  - DeepSeek ([Get key](https://platform.deepseek.com/api_keys))
   - OpenRouter ([Get key](https://openrouter.ai/keys))
+  - Google Gemini 🆕 ([Get key](https://ai.google.dev/gemini-api/docs/api-key)) thanks to ([@Azzedde](https://github.com/Azzedde))
   - Any OpenAI-compatible API provider
 - Python 3.9 or newer
 - Stable internet connection
@@ -159,6 +160,9 @@ To be compatible, a provider should support:
 ## ⚡ Installation
 
 ### HACS Installation (Recommended)
+>[!TIP]
+>HA Text AI is available in the default HACS repository. You can install it directly through HACS or click the button below to open it there.
+
 <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=smkrv&repository=ha-text-ai&category=Integration"><img src="https://my.home-assistant.io/badges/hacs_repository.svg" width="170" height="auto"></a>
 1. Open HACS in Home Assistant
 2. Click on "Integrations"
@@ -168,8 +172,6 @@ To be compatible, a provider should support:
 6. Choose "Integration" as category
 7. Click "Download"
 8. Restart Home Assistant
-
-Note: Also Integration has been submitted to HACS store and is currently pending review in [pull request #2896](https://github.com/hacs/default/pull/2896).
 
 ### Manual Installation
 1. Download the latest release

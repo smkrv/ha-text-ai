@@ -90,10 +90,11 @@
       "options": {
         "openai": "OpenAI (compatible)",
         "anthropic": "Anthropic (compatible)",
-        "deepseek": "DeepSeek"
-      }
+        "deepseek": "DeepSeek",
+        "gemini": "Google Gemini"
     }
-  },
+  }
+},
   "services": {
     "ask_question": {
       "name": "Hacer Pregunta (HA Text AI)",

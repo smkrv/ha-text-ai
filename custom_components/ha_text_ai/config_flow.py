@@ -94,7 +94,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is None:
-            # Выбор endpoint по провайдеру
+            # Selecting an endpoint by provider
             default_endpoint = {
                 API_PROVIDER_OPENAI: DEFAULT_OPENAI_ENDPOINT,
                 API_PROVIDER_ANTHROPIC: DEFAULT_ANTHROPIC_ENDPOINT,
@@ -102,7 +102,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 API_PROVIDER_GEMINI: DEFAULT_GEMINI_ENDPOINT,
             }.get(self._provider, DEFAULT_OPENAI_ENDPOINT)
 
-            # Выбор модели по умолчанию по провайдеру
+            # Selecting the default model by provider
             default_model = (
                 DEFAULT_DEEPSEEK_MODEL if self._provider == API_PROVIDER_DEEPSEEK else
                 DEFAULT_GEMINI_MODEL if self._provider == API_PROVIDER_GEMINI else

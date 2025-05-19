@@ -90,7 +90,8 @@
       "options": {
         "openai": "OpenAI (अनुकूलित)",
         "anthropic": "Anthropic (अनुकूलित)",
-        "deepseek": "DeepSeek"
+        "deepseek": "DeepSeek",
+        "gemini": "Google Gemini"
       }
     }
   },

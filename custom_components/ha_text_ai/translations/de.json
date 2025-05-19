@@ -88,12 +88,13 @@
   "selector": {
     "api_provider": {
       "options": {
-        "openai": "OpenAI (kompatibel)",
-        "anthropic": "Anthropic (kompatibel)",
-        "deepseek": "DeepSeek"
-      }
+        "openai": "OpenAI (compatible)",
+        "anthropic": "Anthropic (compatible)",
+        "deepseek": "DeepSeek",
+        "gemini": "Google Gemini"
     }
-  },
+  }
+},
   "services": {
     "ask_question": {
       "name": "Frage stellen (HA Text AI)",

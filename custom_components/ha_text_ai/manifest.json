@@ -24,6 +24,6 @@
   "single_config_entry": false,
   "ssdp": [],
   "usb": [],
-  "version": "2.1.1",
+  "version": "2.1.3",
   "zeroconf": []
 }

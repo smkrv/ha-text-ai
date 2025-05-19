@@ -90,7 +90,8 @@
       "options": {
         "openai": "OpenAI (компатибилан)",
         "anthropic": "Anthropic (компатибилан)",
-        "deepseek": "DeepSeek"
+        "deepseek": "DeepSeek",
+        "gemini": "Google Gemini"
       }
     }
   },

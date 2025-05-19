@@ -86,12 +86,12 @@
     }
   },
   "selector": {
-  "api_provider": {
-    "options": {
-      "openai": "OpenAI (compatible)",
-      "anthropic": "Anthropic (compatible)",
-      "deepseek": "DeepSeek",
-      "gemini": "Google Gemini"
+    "api_provider": {
+      "options": {
+        "openai": "OpenAI (compatible)",
+        "anthropic": "Anthropic (compatible)",
+        "deepseek": "DeepSeek",
+        "gemini": "Google Gemini"
     }
   }
 },
