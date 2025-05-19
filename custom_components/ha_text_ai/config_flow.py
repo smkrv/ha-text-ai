@@ -263,7 +263,11 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         unique_id = f"{DOMAIN}_{normalized_name}_{self._provider}".lower()
 
-        default_model = DEFAULT_DEEPSEEK_MODEL if self._provider == API_PROVIDER_DEEPSEEK else DEFAULT_MODEL
+        default_model = (
+            DEFAULT_DEEPSEEK_MODEL if self._provider == API_PROVIDER_DEEPSEEK else
+            DEFAULT_GEMINI_MODEL if self._provider == API_PROVIDER_GEMINI else
+            DEFAULT_MODEL
+        )
 
         entry_data = {
             CONF_API_PROVIDER: self._provider,
@@ -311,6 +315,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             return self.async_create_entry(title="", data=user_input)
 
         current_data = {**self.config_entry.data, **self.config_entry.options}
+        provider = current_data.get(CONF_API_PROVIDER)
+
+        default_model = (
+            DEFAULT_DEEPSEEK_MODEL if provider == API_PROVIDER_DEEPSEEK else
+            DEFAULT_GEMINI_MODEL if provider == API_PROVIDER_GEMINI else
+            DEFAULT_MODEL
+        )
 
         return self.async_show_form(
             step_id="init",
