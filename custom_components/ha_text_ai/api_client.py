@@ -259,40 +259,21 @@ class APIClient:
         contents = []
         system_instruction = ""
 
-        # Process messages and ensure proper role alternation
-        current_role = None
-        current_content = ""
-
+        # Process messages
         for msg in messages:
             if msg['role'] == 'system':
                 system_instruction += msg['content'] + "\n"
             else:
+                # Convert role: 'user' stays 'user', anything else becomes 'model'
                 role = "user" if msg['role'] == 'user' else "model"
+                contents.append({
+                    "role": role,
+                    "parts": [{"text": msg['content']}]
+                })
 
-                # If same role as previous, combine content
-                if role == current_role:
-                    current_content += "\n" + msg['content']
-                else:
-                    # Add previous message if exists
-                    if current_role is not None:
-                        contents.append({
-                            "role": current_role,
-                            "parts": [{"text": current_content}]
-                        })
-                    # Start new message
-                    current_role = role
-                    current_content = msg['content']
-
-        # Add the last message if exists
-        if current_role is not None:
-            contents.append({
-                "role": current_role,
-                "parts": [{"text": current_content}]
-            })
-
-        # Ensure contents starts with user message if not empty
+        # Ensure contents starts with a user message if not empty
         if contents and contents[0]["role"] != "user":
-            # Add a placeholder user message if needed
+            # Add a placeholder user message
             contents.insert(0, {
                 "role": "user",
                 "parts": [{"text": "I need your assistance."}]
@@ -322,7 +303,7 @@ class APIClient:
         try:
             data = await self._make_request(url, payload)
 
-            # Safely extract response data with fallbacks
+            # Safely extract response data
             candidates = data.get("candidates", [])
             if not candidates:
                 raise HomeAssistantError("Gemini API returned no candidates")
@@ -338,11 +319,6 @@ class APIClient:
             usage = data.get("usageMetadata", {})
             prompt_tokens = usage.get("promptTokenCount", 0)
             completion_tokens = usage.get("candidatesTokenCount", 0)
-
-            # Handle case where candidatesTokenCount might be a list
-            if isinstance(completion_tokens, list):
-                completion_tokens = sum(completion_tokens)
-
             total_tokens = usage.get("totalTokenCount", prompt_tokens + completion_tokens)
 
             return {
