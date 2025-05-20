@@ -11,6 +11,7 @@ import asyncio
 from typing import Any, Dict, List, Optional
 from aiohttp import ClientSession, ClientTimeout
 from async_timeout import timeout
+from datetime import datetime, timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -250,89 +251,135 @@ class APIClient:
         temperature: float,
         max_tokens: int,
     ) -> Dict[str, Any]:
-        """Create completion using Gemini API."""
-        # Extract API key from headers (Bearer token)
-        api_key = self.headers.get("Authorization", "").replace("Bearer ", "")
-        url = f"{self.endpoint}/models/{model}:generateContent?key={api_key}"
+        """Create completion using Gemini API with google-genai library.
 
-        # Convert messages to Gemini format
-        contents = []
-        system_instruction = ""
+        Args:
+            model: The model name to use
+            messages: List of message dictionaries with role and content
+            temperature: Sampling temperature between 0.0 and 2.0
+            max_tokens: Maximum number of tokens to generate
 
-        # Process messages
-        for msg in messages:
-            if msg['role'] == 'system':
-                system_instruction += msg['content'] + "\n"
-            else:
-                # Convert role: 'user' stays 'user', anything else becomes 'model'
-                role = "user" if msg['role'] == 'user' else "model"
-                contents.append({
-                    "role": role,
-                    "parts": [{"text": msg['content']}]
-                })
-
-        # Ensure contents starts with a user message if not empty
-        if contents and contents[0]["role"] != "user":
-            # Add a placeholder user message
-            contents.insert(0, {
-                "role": "user",
-                "parts": [{"text": "I need your assistance."}]
-            })
-
-        # Ensure contents is not empty
-        if not contents:
-            contents.append({
-                "role": "user",
-                "parts": [{"text": "I need your assistance."}]
-            })
-
-        # Create payload with snake_case keys as required by Gemini API
-        payload = {
-            "contents": contents,
-            "generation_config": {  # Changed from camelCase to snake_case
-                "temperature": temperature,
-                "max_output_tokens": max_tokens  # Changed from camelCase to snake_case
-            }
-        }
-
-        if system_instruction:
-            payload["system_instruction"] = {  # Changed from camelCase to snake_case
-                "parts": [{"text": system_instruction.strip()}]
-            }
-
+        Returns:
+            Dictionary with response content and token usage
+        """
         try:
-            data = await self._make_request(url, payload)
+            # Импортируем библиотеку в отдельном потоке, чтобы избежать блокировки event loop
+            def import_genai():
+                from google import genai
+                return genai
 
-            # Safely extract response data
-            candidates = data.get("candidates", [])
-            if not candidates:
-                raise HomeAssistantError("Gemini API returned no candidates")
+            genai = await asyncio.to_thread(import_genai)
 
-            content = candidates[0].get("content", {})
-            parts = content.get("parts", [])
-            if not parts:
-                raise HomeAssistantError("Gemini API response contains no content parts")
+            # Extract API key from headers (Bearer token)
+            api_key = self.headers.get("Authorization", "").replace("Bearer ", "")
 
-            answer_text = parts[0].get("text", "")
+            # Создаем клиент в отдельном потоке
+            def create_client():
+                if self.endpoint and self.endpoint != "https://generativelanguage.googleapis.com/v1beta":
+                    return genai.Client(api_key=api_key, transport="rest",
+                                       client_options={"api_endpoint": self.endpoint})
+                else:
+                    return genai.Client(api_key=api_key)
 
-            # Safely extract usage data
-            usage = data.get("usageMetadata", {})
-            prompt_tokens = usage.get("promptTokenCount", 0)
-            completion_tokens = usage.get("candidatesTokenCount", 0)
-            total_tokens = usage.get("totalTokenCount", prompt_tokens + completion_tokens)
+            client = await asyncio.to_thread(create_client)
+
+            # Process messages to extract system instruction and chat history
+            system_instruction = ""
+            contents = []
+
+            for msg in messages:
+                if msg['role'] == 'system':
+                    system_instruction += msg['content'] + "\n"
+                else:
+                    # For chat history, we need to convert to the format Gemini expects
+                    role = "user" if msg['role'] == 'user' else "model"
+                    contents.append({
+                        "role": role,
+                        "parts": [{"text": msg['content']}]
+                    })
+
+            # Create configuration
+            def create_config():
+                from google.genai import types
+                config = types.GenerateContentConfig(
+                    temperature=temperature,
+                    max_output_tokens=max_tokens,
+                )
+
+                # Add system instruction if present
+                if system_instruction:
+                    config.system_instruction = system_instruction.strip()
+
+                return config
+
+            config = await asyncio.to_thread(create_config)
+
+            # Выполняем запрос в отдельном потоке
+            def generate_content():
+                # For single message without history, use generate_content
+                if len(contents) <= 1:
+                    # If we have no content yet, create a simple prompt
+                    if not contents:
+                        prompt = "I need your assistance."
+                    else:
+                        prompt = contents[0]["parts"][0]["text"]
+
+                    return client.models.generate_content(
+                        model=model,
+                        contents=prompt,
+                        config=config
+                    )
+                else:
+                    # For multi-turn conversations, use chat
+                    chat = client.chats.create(model=model, config=config)
+
+                    # Send all messages in sequence
+                    for content in contents:
+                        if content["role"] == "user":
+                            response = chat.send_message(content["parts"][0]["text"])
+                            # We don't send assistant messages as they're already part of the history
+
+                    return response
+
+            response = await asyncio.to_thread(generate_content)
+
+            # Extract response text
+            def extract_response():
+                response_text = response.text if hasattr(response, 'text') else ""
+
+                # Try to get token usage if available
+                usage = {}
+                if hasattr(response, 'usage_metadata'):
+                    usage = {
+                        "prompt_tokens": getattr(response.usage_metadata, 'prompt_token_count', 0),
+                        "completion_tokens": getattr(response.usage_metadata, 'candidates_token_count', 0),
+                        "total_tokens": getattr(response.usage_metadata, 'total_token_count', 0)
+                    }
+                else:
+                    # Estimate token count as fallback
+                    usage = {
+                        "prompt_tokens": len(" ".join([m["content"] for m in messages]).split()) // 3,
+                        "completion_tokens": len(response_text.split()) // 3,
+                        "total_tokens": 0  # Will be calculated below
+                    }
+                    usage["total_tokens"] = usage["prompt_tokens"] + usage["completion_tokens"]
+
+                return response_text, usage
+
+            response_text, usage = await asyncio.to_thread(extract_response)
 
             return {
                 "choices": [{
                     "message": {
-                        "content": answer_text
+                        "content": response_text
                     }
                 }],
-                "usage": {
-                    "prompt_tokens": prompt_tokens,
-                    "completion_tokens": completion_tokens,
-                    "total_tokens": total_tokens
-                }
+                "usage": usage
             }
+
+        except ImportError as e:
+            _LOGGER.error(f"Google Gemini library not installed: {str(e)}")
+            raise HomeAssistantError(f"Missing dependency: {str(e)}. Please install google-genai.")
         except Exception as e:
             _LOGGER.error(f"Gemini API error: {str(e)}")
             raise HomeAssistantError(f"Gemini API error: {str(e)}")

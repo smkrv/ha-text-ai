@@ -74,7 +74,7 @@ ICONS_SUBDOMAIN = "icons"
 # Default values
 DEFAULT_MODEL: Final = "gpt-4o-mini"
 DEFAULT_DEEPSEEK_MODEL: Final = "deepseek-chat"
-DEFAULT_GEMINI_MODEL: Final = "gemini-pro"
+DEFAULT_GEMINI_MODEL: Final = "gemini-2.0-flash"
 DEFAULT_TEMPERATURE: Final = 0.1
 DEFAULT_MAX_TOKENS: Final = 1000
 DEFAULT_REQUEST_INTERVAL: Final = 1.0

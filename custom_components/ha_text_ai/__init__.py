@@ -239,10 +239,17 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 async def async_check_api(session, endpoint: str, headers: dict, provider: str) -> bool:
     """Check API availability for different providers."""
     try:
-        if provider == API_PROVIDER_ANTHROPIC:
+        if provider == API_PROVIDER_GEMINI:
+            # Gemini API does not support GET /models for validation, just check key presence
+            if headers.get("Authorization", "").replace("Bearer ", ""):
+                return True
+            else:
+                _LOGGER.error("Gemini API key is missing or empty")
+                return False
+        elif provider == API_PROVIDER_ANTHROPIC:
             check_url = f"{endpoint}/v1/models"
         elif provider == API_PROVIDER_DEEPSEEK:
-            check_url = f"{endpoint}/models"  # DeepSeek
+            check_url = f"{endpoint}/models"
         else:  # OpenAI
             check_url = f"{endpoint}/models"
 
@@ -251,7 +258,8 @@ async def async_check_api(session, endpoint: str, headers: dict, provider: str) 
                 if response.status in [200, 404]:
                     return True
                 elif response.status == 401:
-                    raise ConfigEntryNotReady("Invalid API key")
+                    _LOGGER.error("Invalid API key")
+                    return False
                 elif response.status == 429:
                     _LOGGER.warning("Rate limit exceeded during API check")
                     return False

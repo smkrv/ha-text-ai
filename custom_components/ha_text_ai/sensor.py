@@ -9,6 +9,7 @@ Sensor platform for HA Text AI.
 import logging
 import math
 from typing import Any, Dict
+from datetime import datetime, timedelta
 
 from homeassistant.components.sensor import (
     SensorEntity,

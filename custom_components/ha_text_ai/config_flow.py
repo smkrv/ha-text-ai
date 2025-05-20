@@ -8,6 +8,7 @@ Config flow for HA text AI integration.
 """
 import logging
 from typing import Any, Dict, Optional
+from datetime import datetime, timedelta
 
 import voluptuous as vol
 from homeassistant import config_entries
@@ -147,41 +148,173 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 })
             )
 
+        # Debug log to identify what's in the input
+        _LOGGER.debug(f"Provider step input data: {user_input}")
+
         input_copy = user_input.copy()
 
+        # Check if CONF_NAME exists in input_copy and ensure it's not empty
+        if CONF_NAME not in input_copy or not input_copy[CONF_NAME]:
+            _LOGGER.warning(f"Missing name in configuration input: {input_copy}")
+            input_copy[CONF_NAME] = f"gemini_assistant_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            _LOGGER.info(f"Auto-generated name: {input_copy[CONF_NAME]}")
+
+        # Ensure API key is present
+        if CONF_API_KEY not in input_copy or not input_copy[CONF_API_KEY]:
+            self._errors["base"] = "invalid_auth"
+            _LOGGER.error("API validation error: 'api_key'")
+            return self.async_show_form(
+                step_id="provider",
+                data_schema=vol.Schema({
+                    vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
+                    vol.Required(CONF_API_KEY): str,
+                    vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, DEFAULT_GEMINI_MODEL if self._provider == API_PROVIDER_GEMINI else DEFAULT_MODEL)): str,
+                    vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, DEFAULT_GEMINI_ENDPOINT if self._provider == API_PROVIDER_GEMINI else DEFAULT_OPENAI_ENDPOINT)): str,
+                    vol.Optional(CONF_TEMPERATURE, default=input_copy.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)): vol.All(
+                        vol.Coerce(float),
+                        vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
+                    ),
+                    vol.Optional(CONF_MAX_TOKENS, default=input_copy.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
+                    ),
+                    vol.Optional(CONF_REQUEST_INTERVAL, default=input_copy.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)): vol.All(
+                        vol.Coerce(float),
+                        vol.Range(min=MIN_REQUEST_INTERVAL)
+                    ),
+                    vol.Optional(
+                        CONF_CONTEXT_MESSAGES,
+                        default=input_copy.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
+                    ): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(min=1, max=20)
+                    ),
+                    vol.Optional(
+                        CONF_MAX_HISTORY_SIZE,
+                        default=input_copy.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY)
+                    ): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(min=1, max=100)
+                    ),
+                }),
+                errors=self._errors
+            )
+
         try:
+            # Validate and normalize the name
             normalized_name = self._validate_and_normalize_name(input_copy[CONF_NAME])
             input_copy[CONF_NAME] = normalized_name
         except ValueError as e:
             return self.async_show_form(
                 step_id="provider",
                 data_schema=vol.Schema({
-                    vol.Required(CONF_NAME, default=input_copy[CONF_NAME]): str,
-                    vol.Required(CONF_API_KEY, default=input_copy[CONF_API_KEY]): str,
-                    vol.Required(CONF_MODEL, default=input_copy[CONF_MODEL]): str,
-                    vol.Required(CONF_API_ENDPOINT, default=input_copy[CONF_API_ENDPOINT]): str,
+                    vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
+                    vol.Required(CONF_API_KEY, default=input_copy.get(CONF_API_KEY, "")): str,
+                    vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, DEFAULT_GEMINI_MODEL if self._provider == API_PROVIDER_GEMINI else DEFAULT_MODEL)): str,
+                    vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, DEFAULT_GEMINI_ENDPOINT if self._provider == API_PROVIDER_GEMINI else DEFAULT_OPENAI_ENDPOINT)): str,
                     vol.Optional(CONF_TEMPERATURE, default=input_copy.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)): vol.All(
                         vol.Coerce(float),
                         vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
+                    ),
+                    vol.Optional(CONF_MAX_TOKENS, default=input_copy.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
+                    ),
+                    vol.Optional(CONF_REQUEST_INTERVAL, default=input_copy.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)): vol.All(
+                        vol.Coerce(float),
+                        vol.Range(min=MIN_REQUEST_INTERVAL)
+                    ),
+                    vol.Optional(
+                        CONF_CONTEXT_MESSAGES,
+                        default=input_copy.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
+                    ): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(min=1, max=20)
+                    ),
+                    vol.Optional(
+                        CONF_MAX_HISTORY_SIZE,
+                        default=input_copy.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY)
+                    ): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(min=1, max=100)
                     ),
                 }),
                 errors={"name": str(e)}
             )
 
         try:
-            if not await self._async_validate_api(input_copy):
-                return self.async_show_form(
-                    step_id="provider",
-                    data_schema=vol.Schema({}),
-                    errors=self._errors
-                )
+            # Special handling for Gemini API validation
+            if self._provider == API_PROVIDER_GEMINI:
+                # For Gemini, we just check if API key is present as there's no simple endpoint to validate
+                if not input_copy.get(CONF_API_KEY):
+                    self._errors["base"] = "invalid_auth"
+                    _LOGGER.error("API validation error: 'api_key'")
+                    return self.async_show_form(
+                        step_id="provider",
+                        data_schema=vol.Schema({
+                            vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
+                            vol.Required(CONF_API_KEY): str,
+                            vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, DEFAULT_GEMINI_MODEL)): str,
+                            vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, DEFAULT_GEMINI_ENDPOINT)): str,
+                            # Other fields remain the same
+                        }),
+                        errors=self._errors
+                    )
+            else:
+                # For other providers, validate API connection
+                if not await self._async_validate_api(input_copy):
+                    return self.async_show_form(
+                        step_id="provider",
+                        data_schema=vol.Schema({
+                            vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
+                            vol.Required(CONF_API_KEY, default=input_copy.get(CONF_API_KEY, "")): str,
+                            vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, DEFAULT_MODEL)): str,
+                            vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, DEFAULT_OPENAI_ENDPOINT)): str,
+                            vol.Optional(CONF_TEMPERATURE, default=input_copy.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)): vol.All(
+                                vol.Coerce(float),
+                                vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
+                            ),
+                            vol.Optional(CONF_MAX_TOKENS, default=input_copy.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)): vol.All(
+                                vol.Coerce(int),
+                                vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
+                            ),
+                            vol.Optional(CONF_REQUEST_INTERVAL, default=input_copy.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)): vol.All(
+                                vol.Coerce(float),
+                                vol.Range(min=MIN_REQUEST_INTERVAL)
+                            ),
+                            vol.Optional(
+                                CONF_CONTEXT_MESSAGES,
+                                default=input_copy.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
+                            ): vol.All(
+                                vol.Coerce(int),
+                                vol.Range(min=1, max=20)
+                            ),
+                            vol.Optional(
+                                CONF_MAX_HISTORY_SIZE,
+                                default=input_copy.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY)
+                            ): vol.All(
+                                vol.Coerce(int),
+                                vol.Range(min=1, max=100)
+                            ),
+                        }),
+                        errors=self._errors
+                    )
         except Exception as e:
+            # Handle any unexpected exceptions during validation
+            _LOGGER.exception("Unexpected error during API validation")
             return self.async_show_form(
                 step_id="provider",
-                data_schema=vol.Schema({}),
+                data_schema=vol.Schema({
+                    vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
+                    vol.Required(CONF_API_KEY, default=input_copy.get(CONF_API_KEY, "")): str,
+                    vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, DEFAULT_GEMINI_MODEL if self._provider == API_PROVIDER_GEMINI else DEFAULT_MODEL)): str,
+                    vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, DEFAULT_GEMINI_ENDPOINT if self._provider == API_PROVIDER_GEMINI else DEFAULT_OPENAI_ENDPOINT)): str,
+                    # Other fields remain the same
+                }),
                 errors={"base": str(e)}
             )
 
+        # All validation passed, create the entry
         return await self._create_entry(input_copy)
 
     def _validate_and_normalize_name(self, name: str) -> str:
@@ -219,23 +352,34 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def _async_validate_api(self, user_input: Dict[str, Any]) -> bool:
         """Validate API connection."""
         try:
+            if CONF_API_KEY not in user_input:
+                _LOGGER.error("API validation error: 'api_key'")
+                self._errors["base"] = "invalid_auth"
+                return False
+
             session = async_get_clientsession(self.hass)
             headers = self._get_api_headers(user_input)
             endpoint = user_input[CONF_API_ENDPOINT].rstrip('/')
 
-            check_url = (
-                f"{endpoint}/v1/models" if self._provider == API_PROVIDER_ANTHROPIC
-                else f"{endpoint}/models"
-            )
-
-            async with session.get(check_url, headers=headers) as response:
-                if response.status == 401:
+            if self._provider == API_PROVIDER_GEMINI:
+                if not user_input[CONF_API_KEY]:
                     self._errors["base"] = "invalid_auth"
                     return False
-                elif response.status not in [200, 404]:
-                    self._errors["base"] = "cannot_connect"
-                    return False
                 return True
+            else:
+                check_url = (
+                    f"{endpoint}/v1/models" if self._provider == API_PROVIDER_ANTHROPIC
+                    else f"{endpoint}/models"
+                )
+
+                async with session.get(check_url, headers=headers) as response:
+                    if response.status == 401:
+                        self._errors["base"] = "invalid_auth"
+                        return False
+                    elif response.status not in [200, 404]:
+                        self._errors["base"] = "cannot_connect"
+                        return False
+                    return True
 
         except Exception as err:
             _LOGGER.error("API validation error: %s", str(err))
@@ -244,12 +388,20 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _get_api_headers(self, user_input: Dict[str, Any]) -> Dict[str, str]:
         """Get API headers based on provider."""
+        if CONF_API_KEY not in user_input:
+            return {"Content-Type": "application/json"}
+
         api_key = user_input[CONF_API_KEY]
 
         if self._provider == API_PROVIDER_ANTHROPIC:
             return {
                 "x-api-key": api_key,
                 "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json"
+            }
+        elif self._provider == API_PROVIDER_GEMINI:
+            return {
+                "Authorization": f"Bearer {api_key}",
                 "Content-Type": "application/json"
             }
         return {
