@@ -263,7 +263,6 @@ class APIClient:
             Dictionary with response content and token usage
         """
         try:
-            # Импортируем библиотеку в отдельном потоке, чтобы избежать блокировки event loop
             def import_genai():
                 from google import genai
                 return genai
@@ -273,7 +272,6 @@ class APIClient:
             # Extract API key from headers (Bearer token)
             api_key = self.headers.get("Authorization", "").replace("Bearer ", "")
 
-            # Создаем клиент в отдельном потоке
             def create_client():
                 if self.endpoint and self.endpoint != "https://generativelanguage.googleapis.com/v1beta":
                     return genai.Client(api_key=api_key, transport="rest",
@@ -314,7 +312,6 @@ class APIClient:
 
             config = await asyncio.to_thread(create_config)
 
-            # Выполняем запрос в отдельном потоке
             def generate_content():
                 # For single message without history, use generate_content
                 if len(contents) <= 1:
