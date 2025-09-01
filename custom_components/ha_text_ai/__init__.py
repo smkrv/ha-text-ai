@@ -188,7 +188,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         DOMAIN,
         SERVICE_ASK_QUESTION,
         async_ask_question,
-        schema=SERVICE_SCHEMA_ASK_QUESTION
+        schema=SERVICE_SCHEMA_ASK_QUESTION,
+        supports_response=True
     )
 
     hass.services.async_register(
