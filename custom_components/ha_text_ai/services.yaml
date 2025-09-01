@@ -73,39 +73,6 @@ ask_question:
           max: 100000
           step: 1
           mode: box
-  response:
-    type: object
-    properties:
-      response_text:
-        type: string
-        description: The AI response text
-      tokens_used:
-        type: integer
-        description: Total number of tokens used
-      prompt_tokens:
-        type: integer
-        description: Number of tokens in the prompt
-      completion_tokens:
-        type: integer
-        description: Number of tokens in the completion
-      model_used:
-        type: string
-        description: The AI model that was used for the response
-      instance:
-        type: string
-        description: The instance name that was used
-      question:
-        type: string
-        description: The original question that was asked
-      timestamp:
-        type: string
-        description: ISO timestamp when the response was generated
-      success:
-        type: boolean
-        description: Whether the request was successful
-      error:
-        type: string
-        description: Error message if the request failed
 
 clear_history:
   name: Clear History
