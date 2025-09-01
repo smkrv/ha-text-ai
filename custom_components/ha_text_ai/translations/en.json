@@ -98,7 +98,7 @@
   "services": {
     "ask_question": {
       "name": "Ask Question (HA Text AI)",
-      "description": "Send a question to the AI model and receive a detailed response. The response will be stored in the conversation history and can be retrieved later.",
+      "description": "Send a question to the AI model and receive a detailed response. This service now returns response data directly, eliminating the need for separate text sensors and the 255-character limitation. The response will also be stored in the conversation history.",
       "fields": {
         "instance": {
           "name": "Instance",

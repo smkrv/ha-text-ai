@@ -98,7 +98,7 @@
   "services": {
     "ask_question": {
       "name": "Hacer Pregunta (HA Text AI)",
-      "description": "Envía una pregunta al modelo de IA y recibe una respuesta detallada. La respuesta se almacenará en el historial de conversación y se podrá recuperar más tarde.",
+      "description": "Envía una pregunta al modelo de IA y recibe una respuesta detallada. Este servicio ahora devuelve datos de respuesta directamente, eliminando la necesidad de sensores de texto separados y la limitación de 255 caracteres. La respuesta también se almacenará en el historial de conversación.",
       "fields": {
         "instance": {
           "name": "Instancia",

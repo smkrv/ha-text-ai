@@ -2,15 +2,6 @@
   "config": {
     "step": {
       "provider": {
-        "title": "选择AI提供者",
-        "description": "选择要用于此实例的AI服务提供者。",
-        "data": {
-          "api_provider": "API提供者",
-          "context_messages": "保留的上下文消息数量（1-20）",
-          "max_history_size": "最大对话历史大小（1-100）"
-        }
-      },
-      "provider": {
         "title": "提供者设置",
         "description": "提供所选AI提供者的连接详细信息。",
         "data": {
@@ -98,7 +89,7 @@
   "services": {
     "ask_question": {
       "name": "提问 (HA Text AI)",
-      "description": "向AI模型发送问题并接收详细响应。响应将存储在对话历史中，可以稍后检索。",
+      "description": "向AI模型发送问题并获得详细回答。此服务现在直接返回响应数据，消除了对单独文本传感器的需要和255字符限制。响应也将存储在对话历史中。",
       "fields": {
         "instance": {
           "name": "实例",

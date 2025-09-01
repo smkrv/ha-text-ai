@@ -3,6 +3,7 @@ ask_question:
   description: >-
     Send a question to the AI model and receive a detailed response.
     The response will be stored in the conversation history and can be retrieved later.
+    This service now returns response data directly, eliminating the need to read from sensors.
   fields:
     instance:
       name: Instance
@@ -72,6 +73,37 @@ ask_question:
           max: 100000
           step: 1
           mode: box
+  response:
+    response_text:
+      description: "Full AI response text (unlimited length)"
+      example: "The answer to your question is..."
+    tokens_used:
+      description: "Total number of tokens consumed for this request"
+      example: 150
+    prompt_tokens:
+      description: "Number of tokens used for the input prompt"
+      example: 50
+    completion_tokens:
+      description: "Number of tokens used for the AI response"
+      example: 100
+    model_used:
+      description: "AI model that generated the response"
+      example: "gpt-4o-mini"
+    instance:
+      description: "Instance name that processed the request"
+      example: "my_assistant"
+    question:
+      description: "The original question that was asked"
+      example: "What is the weather like?"
+    timestamp:
+      description: "ISO timestamp when the response was generated"
+      example: "2025-01-09T16:57:00.000Z"
+    success:
+      description: "Whether the request was successful"
+      example: true
+    error:
+      description: "Error message if the request failed (only present when success is false)"
+      example: "API rate limit exceeded"
 
 clear_history:
   name: Clear History

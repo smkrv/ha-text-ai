@@ -112,11 +112,11 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     # Initialize domain data storage
     hass.data.setdefault(DOMAIN, {})
 
-    async def async_ask_question(call: ServiceCall) -> None:
-        """Handle ask_question service."""
+    async def async_ask_question(call: ServiceCall) -> dict:
+        """Handle ask_question service with response data."""
         try:
             coordinator = get_coordinator_by_instance(hass, call.data["instance"])
-            await coordinator.async_ask_question(
+            response = await coordinator.async_ask_question(
                 question=call.data["question"],
                 model=call.data.get("model"),
                 temperature=call.data.get("temperature"),
@@ -124,9 +124,34 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                 system_prompt=call.data.get("system_prompt"),
                 context_messages=call.data.get("context_messages"),
             )
+            
+            # Return structured response data
+            return {
+                "response_text": response.get("content", ""),
+                "tokens_used": response.get("tokens", {}).get("total", 0),
+                "prompt_tokens": response.get("tokens", {}).get("prompt", 0),
+                "completion_tokens": response.get("tokens", {}).get("completion", 0),
+                "model_used": response.get("model", call.data.get("model", coordinator.model)),
+                "instance": call.data["instance"],
+                "question": call.data["question"],
+                "timestamp": response.get("timestamp"),
+                "success": True
+            }
         except Exception as err:
             _LOGGER.error("Error asking question: %s", str(err))
-            raise HomeAssistantError(f"Failed to process question: {str(err)}")
+            # Return error response
+            return {
+                "response_text": "",
+                "tokens_used": 0,
+                "prompt_tokens": 0,
+                "completion_tokens": 0,
+                "model_used": call.data.get("model", ""),
+                "instance": call.data["instance"],
+                "question": call.data["question"],
+                "timestamp": datetime.now().isoformat(),
+                "success": False,
+                "error": str(err)
+            }
 
     async def async_clear_history(call: ServiceCall) -> None:
         """Handle clear_history service."""

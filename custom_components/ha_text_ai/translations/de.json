@@ -98,7 +98,7 @@
   "services": {
     "ask_question": {
       "name": "Frage stellen (HA Text AI)",
-      "description": "Stellen Sie eine Frage an das AI-Modell und erhalten Sie eine detaillierte Antwort. Die Antwort wird im Gesprächsverlauf gespeichert und kann später abgerufen werden.",
+      "description": "Stellen Sie eine Frage an das AI-Modell und erhalten Sie eine detaillierte Antwort. Dieser Service gibt jetzt Antwortdaten direkt zurück, wodurch separate Textsensoren und die 255-Zeichen-Begrenzung überflüssig werden. Die Antwort wird auch im Gesprächsverlauf gespeichert.",
       "fields": {
         "instance": {
           "name": "Instanz",

@@ -250,6 +250,16 @@ sensor:
 
 ## 🛠️ Available Services
 
+### 🔄 Response Variables (New!)
+
+**HA Text AI now supports response variables** - a powerful feature that returns AI responses directly from service calls, eliminating the need for separate text sensors and the 255-character limitation!
+
+#### ✨ Key Benefits:
+- **Unlimited response length** - No more 255-character truncation
+- **Direct data access** - Get responses immediately in automations
+- **Race condition prevention** - Eliminates conflicts in parallel automations
+- **Simplified workflows** - No need to read from sensors
+
 ### ask_question
 ```yaml
 service: ha_text_ai.ask_question
@@ -261,6 +271,22 @@ data:
   context_messages: 10  #optional, number of previous messages to include in context, default: 5
   system_prompt: "You are a sleep optimization expert"  # optional
   instance: sensor.ha_text_ai_gpt
+response_variable: ai_response  # NEW! Store response data directly
+```
+
+#### 📊 Response Data Structure:
+```yaml
+# The service returns structured data:
+response_text: "The optimal sleeping temperature is 65-68°F (18-20°C)..."
+tokens_used: 150
+prompt_tokens: 50
+completion_tokens: 100
+model_used: "claude-3-sonnet"
+instance: "sensor.ha_text_ai_gpt"
+question: "What's the optimal temperature for sleeping?"
+timestamp: "2025-01-09T16:57:00.000Z"
+success: true
+# error: "Error message" (only present if success: false)
 ```
 
 ### set_system_prompt
@@ -290,6 +316,149 @@ data:
   limit: 5  # optional
   filter_model: "gpt-4o"  # optional
   instance: sensor.ha_text_ai_gpt
+```
+
+## 🚀 Advanced Automation Examples with Response Variables
+
+### Example 1: Smart Home Advice with Direct Response
+```yaml
+automation:
+  - alias: "Get AI Home Advice"
+    trigger:
+      - platform: state
+        entity_id: input_button.ask_ai_advice
+    action:
+      - service: ha_text_ai.ask_question
+        data:
+          question: "What's the best way to optimize energy usage in my home?"
+          instance: sensor.ha_text_ai_gpt
+        response_variable: ai_advice
+      - service: notify.mobile_app
+        data:
+          title: "🏠 Smart Home Tip"
+          message: |
+            {{ ai_advice.response_text }}
+            
+            📊 Tokens used: {{ ai_advice.tokens_used }}
+            🤖 Model: {{ ai_advice.model_used }}
+```
+
+### Example 2: Weather-Based AI Recommendations
+```yaml
+automation:
+  - alias: "Weather-Based AI Suggestions"
+    trigger:
+      - platform: numeric_state
+        entity_id: sensor.outdoor_temperature
+        below: 0
+    action:
+      - service: ha_text_ai.ask_question
+        data:
+          question: |
+            The outdoor temperature is {{ states('sensor.outdoor_temperature') }}°C. 
+            What should I do to prepare my home for freezing weather?
+          system_prompt: "You are a home maintenance expert. Provide practical, actionable advice."
+          instance: sensor.ha_text_ai_gpt
+        response_variable: winter_advice
+      - if:
+          - condition: template
+            value_template: "{{ winter_advice.success }}"
+        then:
+          - service: persistent_notification.create
+            data:
+              title: "❄️ Winter Preparation Advice"
+              message: |
+                {{ winter_advice.response_text }}
+                
+                Generated at: {{ winter_advice.timestamp }}
+        else:
+          - service: persistent_notification.create
+            data:
+              title: "⚠️ AI Service Error"
+              message: "Failed to get winter advice: {{ winter_advice.error }}"
+```
+
+### Example 3: Multi-Step AI Workflow
+```yaml
+automation:
+  - alias: "Multi-Step AI Analysis"
+    trigger:
+      - platform: state
+        entity_id: input_button.analyze_home_status
+    action:
+      # Step 1: Get current status analysis
+      - service: ha_text_ai.ask_question
+        data:
+          question: |
+            Current home status:
+            - Temperature: {{ states('sensor.indoor_temperature') }}°C
+            - Humidity: {{ states('sensor.indoor_humidity') }}%
+            - Energy usage: {{ states('sensor.power_consumption') }}W
+            
+            Analyze this data and provide insights.
+          instance: sensor.ha_text_ai_gpt
+        response_variable: status_analysis
+      
+      # Step 2: Get recommendations based on analysis
+      - service: ha_text_ai.ask_question
+        data:
+          question: |
+            Based on this analysis: "{{ status_analysis.response_text[:500] }}"
+            
+            Provide 3 specific actionable recommendations for improvement.
+          context_messages: 2  # Include previous conversation
+          instance: sensor.ha_text_ai_gpt
+        response_variable: recommendations
+      
+      # Step 3: Send comprehensive report
+      - service: notify.telegram
+        data:
+          title: "🏠 Home Analysis Report"
+          message: |
+            **Analysis:**
+            {{ status_analysis.response_text }}
+            
+            **Recommendations:**
+            {{ recommendations.response_text }}
+            
+            **Report Details:**
+            - Total tokens used: {{ status_analysis.tokens_used + recommendations.tokens_used }}
+            - Analysis model: {{ status_analysis.model_used }}
+            - Generated: {{ recommendations.timestamp }}
+```
+
+### 💡 Migration from Sensors to Response Variables
+
+#### Old Method (Limited):
+```yaml
+# ❌ Old way - limited to 255 characters, race conditions
+automation:
+  - alias: "Old AI Response Method"
+    action:
+      - service: ha_text_ai.ask_question
+        data:
+          question: "Long question here..."
+          instance: sensor.ha_text_ai_gpt
+      - delay: "00:00:05"  # Wait for sensor update
+      - service: notify.mobile
+        data:
+          message: "{{ state_attr('sensor.ha_text_ai_gpt', 'response')[:255] }}..."  # Truncated!
+```
+
+#### New Method (Unlimited):
+```yaml
+# ✅ New way - unlimited length, immediate access, no race conditions
+automation:
+  - alias: "New AI Response Method"
+    action:
+      - service: ha_text_ai.ask_question
+        data:
+          question: "Long question here..."
+          instance: sensor.ha_text_ai_gpt
+        response_variable: ai_response  # Direct access!
+      - service: notify.mobile
+        data:
+          message: "{{ ai_response.response_text }}"  # Full response, no truncation!
 ```
 
 ### 🏷️ HA Text AI Sensor Naming Convention

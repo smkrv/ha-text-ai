@@ -98,7 +98,7 @@
   "services": {
     "ask_question": {
       "name": "Fai una domanda (HA Text AI)",
-      "description": "Invia una domanda al modello AI e ricevi una risposta dettagliata. La risposta sarà memorizzata nella cronologia delle conversazioni e potrà essere recuperata in seguito.",
+      "description": "Invia una domanda al modello AI e ricevi una risposta dettagliata. Questo servizio ora restituisce i dati di risposta direttamente, eliminando la necessità di sensori di testo separati e la limitazione di 255 caratteri. La risposta sarà anche memorizzata nella cronologia delle conversazioni.",
       "fields": {
         "instance": {
           "name": "Istanze",

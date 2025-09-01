@@ -46,19 +46,6 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-def _check_memory_available(self):
-    """Check if enough memory is available."""
-    memory = psutil.virtual_memory()
-
-    # Log the total and available memory
-    _LOGGER.debug("Total memory: %s, Available memory: %s", memory.total, memory.available)
-
-    if memory.available > 1024 * 1024 * 100:  # 100MB
-        _LOGGER.debug("Sufficient memory available: %s bytes", memory.available)
-        return True
-    else:
-        _LOGGER.warning("Insufficient memory available: %s bytes", memory.available)
-        return False
 
 class AsyncFileHandler:
     """Async context manager for file operations."""
@@ -549,25 +536,57 @@ class HATextAICoordinator(DataUpdateCoordinator):
             return 0
 
     def _sync_write_history_entry(self, entry: dict) -> None:
-        """Synchronous method to write history entry."""
+        """Synchronous method to write history entry with enhanced error handling."""
         try:
             history = []
             if os.path.exists(self._history_file):
-                with open(self._history_file, 'r') as f:
-                    content = f.read()
-                    if content:
-                        history = json.loads(content)
+                try:
+                    with open(self._history_file, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        if content.strip():
+                            history = json.loads(content)
+                except (json.JSONDecodeError, UnicodeDecodeError) as e:
+                    _LOGGER.warning(f"Corrupted history file, creating new: {e}")
+                    # Backup corrupted file
+                    backup_path = f"{self._history_file}.corrupted.{dt_util.utcnow().strftime('%Y%m%d_%H%M%S')}"
+                    try:
+                        os.rename(self._history_file, backup_path)
+                        _LOGGER.info(f"Corrupted history backed up to: {backup_path}")
+                    except OSError:
+                        pass
+                except PermissionError as e:
+                    _LOGGER.error(f"Permission denied reading history file: {e}")
+                    raise
+                except OSError as e:
+                    _LOGGER.error(f"OS error reading history file: {e}")
+                    raise
 
             history.append(entry)
 
             if len(history) > self.max_history_size:
                 history = history[-self.max_history_size:]
 
-            with open(self._history_file, 'w') as f:
-                json.dump(history, f, indent=2)
+            # Write with atomic operation
+            temp_file = f"{self._history_file}.tmp"
+            try:
+                with open(temp_file, 'w', encoding='utf-8') as f:
+                    json.dump(history, f, indent=2, ensure_ascii=False)
+                os.replace(temp_file, self._history_file)
+            except PermissionError as e:
+                _LOGGER.error(f"Permission denied writing history file: {e}")
+                raise
+            except OSError as e:
+                _LOGGER.error(f"OS error writing history file: {e}")
+                # Clean up temp file if it exists
+                try:
+                    os.remove(temp_file)
+                except OSError:
+                    pass
+                raise
 
         except Exception as e:
             _LOGGER.error(f"Synchronous history entry writing failed: {e}")
+            raise
 
     async def _rotate_history(self) -> None:
         """Rotate conversation history with file management."""
@@ -903,23 +922,38 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 else:
                     response = await self._process_openai_message(question, **kwargs)
 
+            # Add timestamp and model information to response
+            timestamp = dt_util.utcnow().isoformat()
+            model_used = kwargs.get("model", self.model)
+            
+            # Enhance response with metadata
+            enhanced_response = {
+                "content": response["content"],
+                "tokens": response.get("tokens", {}),
+                "model": model_used,
+                "timestamp": timestamp,
+                "instance": self.instance_name,
+                "question": question,
+                "success": True
+            }
+
             self.last_response = {
-                "timestamp": dt_util.utcnow().isoformat(),
+                "timestamp": timestamp,
                 "question": question,
                 "response": response["content"],
-                "model": kwargs.get("model", self.model),
+                "model": model_used,
                 "instance": self.instance_name,
                 "normalized_name": self.normalized_name,
                 "error": None,
             }
 
-            return response
+            return enhanced_response
 
         except asyncio.TimeoutError:
             raise HomeAssistantError("Request timed out")
 
         except Exception as err:
-            self._handle_error(err)
+            await self._handle_error(err)
             raise
 
     async def _process_anthropic_message(self, question: str, **kwargs) -> dict:
@@ -1059,6 +1093,24 @@ class HATextAICoordinator(DataUpdateCoordinator):
         """Set system prompt."""
         self._system_prompt = prompt
         await self.async_update_ha_state()
+
+    def _check_memory_available(self) -> bool:
+        """Check if enough memory is available."""
+        try:
+            memory = psutil.virtual_memory()
+            
+            # Log the total and available memory
+            _LOGGER.debug("Total memory: %s, Available memory: %s", memory.total, memory.available)
+            
+            if memory.available > 1024 * 1024 * 100:  # 100MB
+                _LOGGER.debug("Sufficient memory available: %s bytes", memory.available)
+                return True
+            else:
+                _LOGGER.warning("Insufficient memory available: %s bytes", memory.available)
+                return False
+        except Exception as e:
+            _LOGGER.error("Error checking memory availability: %s", e)
+            return True  # Assume memory is available if check fails
 
     async def async_shutdown(self) -> None:
         """Shutdown coordinator."""

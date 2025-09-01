@@ -49,20 +49,36 @@ class APIClient:
         self.api_provider = api_provider
         self.model = model
         self.timeout = ClientTimeout(total=API_TIMEOUT)
+        self._closed = False
+
+    async def __aenter__(self):
+        """Async context manager entry."""
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        """Async context manager exit."""
+        await self.shutdown()
 
     def _validate_parameters(
         self,
         temperature: float,
         max_tokens: int,
     ) -> None:
-        """Validate API parameters."""
+        """Validate API parameters with enhanced type checking."""
+        # Type validation
+        if not isinstance(temperature, (int, float)):
+            raise TypeError(f"Temperature must be a number, got {type(temperature)}")
+        if not isinstance(max_tokens, int):
+            raise TypeError(f"Max tokens must be an integer, got {type(max_tokens)}")
+            
+        # Range validation
         if not MIN_TEMPERATURE <= temperature <= MAX_TEMPERATURE:
             raise ValueError(
-                f"Temperature must be between {MIN_TEMPERATURE} and {MAX_TEMPERATURE}"
+                f"Temperature must be between {MIN_TEMPERATURE} and {MAX_TEMPERATURE}, got {temperature}"
             )
         if not MIN_MAX_TOKENS <= max_tokens <= MAX_MAX_TOKENS:
             raise ValueError(
-                f"Max tokens must be between {MIN_MAX_TOKENS} and {MAX_MAX_TOKENS}"
+                f"Max tokens must be between {MIN_MAX_TOKENS} and {MAX_MAX_TOKENS}, got {max_tokens}"
             )
 
     async def _make_request(
@@ -71,7 +87,10 @@ class APIClient:
         payload: Dict[str, Any],
     ) -> Dict[str, Any]:
         """Make API request with retry logic."""
-        _LOGGER.debug(f"API Request: URL={url}, Payload={payload}")
+        # Log request without sensitive data
+        safe_payload = {k: v for k, v in payload.items() if k not in ['messages', 'system']}
+        _LOGGER.debug(f"API Request: URL={url}, Safe payload: {safe_payload}")
+        
         for attempt in range(API_RETRY_COUNT):
             try:
                 async with timeout(API_TIMEOUT):
@@ -84,16 +103,18 @@ class APIClient:
                         _LOGGER.debug(f"Response status: {response.status}")
                         if response.status != 200:
                             error_data = await response.json()
-                            _LOGGER.error(f"API error: {error_data}")
-                            raise HomeAssistantError(f"API error: {error_data}")
+                            # Log error without sensitive data
+                            safe_error = {k: v for k, v in error_data.items() if k not in ['message', 'details']}
+                            _LOGGER.error(f"API error (status {response.status}): {safe_error}")
+                            raise HomeAssistantError(f"API error: status {response.status}")
                         return await response.json()
             except asyncio.TimeoutError:
-                _LOGGER.warning(f"Timeout on attempt {attempt + 1}")
+                _LOGGER.warning(f"Timeout on attempt {attempt + 1}/{API_RETRY_COUNT}")
                 if attempt == API_RETRY_COUNT - 1:
                     raise HomeAssistantError("API request timed out")
                 await asyncio.sleep(1 * (attempt + 1))
             except Exception as e:
-                _LOGGER.warning(f"API request failed on attempt {attempt + 1}: {str(e)}")
+                _LOGGER.warning(f"API request failed on attempt {attempt + 1}/{API_RETRY_COUNT}: {type(e).__name__}")
                 if attempt == API_RETRY_COUNT - 1:
                     raise
                 await asyncio.sleep(1 * (attempt + 1))
