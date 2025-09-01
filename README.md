@@ -129,7 +129,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 - 💾 **History Size**: Number of messages to retain
 - 🌍 **Custom API Endpoint**: Optional advanced configuration
 
-### 🤖 **Recommended Models (2025)**
+### 🤖 **Recommended Models**
 
 #### OpenAI Models
 - **gpt-4o** - Latest flagship model, best for complex reasoning
@@ -139,11 +139,11 @@ Transform your smart home experience with powerful AI assistance powered by mult
 - **o1-mini** - Reasoning model optimized for coding
 
 #### Anthropic Claude Models  
-- **claude-3-5-sonnet-20241022** - Latest Claude 3.5 Sonnet (recommended)
-- **claude-3-5-haiku-20241022** - Fast and cost-effective
-- **claude-3-opus-20240229** - Most capable for complex tasks
-- **claude-3-sonnet-20240229** - Balanced performance/cost
-- **claude-3-haiku-20240307** - Fastest, most economical
+- **claude-3.5-sonnet** - Latest Claude 3.5 Sonnet (recommended)
+- **claude-3.5-haiku** - Fast and cost-effective
+- **claude-3-opus** - Most capable for complex tasks
+- **claude-3-sonnet** - Balanced performance/cost
+- **claude-3-haiku** - Fastest, most economical
 
 #### DeepSeek Models
 - **deepseek-chat** - General purpose conversation
@@ -193,12 +193,17 @@ To be compatible, a provider should support:
 <a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=smkrv&repository=ha-text-ai&category=Integration"><img src="https://my.home-assistant.io/badges/hacs_repository.svg" width="170" height="auto"></a>
 1. Open HACS in Home Assistant
 2. Click on "Integrations"
-3. Click "..." in top right corner
-4. Select "Custom repositories"
-5. Add repository URL: `https://github.com/smkrv/ha-text-ai`
-6. Choose "Integration" as category
-7. Click "Download"
-8. Restart Home Assistant
+3. Search for "HA Text AI"
+4. Click "Download"
+5. Restart Home Assistant
+
+**Alternative Method (Custom Repository):**
+If the integration is not found in the default repository:
+1. Click "..." in top right corner of HACS
+2. Select "Custom repositories"
+3. Add repository URL: `https://github.com/smkrv/ha-text-ai`
+4. Choose "Integration" as category
+5. Click "Download"
 
 ### Manual Installation
 1. Download the latest release
@@ -260,7 +265,7 @@ sensor:
 | `api_endpoint` | URL | ⚠️ | Provider default | Custom API endpoint |
 | `system_prompt` | String | ❌ | - | Default context for AI interactions |
 | `max_history_size` | Integer | ❌ | 50 | Maximum number of conversation entries to store |
-| `history_file_size` | Integer | ⚠️  | 1 | Maximum history file size in MB |
+| `context_messages` | Integer | ❌ | 5 | Number of previous messages to include in context (1-20) |
 
 #### Sensor Configuration
 
@@ -292,7 +297,7 @@ sensor:
 service: ha_text_ai.ask_question
 data:
   question: "What's the optimal temperature for sleeping?"
-  model: "claude-3-5-sonnet-20241022"  # optional
+  model: "claude-3.5-sonnet"  # optional
   temperature: 0.5  # optional
   max_tokens: 500  # optional
   context_messages: 10  #optional, number of previous messages to include in context, default: 5
@@ -308,7 +313,7 @@ response_text: "The optimal sleeping temperature is 65-68°F (18-20°C)..."
 tokens_used: 150
 prompt_tokens: 50
 completion_tokens: 100
-model_used: "claude-3-5-sonnet-20241022"
+model_used: "claude-3.5-sonnet"
 instance: "sensor.ha_text_ai_gpt"
 question: "What's the optimal temperature for sleeping?"
 timestamp: "2025-02-09T16:57:00.000Z"
@@ -340,8 +345,11 @@ data:
 ```yaml
 service: ha_text_ai.get_history
 data:
-  limit: 5  # optional
-  filter_model: "gpt-4o"  # optional
+  limit: 5  # optional, number of conversations to return (1-100)
+  filter_model: "gpt-4o"  # optional, filter by specific AI model
+  start_date: "2025-02-01"  # optional, filter conversations from this date
+  include_metadata: false  # optional, include tokens, response time, etc.
+  sort_order: "newest"  # optional, sort order: "newest" or "oldest"
   instance: sensor.ha_text_ai_gpt
 ```
 
@@ -656,7 +664,7 @@ Conversation history stored in `.storage/ha_text_ai_history/` directory:
 A: OpenAI (GPT models), Anthropic (Claude models), DeepSeek, Google Gemini, and OpenRouter are officially supported, with many other OpenAI-compatible providers working as well.
 
 **Q: How can I reduce API costs?**
-A: Use gpt-4o-mini or claude-3-5-haiku-20241022 for most queries, implement caching, and optimize token usage.
+A: Use gpt-4o-mini or claude-3.5-haiku for most queries, implement caching, and optimize token usage.
 
 **Q: Are there limitations on the number of requests?**
 A: Depends on your API provider's plan. We recommend monitoring usage and implementing request throttling via `request_interval` configuration.
