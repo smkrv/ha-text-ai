@@ -6,7 +6,7 @@
   ![Deutsch](https://img.shields.io/badge/lang-DE-blue?style=flat-square) ![English](https://img.shields.io/badge/lang-EN-blue?style=flat-square) ![Español](https://img.shields.io/badge/lang-ES-blue?style=flat-square) ![हिन्दी](https://img.shields.io/badge/lang-HI-blue?style=flat-square) ![Italiano](https://img.shields.io/badge/lang-IT-blue?style=flat-square) ![Русский](https://img.shields.io/badge/lang-RU-blue?style=flat-square) ![Српски](https://img.shields.io/badge/lang-SR-blue?style=flat-square) ![中文](https://img.shields.io/badge/lang-ZH-blue?style=flat-square)
 
 
-  <img src="https://github.com/smkrv/ha-text-ai/blob/15c717fcb0204bf4a0d4b4b4c6f0bb93e9f6c9a9/custom_components/ha_text_ai/icons/logo%402x.png" alt="HA Text AI" style="width: 50%; max-width: 256px; max-height: 128px; aspect-ratio: 2/1; object-fit: contain;"/>
+  <img src="https://github.com/smkrv/ha-text-ai/blob/main/custom_components/ha_text_ai/icons/logo%402x.png" alt="HA Text AI" style="width: 50%; max-width: 256px; max-height: 128px; aspect-ratio: 2/1; object-fit: contain;"/>
 
 ### Advanced AI Integration for [Home Assistant](https://www.home-assistant.io/) with LLM multi-provider support
 </div>
@@ -106,7 +106,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 
 ## 📋 Prerequisites
 
-- Home Assistant 2024.2.2 or later
+- Home Assistant 2024.12.0 or later (recommended for best compatibility)
 - Active API key from:
   - OpenAI ([Get key](https://platform.openai.com/account/api-keys))
   - Anthropic ([Get key](https://console.anthropic.com/))
@@ -120,7 +120,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 ## Configuration Options
 
 ### 🔧 **Core Configuration Settings**
-- 🌐 **API Provider**: OpenAI/Anthropic/DeepSeek
+- 🌐 **API Provider**: OpenAI/Anthropic/DeepSeek/Gemini
 - 🔑 **API Key**: Provider-specific authentication
 - 🤖 **Model Selection**: Flexible, provider-specific models
 - 🌡️ **Temperature**: Creativity control (0.0-2.0)
@@ -128,6 +128,33 @@ Transform your smart home experience with powerful AI assistance powered by mult
 - ⏱️ **Request Interval**: API call throttling
 - 💾 **History Size**: Number of messages to retain
 - 🌍 **Custom API Endpoint**: Optional advanced configuration
+
+### 🤖 **Recommended Models (2025)**
+
+#### OpenAI Models
+- **gpt-4o** - Latest flagship model, best for complex reasoning
+- **gpt-4o-mini** - Cost-effective, fast, great for most tasks
+- **gpt-4-turbo** - Previous generation, still powerful
+- **o1-preview** - Advanced reasoning model (experimental)
+- **o1-mini** - Reasoning model optimized for coding
+
+#### Anthropic Claude Models  
+- **claude-3-5-sonnet-20241022** - Latest Claude 3.5 Sonnet (recommended)
+- **claude-3-5-haiku-20241022** - Fast and cost-effective
+- **claude-3-opus-20240229** - Most capable for complex tasks
+- **claude-3-sonnet-20240229** - Balanced performance/cost
+- **claude-3-haiku-20240307** - Fastest, most economical
+
+#### DeepSeek Models
+- **deepseek-chat** - General purpose conversation
+- **deepseek-coder** - Code-focused model
+
+#### Google Gemini Models
+- **gemini-2.0-flash** - Latest generation model (recommended)
+- **gemini-1.5-pro** - Advanced capabilities
+- **gemini-1.5-flash** - Fast and efficient
+- **gemini-pro** - High-performance model
+- **gemini-pro-vision** - Multimodal capabilities
 
 <details>
 <summary>🌐 Potentially Compatible Providers</summary>
@@ -196,7 +223,7 @@ To be compatible, a provider should support:
 ha_text_ai:
   api_provider: openai  # Required
   api_key: !secret ai_api_key  # Required
-  model: gpt-4o-mini  # Strongly recommended
+  model: gpt-4o  # Strongly recommended
   temperature: 0.7  # Optional
   max_tokens: 1000  # Optional
   request_interval: 1.0  # Optional
@@ -213,7 +240,7 @@ sensor:
   - platform: ha_text_ai
     name: "My AI Assistant"  # Required, unique identifier
     api_provider: openai  # Optional (inherits from platform)
-    model: "gpt-4o-mini"  # Optional
+    model: "gpt-4o"  # Optional
     temperature: 0.7  # Optional
     max_tokens: 1000  # Optional
 ```
@@ -224,15 +251,15 @@ sensor:
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `api_provider` | String | ✅ | - | AI service provider (openai, anthropic) |
+| `api_provider` | String | ✅ | - | AI service provider (openai, anthropic, deepseek, gemini) |
 | `api_key` | String | ✅ | - | Authentication key for AI service |
-| `model` | String | ⚠️ | Provider default | Strongly recommended: Specific AI model to use. If not specified, the provider's default model will be used |
-| `temperature` | Float | ❌ | 0.7 | Response creativity level (0.0-2.0) |
+| `model` | String | ⚠️ | gpt-4o-mini | Strongly recommended: Specific AI model to use. Default varies by provider |
+| `temperature` | Float | ❌ | 0.1 | Response creativity level (0.0-2.0) |
 | `max_tokens` | Integer | ❌ | 1000 | Maximum response length |
 | `request_interval` | Float | ❌ | 1.0 | Delay between API requests |
 | `api_endpoint` | URL | ⚠️ | Provider default | Custom API endpoint |
 | `system_prompt` | String | ❌ | - | Default context for AI interactions |
-| `max_history_size` | Integer | ❌ | 100 | Maximum number of conversation entries to store |
+| `max_history_size` | Integer | ❌ | 50 | Maximum number of conversation entries to store |
 | `history_file_size` | Integer | ⚠️  | 1 | Maximum history file size in MB |
 
 #### Sensor Configuration
@@ -242,9 +269,9 @@ sensor:
 | `platform` | String | ✅ | - | Must be `ha_text_ai` |
 | `name` | String | ✅ | - | Unique sensor identifier |
 | `api_provider` | String | ❌ | Platform setting | Override global provider |
-| `model` | String | ⚠️ | Platform setting | Recommended: Override global model. If not specified, uses platform or provider default |
-| `temperature` | Float | ❌ | Platform setting | Override global temperature |
-| `max_tokens` | Integer | ❌ | Platform setting | Override global max tokens |
+| `model` | String | ⚠️ | Provider default | Recommended: Override global model (gpt-4o-mini, deepseek-chat, gemini-2.0-flash) |
+| `temperature` | Float | ❌ | 0.1 | Override global temperature |
+| `max_tokens` | Integer | ❌ | 1000 | Override global max tokens |
 
 </details>
 
@@ -265,7 +292,7 @@ sensor:
 service: ha_text_ai.ask_question
 data:
   question: "What's the optimal temperature for sleeping?"
-  model: "claude-3-sonnet"  # optional
+  model: "claude-3-5-sonnet-20241022"  # optional
   temperature: 0.5  # optional
   max_tokens: 500  # optional
   context_messages: 10  #optional, number of previous messages to include in context, default: 5
@@ -281,10 +308,10 @@ response_text: "The optimal sleeping temperature is 65-68°F (18-20°C)..."
 tokens_used: 150
 prompt_tokens: 50
 completion_tokens: 100
-model_used: "claude-3-sonnet"
+model_used: "claude-3-5-sonnet-20241022"
 instance: "sensor.ha_text_ai_gpt"
 question: "What's the optimal temperature for sleeping?"
-timestamp: "2025-01-09T16:57:00.000Z"
+timestamp: "2025-02-09T16:57:00.000Z"
 success: true
 # error: "Error message" (only present if success: false)
 ```
@@ -626,10 +653,10 @@ Conversation history stored in `.storage/ha_text_ai_history/` directory:
 ## 📘 FAQ
 
 **Q: Which AI providers are supported?**
-A: Currently OpenAI (GPT models) and Anthropic (Claude models) are supported, with more providers planned.
+A: OpenAI (GPT models), Anthropic (Claude models), DeepSeek, Google Gemini, and OpenRouter are officially supported, with many other OpenAI-compatible providers working as well.
 
 **Q: How can I reduce API costs?**
-A: Use GPT-3.5-Turbo or Claude-3-Sonnet for most queries, implement caching, and optimize token usage.
+A: Use gpt-4o-mini or claude-3-5-haiku-20241022 for most queries, implement caching, and optimize token usage.
 
 **Q: Are there limitations on the number of requests?**
 A: Depends on your API provider's plan. We recommend monitoring usage and implementing request throttling via `request_interval` configuration.
@@ -640,8 +667,11 @@ A: Yes, you can configure custom endpoints and use any compatible model by speci
 **Q: How do I switch between different AI providers?**
 A: Simply change the model parameter in your configuration or service calls to use the desired provider's model.
 
-**Q: How can I reduce API costs?**
-A: Use GPT-3.5-Turbo for most queries, implement caching, and optimize token usage.
+**Q: What are the token limits for different models?**
+A: Token limits vary by provider and model. OpenAI's gpt-4o supports up to 128K tokens, Claude 3.5 Sonnet supports up to 200K tokens, while smaller models typically have 8K-32K limits. Check your provider's documentation for specific limits.
+
+**Q: How do I monitor token usage?**
+A: Use the sensor attributes like `Total tokens`, `Prompt tokens`, and `Completion tokens` to track usage. You can also create automations to alert you when usage exceeds certain thresholds.
 
 **Q: Is my data secure?**
 A: Yes, your data is secure. The system operates entirely on your local machine, keeping your data under your control. API keys are stored securely and all external communications use encrypted connections.
@@ -707,8 +737,7 @@ If you want to say thanks financially, you can send a small token of appreciatio
 <div align="center"><img src="https://github.com/smkrv/ha-text-ai/blob/2aaf3405759eb2d97624834594e24ace896131df/assets/images/icons/footer_icon.png" alt="HA Text AI" style="width: 128px; height: auto;"/></div>  
 <div align="center">
 
-Made with ❤️ for the Home Assistant Community,  
-utilizing Claude 3.5 Sonnet, Gemini Pro 1.5, and Qwen 2.5 Coder 32B Instruct.
+Made with ❤️ for the Home Assistant Community
 
 [Report Bug](https://github.com/smkrv/ha-text-ai/issues) · [Request Feature](https://github.com/smkrv/ha-text-ai/issues)
 
