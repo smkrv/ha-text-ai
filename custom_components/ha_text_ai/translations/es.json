@@ -92,9 +92,9 @@
         "anthropic": "Anthropic (compatible)",
         "deepseek": "DeepSeek",
         "gemini": "Google Gemini"
+      }
     }
-  }
-},
+  },
   "services": {
     "ask_question": {
       "name": "Hacer Pregunta (HA Text AI)",
