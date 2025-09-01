@@ -132,29 +132,21 @@ Transform your smart home experience with powerful AI assistance powered by mult
 ### 🤖 **Recommended Models**
 
 #### OpenAI Models
-- **gpt-4o** - Latest flagship model, best for complex reasoning
-- **gpt-4o-mini** - Cost-effective, fast, great for most tasks
-- **gpt-4-turbo** - Previous generation, still powerful
-- **o1-preview** - Advanced reasoning model (experimental)
-- **o1-mini** - Reasoning model optimized for coding
+- **GPT-5** - The latest flagship model, best for complex reasoning
+- **GPT-5 mini** - A cost-effective and fast model, suitable for most tasks
 
 #### Anthropic Claude Models  
-- **claude-3.5-sonnet** - Latest Claude 3.5 Sonnet (recommended)
-- **claude-3.5-haiku** - Fast and cost-effective
-- **claude-3-opus** - Most capable for complex tasks
-- **claude-3-sonnet** - Balanced performance/cost
-- **claude-3-haiku** - Fastest, most economical
+- **Claude Opus 4.1** - The most capable model for handling complex tasks
+- **Claude Sonnet 4** - Offers a balance between performance and cost
+- **Claude Haiku 4** - The fastest and most economical option in the series
 
 #### DeepSeek Models
-- **deepseek-chat** - General purpose conversation
-- **deepseek-coder** - Code-focused model
+- **DeepSeek-V3.1** - A general-purpose model for a wide range of tasks
+- **DeepSeek-R1** - A specialized model focused on reasoning and coding
 
 #### Google Gemini Models
-- **gemini-2.0-flash** - Latest generation model (recommended)
-- **gemini-1.5-pro** - Advanced capabilities
-- **gemini-1.5-flash** - Fast and efficient
-- **gemini-pro** - High-performance model
-- **gemini-pro-vision** - Multimodal capabilities
+- **Gemini 2.5 Pro & 2.5 Flash** - The newest and most advanced models available
+- **Gemini 2.0 Pro & 2.0 Flash** - Previous generation models that are still powerful and efficient
 
 <details>
 <summary>🌐 Potentially Compatible Providers</summary>
