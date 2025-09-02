@@ -1085,9 +1085,60 @@ class HATextAICoordinator(DataUpdateCoordinator):
             _LOGGER.error(f"Error clearing history: {e}")
             _LOGGER.debug(traceback.format_exc())
 
-    async def async_get_history(self) -> List[Dict[str, str]]:
-        """Get conversation history."""
-        return self._conversation_history
+    async def async_get_history(
+        self,
+        limit: Optional[int] = None,
+        filter_model: Optional[str] = None,
+        start_date: Optional[str] = None,
+        include_metadata: bool = False,
+        sort_order: str = "newest"
+    ) -> List[Dict[str, Any]]:
+        """Get conversation history with optional filtering and sorting."""
+        try:
+            history = self._conversation_history.copy()
+            
+            # Filter by model if specified
+            if filter_model:
+                history = [entry for entry in history if entry.get("model") == filter_model]
+            
+            # Filter by start date if specified
+            if start_date:
+                try:
+                    from datetime import datetime
+                    start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+                    history = [
+                        entry for entry in history 
+                        if datetime.fromisoformat(entry["timestamp"].replace('Z', '+00:00')) >= start_dt
+                    ]
+                except (ValueError, KeyError) as e:
+                    _LOGGER.warning(f"Invalid start_date format: {start_date}. Error: {e}")
+            
+            # Sort history
+            if sort_order == "oldest":
+                history.sort(key=lambda x: x.get("timestamp", ""))
+            else:  # newest (default)
+                history.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+            
+            # Apply limit
+            if limit and limit > 0:
+                history = history[:limit]
+            
+            # Add metadata if requested
+            if include_metadata:
+                for entry in history:
+                    entry["metadata"] = {
+                        "entry_size": len(str(entry)),
+                        "question_length": len(entry.get("question", "")),
+                        "response_length": len(entry.get("response", "")),
+                        "model_used": entry.get("model", self.model),
+                        "instance": self.instance_name
+                    }
+            
+            return history
+            
+        except Exception as e:
+            _LOGGER.error(f"Error getting history: {e}")
+            return []
 
     async def async_set_system_prompt(self, prompt: str) -> None:
         """Set system prompt."""

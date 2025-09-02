@@ -86,6 +86,9 @@ SERVICE_SCHEMA_GET_HISTORY = vol.Schema({
     vol.Required("instance"): cv.string,
     vol.Optional("limit"): cv.positive_int,
     vol.Optional("filter_model"): cv.string,
+    vol.Optional("start_date"): cv.string,
+    vol.Optional("include_metadata"): cv.boolean,
+    vol.Optional("sort_order"): vol.In(["newest", "oldest"]),
 })
 
 def get_coordinator_by_instance(hass: HomeAssistant, instance: str) -> HATextAICoordinator:
@@ -168,7 +171,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
             coordinator = get_coordinator_by_instance(hass, call.data["instance"])
             return await coordinator.async_get_history(
                 limit=call.data.get("limit"),
-                filter_model=call.data.get("filter_model")
+                filter_model=call.data.get("filter_model"),
+                start_date=call.data.get("start_date"),
+                include_metadata=call.data.get("include_metadata", False),
+                sort_order=call.data.get("sort_order", "newest")
             )
         except Exception as err:
             _LOGGER.error("Error getting history: %s", str(err))
