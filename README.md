@@ -742,3 +742,4 @@ Made with ❤️ for the Home Assistant Community
 [Report Bug](https://github.com/smkrv/ha-text-ai/issues) · [Request Feature](https://github.com/smkrv/ha-text-ai/issues)
 
 </div>
+ 
