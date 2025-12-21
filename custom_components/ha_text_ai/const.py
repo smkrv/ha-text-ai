@@ -61,6 +61,7 @@ CONF_TEMPERATURE: Final = "temperature"
 CONF_MAX_TOKENS: Final = "max_tokens"
 CONF_API_ENDPOINT: Final = "api_endpoint"
 CONF_REQUEST_INTERVAL: Final = "request_interval"
+CONF_API_TIMEOUT: Final = "api_timeout"
 CONF_INSTANCE: Final = "instance"
 CONF_MAX_HISTORY_SIZE: Final = "max_history_size"  # Correct constant name
 CONF_IS_ANTHROPIC: Final = "is_anthropic"
@@ -79,6 +80,7 @@ DEFAULT_TEMPERATURE: Final = 0.1
 DEFAULT_MAX_TOKENS: Final = 1000
 DEFAULT_REQUEST_INTERVAL: Final = 1.0
 DEFAULT_TIMEOUT: Final = 30
+DEFAULT_API_TIMEOUT: Final = 30
 DEFAULT_MAX_HISTORY: Final = 50
 DEFAULT_NAME: Final = "HA Text AI"
 DEFAULT_NAME_PREFIX = "ha_text_ai"
@@ -93,9 +95,11 @@ MIN_MAX_TOKENS: Final = 1
 MAX_MAX_TOKENS: Final = 100000
 MIN_REQUEST_INTERVAL: Final = 0.1
 MAX_REQUEST_INTERVAL: Final = 60.0
+MIN_API_TIMEOUT: Final = 5
+MAX_API_TIMEOUT: Final = 600
 
 # API constants
-API_TIMEOUT: Final = 30
+API_TIMEOUT: Final = 30  # Legacy constant, use CONF_API_TIMEOUT from config
 API_RETRY_COUNT: Final = 3
 
 # Service names
@@ -231,6 +235,10 @@ CONFIG_SCHEMA = vol.Schema({
         vol.Optional(CONF_REQUEST_INTERVAL, default=DEFAULT_REQUEST_INTERVAL): vol.All(
             vol.Coerce(float),
             vol.Range(min=MIN_REQUEST_INTERVAL, max=MAX_REQUEST_INTERVAL)
+        ),
+        vol.Optional(CONF_API_TIMEOUT, default=DEFAULT_API_TIMEOUT): vol.All(
+            vol.Coerce(int),
+            vol.Range(min=MIN_API_TIMEOUT, max=MAX_API_TIMEOUT)
         ),
         vol.Optional(CONF_MAX_HISTORY_SIZE, default=DEFAULT_MAX_HISTORY): vol.All(  # Correct usage
             vol.Coerce(int),

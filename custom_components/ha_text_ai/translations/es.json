@@ -21,6 +21,7 @@
           "temperature": "Creatividad de la respuesta (0-2, menor = más enfocado)",
           "max_tokens": "Longitud máxima de la respuesta (1-100000 tokens)",
           "request_interval": "Tiempo mínimo entre solicitudes (0.1-60 segundos)",
+          "api_timeout": "Tiempo de espera de solicitud API en segundos (5-600)",
           "context_messages": "Número de mensajes de contexto a retener (1-20)",
           "max_history_size": "Tamaño máximo del historial de conversación (1-100)"
         }
@@ -37,6 +38,7 @@
           "api_endpoint": "URL del endpoint de API personalizado (opcional)",
           "api_provider": "Proveedor de API",
           "request_interval": "Tiempo mínimo entre solicitudes (0.1-60 segundos)",
+          "api_timeout": "Tiempo de espera de solicitud API en segundos (5-600)",
           "context_messages": "Número de mensajes de contexto a retener (1-20)",
           "max_history_size": "Tamaño máximo del historial de conversación (1-100)"
         }
@@ -79,6 +81,7 @@
           "temperature": "Creatividad de la respuesta (0-2)",
           "max_tokens": "Longitud máxima de la respuesta (1-100000)",
           "request_interval": "Intervalo mínimo de solicitud (0.1-60 segundos)",
+          "api_timeout": "Tiempo de espera de solicitud API en segundos (5-600)",
           "context_messages": "Número de mensajes anteriores a incluir en el contexto (1-20)",
           "max_history_size": "Tamaño máximo del historial de conversación (1-100)"
         }

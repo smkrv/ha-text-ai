@@ -37,6 +37,7 @@ from .const import (
     DEFAULT_MAX_TOKENS,
     DEFAULT_TEMPERATURE,
     DEFAULT_MAX_HISTORY,
+    DEFAULT_API_TIMEOUT,
     DEFAULT_CONTEXT_MESSAGES,
     ABSOLUTE_MAX_HISTORY_SIZE,
     MAX_ATTRIBUTE_SIZE,
@@ -76,6 +77,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         max_history_size: int = DEFAULT_MAX_HISTORY,
         context_messages: int = DEFAULT_CONTEXT_MESSAGES,
         is_anthropic: bool = False,
+        api_timeout: int = DEFAULT_API_TIMEOUT,
     ) -> None:
         """Initialize coordinator."""
         self.instance_name = instance_name
@@ -115,6 +117,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
             ABSOLUTE_MAX_HISTORY_SIZE
         )
         self.is_anthropic = is_anthropic
+        self.api_timeout = api_timeout
 
         # Initialize essential attributes
         self._is_processing = False
@@ -916,7 +919,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
     async def async_process_message(self, question: str, **kwargs) -> dict:
         """Process message using the AI client."""
         try:
-            async with asyncio.timeout(60):  # 60 second timeout
+            async with asyncio.timeout(self.api_timeout):
                 if self.is_anthropic:
                     response = await self._process_anthropic_message(question, **kwargs)
                 else:

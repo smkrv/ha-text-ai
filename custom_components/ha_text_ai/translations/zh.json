@@ -12,6 +12,7 @@
           "temperature": "响应创造力（0-2，越低越专注）",
           "max_tokens": "最大响应长度（1-100000个标记）",
           "request_interval": "请求之间的最小时间（0.1-60秒）",
+          "api_timeout": "API请求超时时间（5-600秒）",
           "context_messages": "保留的上下文消息数量（1-20）",
           "max_history_size": "最大对话历史大小（1-100）"
         }
@@ -28,6 +29,7 @@
           "api_endpoint": "自定义API端点URL（可选）",
           "api_provider": "API提供者",
           "request_interval": "请求之间的最小时间（0.1-60秒）",
+          "api_timeout": "API请求超时时间（5-600秒）",
           "context_messages": "保留的上下文消息数量（1-20）",
           "max_history_size": "最大对话历史大小（1-100）"
         }
@@ -70,6 +72,7 @@
           "temperature": "响应创造力（0-2）",
           "max_tokens": "最大响应长度（1-100000）",
           "request_interval": "最小请求间隔（0.1-60秒）",
+          "api_timeout": "API请求超时时间（5-600秒）",
           "context_messages": "要包含在上下文中的先前消息数量（1-20）",
           "max_history_size": "最大对话历史大小（1-100）"
         }

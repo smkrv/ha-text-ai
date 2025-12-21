@@ -16,7 +16,7 @@ from datetime import datetime, timedelta
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from .const import (
-    API_TIMEOUT,
+    DEFAULT_API_TIMEOUT,
     API_RETRY_COUNT,
     API_PROVIDER_ANTHROPIC,
     API_PROVIDER_DEEPSEEK,
@@ -41,6 +41,7 @@ class APIClient:
         headers: Dict[str, str],
         api_provider: str,
         model: str,
+        api_timeout: int = DEFAULT_API_TIMEOUT,
     ) -> None:
         """Initialize API client."""
         self.session = session
@@ -48,7 +49,8 @@ class APIClient:
         self.headers = headers
         self.api_provider = api_provider
         self.model = model
-        self.timeout = ClientTimeout(total=API_TIMEOUT)
+        self.api_timeout = api_timeout
+        self.timeout = ClientTimeout(total=api_timeout)
         self._closed = False
 
     async def __aenter__(self):
@@ -93,7 +95,7 @@ class APIClient:
         
         for attempt in range(API_RETRY_COUNT):
             try:
-                async with timeout(API_TIMEOUT):
+                async with timeout(self.api_timeout):
                     async with self.session.post(
                         url,
                         json=payload,

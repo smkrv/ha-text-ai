@@ -35,6 +35,7 @@ from .const import (
     CONF_MAX_TOKENS,
     CONF_API_ENDPOINT,
     CONF_REQUEST_INTERVAL,
+    CONF_API_TIMEOUT,
     CONF_API_PROVIDER,
     CONF_CONTEXT_MESSAGES,
     API_PROVIDER_OPENAI,
@@ -51,8 +52,8 @@ from .const import (
     DEFAULT_DEEPSEEK_ENDPOINT,
     DEFAULT_GEMINI_ENDPOINT,
     DEFAULT_REQUEST_INTERVAL,
+    DEFAULT_API_TIMEOUT,
     DEFAULT_CONTEXT_MESSAGES,
-    API_TIMEOUT,
     SERVICE_ASK_QUESTION,
     SERVICE_CLEAR_HISTORY,
     SERVICE_GET_HISTORY,
@@ -268,7 +269,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
     return True
 
-async def async_check_api(session, endpoint: str, headers: dict, provider: str) -> bool:
+async def async_check_api(session, endpoint: str, headers: dict, provider: str, api_timeout: int = DEFAULT_API_TIMEOUT) -> bool:
     """Check API availability for different providers."""
     try:
         if provider == API_PROVIDER_GEMINI:
@@ -285,7 +286,7 @@ async def async_check_api(session, endpoint: str, headers: dict, provider: str) 
         else:  # OpenAI
             check_url = f"{endpoint}/models"
 
-        async with timeout(API_TIMEOUT):
+        async with timeout(api_timeout):
             async with session.get(check_url, headers=headers) as response:
                 if response.status in [200, 404]:
                     return True
@@ -311,22 +312,24 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.error("API provider not specified")
             raise ConfigEntryNotReady("API provider is required")
 
-        # Get configuration
+        # Get configuration (merge data with options to apply any runtime changes)
+        config = {**entry.data, **entry.options}
         session = aiohttp_client.async_get_clientsession(hass)
-        api_provider = entry.data.get(CONF_API_PROVIDER)
-        model = entry.data.get(CONF_MODEL, DEFAULT_MODEL)
-        endpoint = entry.data.get(
+        api_provider = config.get(CONF_API_PROVIDER)
+        model = config.get(CONF_MODEL, DEFAULT_MODEL)
+        endpoint = config.get(
             CONF_API_ENDPOINT,
             DEFAULT_OPENAI_ENDPOINT if api_provider == API_PROVIDER_OPENAI
             else DEFAULT_ANTHROPIC_ENDPOINT
         ).rstrip('/')
-        api_key = entry.data[CONF_API_KEY]
+        api_key = entry.data[CONF_API_KEY]  # API key stays in data, not in options
         instance_name = entry.data.get(CONF_NAME, entry.entry_id)
-        request_interval = entry.data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)
-        max_tokens = entry.data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)
-        temperature = entry.data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
-        max_history_size = entry.data.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY)
-        context_messages = entry.data.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
+        request_interval = config.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)
+        api_timeout = config.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT)
+        max_tokens = config.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)
+        temperature = config.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
+        max_history_size = config.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY)
+        context_messages = config.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
         is_anthropic = api_provider == API_PROVIDER_ANTHROPIC
 
         headers = {
@@ -340,7 +343,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         else:
             headers["Authorization"] = f"Bearer {api_key}"
 
-        if not await async_check_api(session, endpoint, headers, api_provider):
+        if not await async_check_api(session, endpoint, headers, api_provider, api_timeout):
             raise ConfigEntryNotReady("API connection failed")
 
         _LOGGER.debug("Creating API client for %s with endpoint %s", api_provider, endpoint)
@@ -351,6 +354,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             headers=headers,
             api_provider=api_provider,
             model=model,
+            api_timeout=api_timeout,
         )
 
         coordinator = HATextAICoordinator(
@@ -364,6 +368,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             max_history_size=max_history_size,
             context_messages=context_messages,
             is_anthropic=is_anthropic,
+            api_timeout=api_timeout,
         )
 
         _LOGGER.debug(f"Created coordinator for {instance_name}")

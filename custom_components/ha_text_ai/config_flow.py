@@ -25,6 +25,7 @@ from .const import (
     CONF_MAX_TOKENS,
     CONF_API_ENDPOINT,
     CONF_REQUEST_INTERVAL,
+    CONF_API_TIMEOUT,
     CONF_API_PROVIDER,
     CONF_CONTEXT_MESSAGES,
     API_PROVIDER_OPENAI,
@@ -38,6 +39,7 @@ from .const import (
     DEFAULT_TEMPERATURE,
     DEFAULT_MAX_TOKENS,
     DEFAULT_REQUEST_INTERVAL,
+    DEFAULT_API_TIMEOUT,
     DEFAULT_OPENAI_ENDPOINT,
     DEFAULT_ANTHROPIC_ENDPOINT,
     DEFAULT_DEEPSEEK_ENDPOINT,
@@ -48,6 +50,8 @@ from .const import (
     MIN_MAX_TOKENS,
     MAX_MAX_TOKENS,
     MIN_REQUEST_INTERVAL,
+    MIN_API_TIMEOUT,
+    MAX_API_TIMEOUT,
     DEFAULT_NAME_PREFIX,
     DEFAULT_MAX_HISTORY,
     CONF_MAX_HISTORY_SIZE,
@@ -131,6 +135,10 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         vol.Coerce(float),
                         vol.Range(min=MIN_REQUEST_INTERVAL)
                     ),
+                    vol.Optional(CONF_API_TIMEOUT, default=DEFAULT_API_TIMEOUT): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(min=MIN_API_TIMEOUT, max=MAX_API_TIMEOUT)
+                    ),
                     vol.Optional(
                         CONF_CONTEXT_MESSAGES,
                         default=DEFAULT_CONTEXT_MESSAGES
@@ -182,6 +190,10 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         vol.Coerce(float),
                         vol.Range(min=MIN_REQUEST_INTERVAL)
                     ),
+                    vol.Optional(CONF_API_TIMEOUT, default=input_copy.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT)): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(min=MIN_API_TIMEOUT, max=MAX_API_TIMEOUT)
+                    ),
                     vol.Optional(
                         CONF_CONTEXT_MESSAGES,
                         default=input_copy.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
@@ -223,6 +235,10 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Optional(CONF_REQUEST_INTERVAL, default=input_copy.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)): vol.All(
                         vol.Coerce(float),
                         vol.Range(min=MIN_REQUEST_INTERVAL)
+                    ),
+                    vol.Optional(CONF_API_TIMEOUT, default=input_copy.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT)): vol.All(
+                        vol.Coerce(int),
+                        vol.Range(min=MIN_API_TIMEOUT, max=MAX_API_TIMEOUT)
                     ),
                     vol.Optional(
                         CONF_CONTEXT_MESSAGES,
@@ -281,6 +297,10 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             vol.Optional(CONF_REQUEST_INTERVAL, default=input_copy.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)): vol.All(
                                 vol.Coerce(float),
                                 vol.Range(min=MIN_REQUEST_INTERVAL)
+                            ),
+                            vol.Optional(CONF_API_TIMEOUT, default=input_copy.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT)): vol.All(
+                                vol.Coerce(int),
+                                vol.Range(min=MIN_API_TIMEOUT, max=MAX_API_TIMEOUT)
                             ),
                             vol.Optional(
                                 CONF_CONTEXT_MESSAGES,
@@ -433,6 +453,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_TEMPERATURE: user_input.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
             CONF_MAX_TOKENS: user_input.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
             CONF_REQUEST_INTERVAL: user_input.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL),
+            CONF_API_TIMEOUT: user_input.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT),
             CONF_CONTEXT_MESSAGES: user_input.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES),
             CONF_MAX_HISTORY_SIZE: user_input.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY),
         }
@@ -503,6 +524,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 ): vol.All(
                     vol.Coerce(float),
                     vol.Range(min=MIN_REQUEST_INTERVAL)
+                ),
+                vol.Optional(
+                    CONF_API_TIMEOUT,
+                    default=current_data.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT)
+                ): vol.All(
+                    vol.Coerce(int),
+                    vol.Range(min=MIN_API_TIMEOUT, max=MAX_API_TIMEOUT)
                 ),
                 vol.Optional(
                     CONF_CONTEXT_MESSAGES,

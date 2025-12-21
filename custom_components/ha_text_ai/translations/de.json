@@ -21,6 +21,7 @@
           "temperature": "Kreativität der Antwort (0-2, niedriger = fokussierter)",
           "max_tokens": "Maximale Länge der Antwort (1-100000 Token)",
           "request_interval": "Minimale Zeit zwischen Anfragen (0,1-60 Sekunden)",
+          "api_timeout": "API-Anfrage Timeout in Sekunden (5-600)",
           "context_messages": "Anzahl der zu behaltenden Kontextnachrichten (1-20)",
           "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)"
         }
@@ -37,6 +38,7 @@
           "api_endpoint": "Benutzerdefinierte API-Endpunkt-URL (optional)",
           "api_provider": "API-Anbieter",
           "request_interval": "Minimale Zeit zwischen Anfragen (0,1-60 Sekunden)",
+          "api_timeout": "API-Anfrage Timeout in Sekunden (5-600)",
           "context_messages": "Anzahl der zu behaltenden Kontextnachrichten (1-20)",
           "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)"
         }
@@ -79,6 +81,7 @@
           "temperature": "Kreativität der Antwort (0-2)",
           "max_tokens": "Maximale Länge der Antwort (1-100000)",
           "request_interval": "Minimale Anfrageintervall (0,1-60 Sekunden)",
+          "api_timeout": "API-Anfrage Timeout in Sekunden (5-600)",
           "context_messages": "Anzahl der vorherigen Nachrichten, die im Kontext enthalten sein sollen (1-20)",
           "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)"
         }
