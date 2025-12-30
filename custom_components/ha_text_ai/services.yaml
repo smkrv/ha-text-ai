@@ -80,11 +80,13 @@ ask_question:
       required: false
       default: false
       selector:
-        boolean:
+        boolean: {}
 
     json_schema:
       name: JSON Schema
-      description: JSON Schema defining the structure of the expected response. Required when structured_output is enabled. Example: {"type": "object", "properties": {"answer": {"type": "string"}}, "required": ["answer"]}
+      description: >-
+        JSON Schema defining the structure of the expected response.
+        Required when structured_output is enabled.
       required: false
       selector:
         text:
@@ -151,7 +153,7 @@ get_history:
       required: false
       default: false
       selector:
-        boolean:
+        boolean: {}
 
     sort_order:
       name: Sort Order
