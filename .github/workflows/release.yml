@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build and upload release asset
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Create zip archive
+        run: |
+          cd custom_components
+          zip -r ../ha_text_ai.zip ha_text_ai \
+            -x "ha_text_ai/__pycache__/*" \
+            -x "*.pyc" \
+            -x "*.pyo" \
+            -x "*/__pycache__/*" \
+            -x "*.DS_Store"
+
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ha_text_ai.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
