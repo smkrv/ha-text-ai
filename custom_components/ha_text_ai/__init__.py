@@ -76,6 +76,8 @@ SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
     vol.Optional("temperature"): cv.positive_float,
     vol.Optional("max_tokens"): cv.positive_int,
     vol.Optional("context_messages"): cv.positive_int,
+    vol.Optional("structured_output", default=False): cv.boolean,
+    vol.Optional("json_schema"): cv.string,
 })
 
 SERVICE_SCHEMA_SET_SYSTEM_PROMPT = vol.Schema({
@@ -127,6 +129,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                 max_tokens=call.data.get("max_tokens"),
                 system_prompt=call.data.get("system_prompt"),
                 context_messages=call.data.get("context_messages"),
+                structured_output=call.data.get("structured_output", False),
+                json_schema=call.data.get("json_schema"),
             )
             
             # Return structured response data

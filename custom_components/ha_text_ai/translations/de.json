@@ -130,6 +130,14 @@
         "max_tokens": {
           "name": "Max Tokens",
           "description": "Maximale Länge der Antwort (1-100000 Token)"
+        },
+        "structured_output": {
+          "name": "Strukturierte Ausgabe",
+          "description": "JSON-Strukturausgabemodus aktivieren. Bei Aktivierung antwortet die KI mit gültigem JSON, das dem angegebenen Schema entspricht."
+        },
+        "json_schema": {
+          "name": "JSON-Schema",
+          "description": "JSON-Schema, das die Struktur der erwarteten Antwort definiert. Erforderlich wenn structured_output aktiviert ist."
         }
       }
     },

@@ -121,6 +121,14 @@
         "max_tokens": {
           "name": "最大标记数",
           "description": "响应的最大长度（1-100000个标记）"
+        },
+        "structured_output": {
+          "name": "结构化输出",
+          "description": "启用JSON结构化输出模式。启用后，AI将以符合提供的模式的有效JSON进行响应。"
+        },
+        "json_schema": {
+          "name": "JSON模式",
+          "description": "定义预期响应结构的JSON模式。启用structured_output时必需。"
         }
       }
     },

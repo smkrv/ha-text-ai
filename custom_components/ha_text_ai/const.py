@@ -66,6 +66,8 @@ CONF_INSTANCE: Final = "instance"
 CONF_MAX_HISTORY_SIZE: Final = "max_history_size"  # Correct constant name
 CONF_IS_ANTHROPIC: Final = "is_anthropic"
 CONF_CONTEXT_MESSAGES: Final = "context_messages"
+CONF_STRUCTURED_OUTPUT: Final = "structured_output"
+CONF_JSON_SCHEMA: Final = "json_schema"
 
 ABSOLUTE_MAX_HISTORY_SIZE = 500
 MAX_ATTRIBUTE_SIZE = 4 * 1024
@@ -199,7 +201,9 @@ SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
     vol.Optional("context_messages"): vol.All(
         vol.Coerce(int),
         vol.Range(min=1, max=20)
-    )
+    ),
+    vol.Optional(CONF_STRUCTURED_OUTPUT, default=False): cv.boolean,
+    vol.Optional(CONF_JSON_SCHEMA): cv.string,
 })
 
 SERVICE_SCHEMA_SET_SYSTEM_PROMPT = vol.Schema({

@@ -74,6 +74,22 @@ ask_question:
           step: 1
           mode: box
 
+    structured_output:
+      name: Structured Output
+      description: Enable JSON structured output mode. When enabled, the AI will respond with valid JSON matching the provided schema.
+      required: false
+      default: false
+      selector:
+        boolean:
+
+    json_schema:
+      name: JSON Schema
+      description: JSON Schema defining the structure of the expected response. Required when structured_output is enabled. Example: {"type": "object", "properties": {"answer": {"type": "string"}}, "required": ["answer"]}
+      required: false
+      selector:
+        text:
+          multiline: true
+
 clear_history:
   name: Clear History
   description: >-

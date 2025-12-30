@@ -127,6 +127,8 @@ class APIClient:
         messages: List[Dict[str, str]],
         temperature: float,
         max_tokens: int,
+        structured_output: bool = False,
+        json_schema: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Create completion using appropriate API."""
         try:
@@ -134,19 +136,23 @@ class APIClient:
 
             if self.api_provider == API_PROVIDER_ANTHROPIC:
                 return await self._create_anthropic_completion(
-                    model, messages, temperature, max_tokens
+                    model, messages, temperature, max_tokens,
+                    structured_output, json_schema
                 )
             elif self.api_provider == API_PROVIDER_DEEPSEEK:
                 return await self._create_deepseek_completion(
-                    model, messages, temperature, max_tokens
+                    model, messages, temperature, max_tokens,
+                    structured_output, json_schema
                 )
             elif self.api_provider == API_PROVIDER_GEMINI:
                 return await self._create_gemini_completion(
-                    model, messages, temperature, max_tokens
+                    model, messages, temperature, max_tokens,
+                    structured_output, json_schema
                 )
             else:
                 return await self._create_openai_completion(
-                    model, messages, temperature, max_tokens
+                    model, messages, temperature, max_tokens,
+                    structured_output, json_schema
                 )
         except Exception as e:
             _LOGGER.error("API request failed: %s", str(e))
@@ -158,6 +164,8 @@ class APIClient:
         messages: List[Dict[str, str]],
         temperature: float,
         max_tokens: int,
+        structured_output: bool = False,
+        json_schema: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Create completion using DeepSeek API."""
         url = f"{self.endpoint}/chat/completions"
@@ -168,6 +176,24 @@ class APIClient:
             "max_tokens": max_tokens,
             "stream": False
         }
+
+        # Add structured output format if enabled (DeepSeek is OpenAI-compatible)
+        if structured_output and json_schema:
+            try:
+                import json
+                schema = json.loads(json_schema)
+                payload["response_format"] = {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "structured_response",
+                        "strict": True,
+                        "schema": schema
+                    }
+                }
+                _LOGGER.debug("DeepSeek structured output enabled with schema")
+            except json.JSONDecodeError as e:
+                _LOGGER.warning(f"Invalid JSON schema provided: {e}. Falling back to json_object mode.")
+                payload["response_format"] = {"type": "json_object"}
 
         data = await self._make_request(url, payload)
         return {
@@ -189,6 +215,8 @@ class APIClient:
         messages: List[Dict[str, str]],
         temperature: float,
         max_tokens: int,
+        structured_output: bool = False,
+        json_schema: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Create completion using OpenAI API."""
         url = f"{self.endpoint}/chat/completions"
@@ -198,6 +226,24 @@ class APIClient:
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
+
+        # Add structured output format if enabled
+        if structured_output and json_schema:
+            try:
+                import json
+                schema = json.loads(json_schema)
+                payload["response_format"] = {
+                    "type": "json_schema",
+                    "json_schema": {
+                        "name": "structured_response",
+                        "strict": True,
+                        "schema": schema
+                    }
+                }
+                _LOGGER.debug("OpenAI structured output enabled with schema")
+            except json.JSONDecodeError as e:
+                _LOGGER.warning(f"Invalid JSON schema provided: {e}. Falling back to json_object mode.")
+                payload["response_format"] = {"type": "json_object"}
 
         data = await self._make_request(url, payload)
         return {
@@ -219,6 +265,8 @@ class APIClient:
         messages: List[Dict[str, str]],
         temperature: float,
         max_tokens: int,
+        structured_output: bool = False,
+        json_schema: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Create completion using Anthropic API."""
         url = f"{self.endpoint}/v1/messages"
@@ -233,6 +281,20 @@ class APIClient:
                     system_prompt += f" {msg['content']}"
             else:
                 filtered_messages.append(msg)
+
+        # For Anthropic, add structured output instruction to system prompt
+        if structured_output and json_schema:
+            schema_instruction = (
+                f"\n\nIMPORTANT: You MUST respond ONLY with valid JSON that matches "
+                f"this JSON Schema:\n{json_schema}\n"
+                f"Do not include any text before or after the JSON. "
+                f"Do not wrap the JSON in markdown code blocks."
+            )
+            if system_prompt:
+                system_prompt += schema_instruction
+            else:
+                system_prompt = schema_instruction.strip()
+            _LOGGER.debug("Anthropic structured output enabled via system prompt")
 
         payload = {
             "model": model,
@@ -273,6 +335,8 @@ class APIClient:
         messages: List[Dict[str, str]],
         temperature: float,
         max_tokens: int,
+        structured_output: bool = False,
+        json_schema: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Create completion using Gemini API with google-genai library.
 
@@ -281,6 +345,8 @@ class APIClient:
             messages: List of message dictionaries with role and content
             temperature: Sampling temperature between 0.0 and 2.0
             max_tokens: Maximum number of tokens to generate
+            structured_output: Enable JSON structured output mode
+            json_schema: JSON Schema for structured output validation
 
         Returns:
             Dictionary with response content and token usage
@@ -319,6 +385,16 @@ class APIClient:
                         "parts": [{"text": msg['content']}]
                     })
 
+            # Parse JSON schema if structured output is enabled
+            parsed_schema = None
+            if structured_output and json_schema:
+                try:
+                    import json
+                    parsed_schema = json.loads(json_schema)
+                    _LOGGER.debug("Gemini structured output enabled with schema")
+                except json.JSONDecodeError as e:
+                    _LOGGER.warning(f"Invalid JSON schema provided: {e}. Structured output disabled.")
+
             # Create configuration
             def create_config():
                 from google.genai import types
@@ -330,6 +406,11 @@ class APIClient:
                 # Add system instruction if present
                 if system_instruction:
                     config.system_instruction = system_instruction.strip()
+
+                # Add structured output configuration for Gemini
+                if structured_output and parsed_schema:
+                    config.response_mime_type = "application/json"
+                    config.response_schema = parsed_schema
 
                 return config
 
@@ -407,4 +488,5 @@ class APIClient:
     async def shutdown(self) -> None:
         """Shutdown API client."""
         _LOGGER.debug("Shutting down API client")
-        await self.session.close()
+        self._closed = True
+        # Do NOT close the shared Home Assistant session

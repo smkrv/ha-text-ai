@@ -189,15 +189,9 @@ class HATextAICoordinator(DataUpdateCoordinator):
         # Maximum history file size (1 MB) from const.py
         self._max_history_file_size = MAX_HISTORY_FILE_SIZE
 
-        # Asynchronous file initialization
-        hass.async_create_task(self.async_initialize_history_file())
+        self.context_messages = context_messages
 
         _LOGGER.info(f"Initialized HA Text AI coordinator with instance: {instance_name}")
-
-        # Register instance
-        self.hass.data.setdefault(DOMAIN, {})
-        self.hass.data[DOMAIN][instance_name] = self
-        self.context_messages = context_messages
 
     @property
     def last_response(self) -> Dict[str, Any]:
@@ -826,6 +820,8 @@ class HATextAICoordinator(DataUpdateCoordinator):
         max_tokens: Optional[int] = None,
         system_prompt: Optional[str] = None,
         context_messages: Optional[int] = None,
+        structured_output: bool = False,
+        json_schema: Optional[str] = None,
     ) -> dict:
         """
         Process a question with optional parameters.
@@ -841,12 +837,15 @@ class HATextAICoordinator(DataUpdateCoordinator):
             max_tokens: Optional maximum response length
             system_prompt: Optional system-level instruction
             context_messages: Optional number of context messages to include
+            structured_output: Enable JSON structured output mode
+            json_schema: JSON Schema for structured output validation
 
         Returns:
             Full response dictionary from the AI
         """
         return await self.async_process_question(
-            question, model, temperature, max_tokens, system_prompt, context_messages
+            question, model, temperature, max_tokens, system_prompt, context_messages,
+            structured_output, json_schema
         )
 
     async def async_process_question(
@@ -857,6 +856,8 @@ class HATextAICoordinator(DataUpdateCoordinator):
             max_tokens: Optional[int] = None,
             system_prompt: Optional[str] = None,
             context_messages: Optional[int] = None,
+            structured_output: bool = False,
+            json_schema: Optional[str] = None,
         ) -> dict:
             """Process question with context management."""
             if self.client is None:
@@ -895,6 +896,8 @@ class HATextAICoordinator(DataUpdateCoordinator):
                     "temperature": temp_temperature,
                     "max_tokens": temp_max_tokens,
                     "messages": messages,
+                    "structured_output": structured_output,
+                    "json_schema": json_schema,
                 }
 
                 response = await self.async_process_message(question, **kwargs)
@@ -909,7 +912,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 return response
 
             except Exception as err:
-                self._handle_error(err)
+                await self._handle_error(err)
                 raise HomeAssistantError(f"Failed to process question: {err}")
 
             finally:
@@ -919,11 +922,15 @@ class HATextAICoordinator(DataUpdateCoordinator):
     async def async_process_message(self, question: str, **kwargs) -> dict:
         """Process message using the AI client."""
         try:
+            structured_output = kwargs.pop("structured_output", False)
+            json_schema = kwargs.pop("json_schema", None)
+            
             async with asyncio.timeout(self.api_timeout):
-                if self.is_anthropic:
-                    response = await self._process_anthropic_message(question, **kwargs)
-                else:
-                    response = await self._process_openai_message(question, **kwargs)
+                # APIClient.create() handles provider routing internally
+                response = await self._process_openai_message(
+                    question, structured_output=structured_output,
+                    json_schema=json_schema, **kwargs
+                )
 
             # Add timestamp and model information to response
             timestamp = dt_util.utcnow().isoformat()
@@ -959,30 +966,8 @@ class HATextAICoordinator(DataUpdateCoordinator):
             await self._handle_error(err)
             raise
 
-    async def _process_anthropic_message(self, question: str, **kwargs) -> dict:
-        """Process message using Anthropic API."""
-        try:
-            _LOGGER.debug(f"Anthropic API call: model={kwargs['model']}, max_tokens={kwargs['max_tokens']}")
-            response = await self.client.messages.create(
-                model=kwargs["model"],
-                max_tokens=kwargs["max_tokens"],
-                messages=kwargs["messages"],
-                temperature=kwargs["temperature"],
-            )
-            _LOGGER.debug(f"Anthropic response: tokens={response.usage}")
-            return {
-                "content": response.content[0].text,
-                "tokens": {
-                    "prompt": response.usage.input_tokens,
-                    "completion": response.usage.output_tokens,
-                    "total": response.usage.input_tokens + response.usage.output_tokens,
-                },
-            }
-        except Exception as e:
-            _LOGGER.error(f"Anthropic API error: {str(e)}")
-            raise
-
-    async def _process_openai_message(self, question: str, **kwargs) -> dict:
+    async def _process_openai_message(self, question: str, structured_output: bool = False,
+                                       json_schema: Optional[str] = None, **kwargs) -> dict:
         """Process message using OpenAI API."""
         try:
             response = await self.client.create(
@@ -990,6 +975,8 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 messages=kwargs["messages"],
                 temperature=kwargs["temperature"],
                 max_tokens=kwargs["max_tokens"],
+                structured_output=structured_output,
+                json_schema=json_schema,
             )
 
             return {

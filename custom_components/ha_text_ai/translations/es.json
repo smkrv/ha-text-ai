@@ -130,6 +130,14 @@
         "max_tokens": {
           "name": "Máx. Tokens",
           "description": "Longitud máxima de la respuesta (1-100000 tokens)"
+        },
+        "structured_output": {
+          "name": "Salida Estructurada",
+          "description": "Habilitar modo de salida JSON estructurada. Cuando está habilitado, la IA responderá con JSON válido que coincida con el esquema proporcionado."
+        },
+        "json_schema": {
+          "name": "Esquema JSON",
+          "description": "Esquema JSON que define la estructura de la respuesta esperada. Requerido cuando structured_output está habilitado."
         }
       }
     },
