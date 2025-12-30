@@ -74,9 +74,18 @@
   "options": {
     "step": {
       "init": {
-        "title": "Aggiorna impostazioni dell'istanza",
-        "description": "Modifica le impostazioni per questa istanza di assistente AI.",
+        "title": "Seleziona fornitore",
+        "description": "Scegli il fornitore AI per questa istanza. L'integrazione verrà ricaricata dopo aver salvato le modifiche.",
         "data": {
+          "api_provider": "Fornitore API"
+        }
+      },
+      "settings": {
+        "title": "Impostazioni di connessione e modello",
+        "description": "Configura le credenziali API e i parametri del modello. Le modifiche avranno effetto dopo il ricaricamento dell'integrazione.",
+        "data": {
+          "api_key": "Chiave API",
+          "api_endpoint": "URL dell'endpoint API",
           "model": "Modello AI",
           "temperature": "Creatività della risposta (0-2)",
           "max_tokens": "Lunghezza massima della risposta (1-100000)",

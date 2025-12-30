@@ -74,9 +74,18 @@
   "options": {
     "step": {
       "init": {
-        "title": "Update Instance Settings",
-        "description": "Modify settings for this AI assistant instance.",
+        "title": "Select Provider",
+        "description": "Choose the AI provider for this instance. The integration will reload after saving changes.",
         "data": {
+          "api_provider": "API Provider"
+        }
+      },
+      "settings": {
+        "title": "Connection & Model Settings",
+        "description": "Configure API credentials and model parameters. Changes will take effect after the integration reloads.",
+        "data": {
+          "api_key": "API Key",
+          "api_endpoint": "API Endpoint URL",
           "model": "AI model",
           "temperature": "Response creativity (0-2)",
           "max_tokens": "Maximum response length (1-100000)",

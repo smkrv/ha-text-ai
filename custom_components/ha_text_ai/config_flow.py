@@ -479,74 +479,223 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow."""
 
-    async def async_step_init(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
-        """Manage the options."""
-        if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+    def __init__(self) -> None:
+        """Initialize options flow."""
+        self._errors = {}
+        self._selected_provider = None
 
-        current_data = {**self.config_entry.data, **self.config_entry.options}
-        provider = current_data.get(CONF_API_PROVIDER)
+    def _get_default_endpoint(self, provider: str) -> str:
+        """Get default endpoint for provider."""
+        return {
+            API_PROVIDER_OPENAI: DEFAULT_OPENAI_ENDPOINT,
+            API_PROVIDER_ANTHROPIC: DEFAULT_ANTHROPIC_ENDPOINT,
+            API_PROVIDER_DEEPSEEK: DEFAULT_DEEPSEEK_ENDPOINT,
+            API_PROVIDER_GEMINI: DEFAULT_GEMINI_ENDPOINT,
+        }.get(provider, DEFAULT_OPENAI_ENDPOINT)
 
-        default_model = (
+    def _get_default_model(self, provider: str) -> str:
+        """Get default model for provider."""
+        return (
             DEFAULT_DEEPSEEK_MODEL if provider == API_PROVIDER_DEEPSEEK else
             DEFAULT_GEMINI_MODEL if provider == API_PROVIDER_GEMINI else
             DEFAULT_MODEL
         )
 
+    def _get_api_headers(self, api_key: str, provider: str) -> Dict[str, str]:
+        """Get API headers based on provider."""
+        if provider == API_PROVIDER_ANTHROPIC:
+            return {
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "Content-Type": "application/json"
+            }
+        return {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+
+    async def _async_validate_api(self, provider: str, api_key: str, endpoint: str) -> bool:
+        """Validate API connection."""
+        try:
+            if not api_key:
+                self._errors["base"] = "invalid_auth"
+                return False
+
+            # For Gemini, just check if API key is present
+            if provider == API_PROVIDER_GEMINI:
+                return True
+
+            session = async_get_clientsession(self.hass)
+            headers = self._get_api_headers(api_key, provider)
+            endpoint = endpoint.rstrip('/')
+
+            check_url = (
+                f"{endpoint}/v1/models" if provider == API_PROVIDER_ANTHROPIC
+                else f"{endpoint}/models"
+            )
+
+            async with session.get(check_url, headers=headers) as response:
+                if response.status == 401:
+                    self._errors["base"] = "invalid_auth"
+                    return False
+                elif response.status not in [200, 404]:
+                    self._errors["base"] = "cannot_connect"
+                    return False
+                return True
+
+        except Exception as err:
+            _LOGGER.error("API validation error: %s", str(err))
+            self._errors["base"] = "cannot_connect"
+            return False
+
+    async def async_step_init(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
+        """Handle provider selection step."""
+        current_data = {**self.config_entry.data, **self.config_entry.options}
+        current_provider = current_data.get(CONF_API_PROVIDER, API_PROVIDER_OPENAI)
+
+        if user_input is not None:
+            self._selected_provider = user_input.get(CONF_API_PROVIDER, current_provider)
+            return await self.async_step_settings()
+
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema({
-                vol.Optional(
-                    CONF_MODEL,
-                    default=current_data.get(CONF_MODEL, default_model)
-                ): str,
-                vol.Optional(
-                    CONF_TEMPERATURE,
-                    default=current_data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
-                ): vol.All(
-                    vol.Coerce(float),
-                    vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
-                ),
-                vol.Optional(
-                    CONF_MAX_TOKENS,
-                    default=current_data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)
-                ): vol.All(
-                    vol.Coerce(int),
-                    vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
-                ),
-                vol.Optional(
-                    CONF_REQUEST_INTERVAL,
-                    default=current_data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)
-                ): vol.All(
-                    vol.Coerce(float),
-                    vol.Range(min=MIN_REQUEST_INTERVAL)
-                ),
-                vol.Optional(
-                    CONF_API_TIMEOUT,
-                    default=current_data.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT)
-                ): vol.All(
-                    vol.Coerce(int),
-                    vol.Range(min=MIN_API_TIMEOUT, max=MAX_API_TIMEOUT)
-                ),
-                vol.Optional(
-                    CONF_CONTEXT_MESSAGES,
-                    default=current_data.get(
-                        CONF_CONTEXT_MESSAGES,
-                        DEFAULT_CONTEXT_MESSAGES
+                vol.Required(
+                    CONF_API_PROVIDER,
+                    default=current_provider
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=API_PROVIDERS,
+                        translation_key="api_provider"
                     )
-                ): vol.All(
-                    vol.Coerce(int),
-                    vol.Range(min=1, max=20)
                 ),
-                vol.Optional(
-                    CONF_MAX_HISTORY_SIZE,
-                    default=current_data.get(
-                        CONF_MAX_HISTORY_SIZE,
-                        DEFAULT_MAX_HISTORY
-                    )
-                ): vol.All(
-                    vol.Coerce(int),
-                    vol.Range(min=1, max=100)
-                ),
-            })
+            }),
+            description_placeholders={
+                "current_provider": current_provider
+            }
         )
+
+    async def async_step_settings(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
+        """Handle settings configuration step."""
+        self._errors = {}
+        current_data = {**self.config_entry.data, **self.config_entry.options}
+        provider = self._selected_provider or current_data.get(CONF_API_PROVIDER, API_PROVIDER_OPENAI)
+
+        # Determine if provider changed to show appropriate defaults
+        provider_changed = provider != current_data.get(CONF_API_PROVIDER)
+
+        # Use new defaults if provider changed, otherwise use current values
+        if provider_changed:
+            default_endpoint = self._get_default_endpoint(provider)
+            default_model = self._get_default_model(provider)
+        else:
+            default_endpoint = current_data.get(CONF_API_ENDPOINT, self._get_default_endpoint(provider))
+            default_model = current_data.get(CONF_MODEL, self._get_default_model(provider))
+
+        if user_input is not None:
+            # Validate API connection
+            api_key = user_input.get(CONF_API_KEY, current_data.get(CONF_API_KEY, ""))
+            endpoint = user_input.get(CONF_API_ENDPOINT, default_endpoint)
+
+            if await self._async_validate_api(provider, api_key, endpoint):
+                # Merge with provider selection
+                final_data = {
+                    CONF_API_PROVIDER: provider,
+                    **user_input
+                }
+                return self.async_create_entry(title="", data=final_data)
+
+            # Show form again with errors
+            return self.async_show_form(
+                step_id="settings",
+                data_schema=self._get_settings_schema(
+                    provider=provider,
+                    current_data=current_data,
+                    user_input=user_input,
+                    default_endpoint=default_endpoint,
+                    default_model=default_model,
+                ),
+                errors=self._errors
+            )
+
+        return self.async_show_form(
+            step_id="settings",
+            data_schema=self._get_settings_schema(
+                provider=provider,
+                current_data=current_data,
+                user_input=None,
+                default_endpoint=default_endpoint,
+                default_model=default_model,
+            ),
+            description_placeholders={
+                "provider": provider
+            }
+        )
+
+    def _get_settings_schema(
+        self,
+        provider: str,
+        current_data: Dict[str, Any],
+        user_input: Optional[Dict[str, Any]],
+        default_endpoint: str,
+        default_model: str,
+    ) -> vol.Schema:
+        """Build settings schema."""
+        data = user_input or current_data
+
+        return vol.Schema({
+            vol.Required(
+                CONF_API_KEY,
+                default=data.get(CONF_API_KEY, "")
+            ): str,
+            vol.Required(
+                CONF_API_ENDPOINT,
+                default=data.get(CONF_API_ENDPOINT, default_endpoint)
+            ): str,
+            vol.Required(
+                CONF_MODEL,
+                default=data.get(CONF_MODEL, default_model)
+            ): str,
+            vol.Optional(
+                CONF_TEMPERATURE,
+                default=data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
+            ): vol.All(
+                vol.Coerce(float),
+                vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
+            ),
+            vol.Optional(
+                CONF_MAX_TOKENS,
+                default=data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)
+            ): vol.All(
+                vol.Coerce(int),
+                vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
+            ),
+            vol.Optional(
+                CONF_REQUEST_INTERVAL,
+                default=data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)
+            ): vol.All(
+                vol.Coerce(float),
+                vol.Range(min=MIN_REQUEST_INTERVAL)
+            ),
+            vol.Optional(
+                CONF_API_TIMEOUT,
+                default=data.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT)
+            ): vol.All(
+                vol.Coerce(int),
+                vol.Range(min=MIN_API_TIMEOUT, max=MAX_API_TIMEOUT)
+            ),
+            vol.Optional(
+                CONF_CONTEXT_MESSAGES,
+                default=data.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
+            ): vol.All(
+                vol.Coerce(int),
+                vol.Range(min=1, max=20)
+            ),
+            vol.Optional(
+                CONF_MAX_HISTORY_SIZE,
+                default=data.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY)
+            ): vol.All(
+                vol.Coerce(int),
+                vol.Range(min=1, max=100)
+            ),
+        })

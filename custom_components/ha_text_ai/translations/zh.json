@@ -65,9 +65,18 @@
   "options": {
     "step": {
       "init": {
-        "title": "更新实例设置",
-        "description": "修改此AI助手实例的设置。",
+        "title": "选择提供者",
+        "description": "选择此实例的AI提供者。保存更改后集成将重新加载。",
         "data": {
+          "api_provider": "API提供者"
+        }
+      },
+      "settings": {
+        "title": "连接和模型设置",
+        "description": "配置API凭据和模型参数。更改将在集成重新加载后生效。",
+        "data": {
+          "api_key": "API密钥",
+          "api_endpoint": "API端点URL",
           "model": "AI模型",
           "temperature": "响应创造力（0-2）",
           "max_tokens": "最大响应长度（1-100000）",

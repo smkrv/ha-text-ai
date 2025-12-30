@@ -74,9 +74,18 @@
   "options": {
     "step": {
       "init": {
-        "title": "Actualizar configuración de la instancia",
-        "description": "Modifica la configuración para esta instancia de asistente de IA.",
+        "title": "Seleccionar proveedor",
+        "description": "Elige el proveedor de IA para esta instancia. La integración se recargará después de guardar los cambios.",
         "data": {
+          "api_provider": "Proveedor de API"
+        }
+      },
+      "settings": {
+        "title": "Configuración de conexión y modelo",
+        "description": "Configura las credenciales de API y los parámetros del modelo. Los cambios tendrán efecto después de recargar la integración.",
+        "data": {
+          "api_key": "Clave API",
+          "api_endpoint": "URL del endpoint de API",
           "model": "Modelo de IA",
           "temperature": "Creatividad de la respuesta (0-2)",
           "max_tokens": "Longitud máxima de la respuesta (1-100000)",

@@ -312,21 +312,35 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     _LOGGER.debug(f"Setting up HA Text AI entry: {entry.data}")
 
     try:
-        if CONF_API_PROVIDER not in entry.data:
+        # Get provider from data or options (options takes precedence)
+        config = {**entry.data, **entry.options}
+        api_provider = config.get(CONF_API_PROVIDER)
+
+        if not api_provider:
             _LOGGER.error("API provider not specified")
             raise ConfigEntryNotReady("API provider is required")
 
-        # Get configuration (merge data with options to apply any runtime changes)
-        config = {**entry.data, **entry.options}
         session = aiohttp_client.async_get_clientsession(hass)
-        api_provider = config.get(CONF_API_PROVIDER)
-        model = config.get(CONF_MODEL, DEFAULT_MODEL)
-        endpoint = config.get(
-            CONF_API_ENDPOINT,
-            DEFAULT_OPENAI_ENDPOINT if api_provider == API_PROVIDER_OPENAI
-            else DEFAULT_ANTHROPIC_ENDPOINT
-        ).rstrip('/')
-        api_key = entry.data[CONF_API_KEY]  # API key stays in data, not in options
+
+        # Get default endpoint based on provider
+        default_endpoint = {
+            API_PROVIDER_OPENAI: DEFAULT_OPENAI_ENDPOINT,
+            API_PROVIDER_ANTHROPIC: DEFAULT_ANTHROPIC_ENDPOINT,
+            API_PROVIDER_DEEPSEEK: DEFAULT_DEEPSEEK_ENDPOINT,
+            API_PROVIDER_GEMINI: DEFAULT_GEMINI_ENDPOINT,
+        }.get(api_provider, DEFAULT_OPENAI_ENDPOINT)
+
+        # Get default model based on provider
+        default_model = (
+            DEFAULT_DEEPSEEK_MODEL if api_provider == API_PROVIDER_DEEPSEEK else
+            DEFAULT_GEMINI_MODEL if api_provider == API_PROVIDER_GEMINI else
+            DEFAULT_MODEL
+        )
+
+        model = config.get(CONF_MODEL, default_model)
+        endpoint = config.get(CONF_API_ENDPOINT, default_endpoint).rstrip('/')
+        # API key can now be updated via options
+        api_key = config.get(CONF_API_KEY, entry.data.get(CONF_API_KEY))
         instance_name = entry.data.get(CONF_NAME, entry.entry_id)
         request_interval = config.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)
         api_timeout = config.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT)
@@ -386,6 +400,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Set up platforms
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
+        # Register update listener for options changes
+        entry.async_on_unload(entry.add_update_listener(async_update_options))
+
         _LOGGER.debug(f"Setup completed for {instance_name}")
 
         return True
@@ -393,6 +410,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception as err:
         _LOGGER.exception(f"Error setting up HA Text AI: {err}")
         raise
+
+async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Handle options update - reload the config entry."""
+    _LOGGER.info("Options updated for %s, reloading integration", entry.title)
+    await hass.config_entries.async_reload(entry.entry_id)
+
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""

@@ -74,13 +74,22 @@
   "options": {
     "step": {
       "init": {
-        "title": "Instanzeinstellungen aktualisieren",
-        "description": "Ändern Sie die Einstellungen für diese AI-Assistenteninstanz.",
+        "title": "Anbieter auswählen",
+        "description": "Wählen Sie den AI-Anbieter für diese Instanz. Die Integration wird nach dem Speichern der Änderungen neu geladen.",
         "data": {
+          "api_provider": "API-Anbieter"
+        }
+      },
+      "settings": {
+        "title": "Verbindungs- und Modelleinstellungen",
+        "description": "Konfigurieren Sie API-Anmeldeinformationen und Modellparameter. Änderungen werden nach dem Neuladen der Integration wirksam.",
+        "data": {
+          "api_key": "API-Schlüssel",
+          "api_endpoint": "API-Endpunkt-URL",
           "model": "AI-Modell",
           "temperature": "Kreativität der Antwort (0-2)",
           "max_tokens": "Maximale Länge der Antwort (1-100000)",
-          "request_interval": "Minimale Anfrageintervall (0,1-60 Sekunden)",
+          "request_interval": "Minimales Anfrageintervall (0,1-60 Sekunden)",
           "api_timeout": "API-Anfrage Timeout in Sekunden (5-600)",
           "context_messages": "Anzahl der vorherigen Nachrichten, die im Kontext enthalten sein sollen (1-20)",
           "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)"
