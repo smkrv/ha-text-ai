@@ -26,7 +26,7 @@ from homeassistant.util import dt as dt_util
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.const import CONF_NAME
 
-from .config_flow import normalize_name
+from .utils import normalize_name
 from .const import (
     DOMAIN,
     STATE_READY,
@@ -82,9 +82,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
         """Initialize coordinator."""
         self.instance_name = instance_name
         self.normalized_name = None
-
-        # Use the normalize_name function from config_flow to ensure consistency
-        from .config_flow import normalize_name
 
         self.normalized_name = normalize_name(instance_name)
         self._metrics_file = os.path.join(

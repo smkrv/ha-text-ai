@@ -33,17 +33,10 @@ from .const import (
     API_PROVIDER_DEEPSEEK,
     API_PROVIDER_GEMINI,
     API_PROVIDERS,
-    DEFAULT_MODEL,
-    DEFAULT_DEEPSEEK_MODEL,
-    DEFAULT_GEMINI_MODEL,
     DEFAULT_TEMPERATURE,
     DEFAULT_MAX_TOKENS,
     DEFAULT_REQUEST_INTERVAL,
     DEFAULT_API_TIMEOUT,
-    DEFAULT_OPENAI_ENDPOINT,
-    DEFAULT_ANTHROPIC_ENDPOINT,
-    DEFAULT_DEEPSEEK_ENDPOINT,
-    DEFAULT_GEMINI_ENDPOINT,
     DEFAULT_CONTEXT_MESSAGES,
     MIN_TEMPERATURE,
     MAX_TEMPERATURE,
@@ -56,15 +49,10 @@ from .const import (
     DEFAULT_MAX_HISTORY,
     CONF_MAX_HISTORY_SIZE,
 )
+from .utils import normalize_name  # noqa: F401 — re-exported for backward compat
+from .providers import get_default_endpoint, get_default_model
 
 _LOGGER = logging.getLogger(__name__)
-
-
-def normalize_name(name: str) -> str:
-    """Normalize name to conform to HA naming convention using underscores."""
-    normalized = ''.join(c if c.isalnum() or c == '_' else '_' for c in name)
-    normalized = '_'.join(filter(None, normalized.split('_')))
-    return normalized.lower()
 
 
 class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -101,20 +89,8 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._errors = {}
 
         if user_input is None:
-            # Selecting an endpoint by provider
-            default_endpoint = {
-                API_PROVIDER_OPENAI: DEFAULT_OPENAI_ENDPOINT,
-                API_PROVIDER_ANTHROPIC: DEFAULT_ANTHROPIC_ENDPOINT,
-                API_PROVIDER_DEEPSEEK: DEFAULT_DEEPSEEK_ENDPOINT,
-                API_PROVIDER_GEMINI: DEFAULT_GEMINI_ENDPOINT,
-            }.get(self._provider, DEFAULT_OPENAI_ENDPOINT)
-
-            # Selecting the default model by provider
-            default_model = (
-                DEFAULT_DEEPSEEK_MODEL if self._provider == API_PROVIDER_DEEPSEEK else
-                DEFAULT_GEMINI_MODEL if self._provider == API_PROVIDER_GEMINI else
-                DEFAULT_MODEL
-            )
+            default_endpoint = get_default_endpoint(self._provider)
+            default_model = get_default_model(self._provider)
 
             return self.async_show_form(
                 step_id="provider",
@@ -176,8 +152,8 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data_schema=vol.Schema({
                     vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
                     vol.Required(CONF_API_KEY): str,
-                    vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, DEFAULT_GEMINI_MODEL if self._provider == API_PROVIDER_GEMINI else DEFAULT_MODEL)): str,
-                    vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, DEFAULT_GEMINI_ENDPOINT if self._provider == API_PROVIDER_GEMINI else DEFAULT_OPENAI_ENDPOINT)): str,
+                    vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, get_default_model(self._provider))): str,
+                    vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
                     vol.Optional(CONF_TEMPERATURE, default=input_copy.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)): vol.All(
                         vol.Coerce(float),
                         vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
@@ -222,8 +198,8 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data_schema=vol.Schema({
                     vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
                     vol.Required(CONF_API_KEY, default=input_copy.get(CONF_API_KEY, "")): str,
-                    vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, DEFAULT_GEMINI_MODEL if self._provider == API_PROVIDER_GEMINI else DEFAULT_MODEL)): str,
-                    vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, DEFAULT_GEMINI_ENDPOINT if self._provider == API_PROVIDER_GEMINI else DEFAULT_OPENAI_ENDPOINT)): str,
+                    vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, get_default_model(self._provider))): str,
+                    vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
                     vol.Optional(CONF_TEMPERATURE, default=input_copy.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)): vol.All(
                         vol.Coerce(float),
                         vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
@@ -270,8 +246,8 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         data_schema=vol.Schema({
                             vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
                             vol.Required(CONF_API_KEY): str,
-                            vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, DEFAULT_GEMINI_MODEL)): str,
-                            vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, DEFAULT_GEMINI_ENDPOINT)): str,
+                            vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, get_default_model(self._provider))): str,
+                            vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
                             # Other fields remain the same
                         }),
                         errors=self._errors
@@ -284,8 +260,8 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         data_schema=vol.Schema({
                             vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
                             vol.Required(CONF_API_KEY, default=input_copy.get(CONF_API_KEY, "")): str,
-                            vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, DEFAULT_MODEL)): str,
-                            vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, DEFAULT_OPENAI_ENDPOINT)): str,
+                            vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, get_default_model(self._provider))): str,
+                            vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
                             vol.Optional(CONF_TEMPERATURE, default=input_copy.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)): vol.All(
                                 vol.Coerce(float),
                                 vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
@@ -327,8 +303,8 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 data_schema=vol.Schema({
                     vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
                     vol.Required(CONF_API_KEY, default=input_copy.get(CONF_API_KEY, "")): str,
-                    vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, DEFAULT_GEMINI_MODEL if self._provider == API_PROVIDER_GEMINI else DEFAULT_MODEL)): str,
-                    vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, DEFAULT_GEMINI_ENDPOINT if self._provider == API_PROVIDER_GEMINI else DEFAULT_OPENAI_ENDPOINT)): str,
+                    vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, get_default_model(self._provider))): str,
+                    vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
                     # Other fields remain the same
                 }),
                 errors={"base": str(e)}
@@ -436,11 +412,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         unique_id = f"{DOMAIN}_{normalized_name}_{self._provider}".lower()
 
-        default_model = (
-            DEFAULT_DEEPSEEK_MODEL if self._provider == API_PROVIDER_DEEPSEEK else
-            DEFAULT_GEMINI_MODEL if self._provider == API_PROVIDER_GEMINI else
-            DEFAULT_MODEL
-        )
+        default_model = get_default_model(self._provider)
 
         entry_data = {
             CONF_API_PROVIDER: self._provider,
@@ -486,20 +458,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
     def _get_default_endpoint(self, provider: str) -> str:
         """Get default endpoint for provider."""
-        return {
-            API_PROVIDER_OPENAI: DEFAULT_OPENAI_ENDPOINT,
-            API_PROVIDER_ANTHROPIC: DEFAULT_ANTHROPIC_ENDPOINT,
-            API_PROVIDER_DEEPSEEK: DEFAULT_DEEPSEEK_ENDPOINT,
-            API_PROVIDER_GEMINI: DEFAULT_GEMINI_ENDPOINT,
-        }.get(provider, DEFAULT_OPENAI_ENDPOINT)
+        return get_default_endpoint(provider)
 
     def _get_default_model(self, provider: str) -> str:
         """Get default model for provider."""
-        return (
-            DEFAULT_DEEPSEEK_MODEL if provider == API_PROVIDER_DEEPSEEK else
-            DEFAULT_GEMINI_MODEL if provider == API_PROVIDER_GEMINI else
-            DEFAULT_MODEL
-        )
+        return get_default_model(provider)
 
     def _get_api_headers(self, api_key: str, provider: str) -> Dict[str, str]:
         """Get API headers based on provider."""

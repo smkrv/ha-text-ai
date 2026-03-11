@@ -11,7 +11,6 @@ from __future__ import annotations
 import logging
 import os
 import shutil
-import hashlib
 from datetime import datetime, timedelta
 from typing import Any, Dict, TypeVar
 
@@ -27,6 +26,8 @@ from homeassistant.helpers import aiohttp_client
 
 from .coordinator import HATextAICoordinator
 from .api_client import APIClient
+from .utils import get_file_hash, safe_log_data
+from .providers import get_default_endpoint, get_default_model, build_auth_headers
 from .const import (
     DOMAIN,
     PLATFORMS,
@@ -38,19 +39,11 @@ from .const import (
     CONF_API_TIMEOUT,
     CONF_API_PROVIDER,
     CONF_CONTEXT_MESSAGES,
-    API_PROVIDER_OPENAI,
     API_PROVIDER_ANTHROPIC,
     API_PROVIDER_DEEPSEEK,
     API_PROVIDER_GEMINI,
-    DEFAULT_MODEL,
-    DEFAULT_DEEPSEEK_MODEL,
-    DEFAULT_GEMINI_MODEL,
     DEFAULT_TEMPERATURE,
     DEFAULT_MAX_TOKENS,
-    DEFAULT_OPENAI_ENDPOINT,
-    DEFAULT_ANTHROPIC_ENDPOINT,
-    DEFAULT_DEEPSEEK_ENDPOINT,
-    DEFAULT_GEMINI_ENDPOINT,
     DEFAULT_REQUEST_INTERVAL,
     DEFAULT_API_TIMEOUT,
     DEFAULT_CONTEXT_MESSAGES,
@@ -104,14 +97,6 @@ def get_coordinator_by_instance(hass: HomeAssistant, instance: str) -> HATextAIC
             return coord
 
     raise HomeAssistantError(f"Instance {instance} not found")
-
-def get_file_hash(file_path: str) -> str:
-    """Calculate SHA256 hash of file."""
-    sha256_hash = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        for byte_block in iter(lambda: f.read(4096), b""):
-            sha256_hash.update(byte_block)
-    return sha256_hash.hexdigest()
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Set up the Home Assistant Text AI component."""
@@ -322,23 +307,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         session = aiohttp_client.async_get_clientsession(hass)
 
-        # Get default endpoint based on provider
-        default_endpoint = {
-            API_PROVIDER_OPENAI: DEFAULT_OPENAI_ENDPOINT,
-            API_PROVIDER_ANTHROPIC: DEFAULT_ANTHROPIC_ENDPOINT,
-            API_PROVIDER_DEEPSEEK: DEFAULT_DEEPSEEK_ENDPOINT,
-            API_PROVIDER_GEMINI: DEFAULT_GEMINI_ENDPOINT,
-        }.get(api_provider, DEFAULT_OPENAI_ENDPOINT)
-
-        # Get default model based on provider
-        default_model = (
-            DEFAULT_DEEPSEEK_MODEL if api_provider == API_PROVIDER_DEEPSEEK else
-            DEFAULT_GEMINI_MODEL if api_provider == API_PROVIDER_GEMINI else
-            DEFAULT_MODEL
-        )
-
-        model = config.get(CONF_MODEL, default_model)
-        endpoint = config.get(CONF_API_ENDPOINT, default_endpoint).rstrip('/')
+        model = config.get(CONF_MODEL, get_default_model(api_provider))
+        endpoint = config.get(CONF_API_ENDPOINT, get_default_endpoint(api_provider)).rstrip('/')
         # API key can now be updated via options
         api_key = config.get(CONF_API_KEY, entry.data.get(CONF_API_KEY))
         instance_name = entry.data.get(CONF_NAME, entry.entry_id)
@@ -350,16 +320,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         context_messages = config.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
         is_anthropic = api_provider == API_PROVIDER_ANTHROPIC
 
-        headers = {
-            "Content-Type": "application/json",
-            "Accept": "application/json"
-        }
-
-        if is_anthropic:
-            headers["x-api-key"] = api_key
-            headers["anthropic-version"] = "2023-06-01"
-        else:
-            headers["Authorization"] = f"Bearer {api_key}"
+        headers = build_auth_headers(api_provider, api_key)
 
         if not await async_check_api(session, endpoint, headers, api_provider, api_timeout):
             raise ConfigEntryNotReady("API connection failed")

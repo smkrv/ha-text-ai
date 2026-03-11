@@ -76,6 +76,7 @@ ICONS_SUBDOMAIN = "icons"
 
 # Default values
 DEFAULT_MODEL: Final = "gpt-4o-mini"
+DEFAULT_ANTHROPIC_MODEL: Final = "claude-3-5-sonnet"
 DEFAULT_DEEPSEEK_MODEL: Final = "deepseek-chat"
 DEFAULT_GEMINI_MODEL: Final = "gemini-2.0-flash"
 DEFAULT_TEMPERATURE: Final = 0.1
