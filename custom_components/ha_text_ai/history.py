@@ -13,6 +13,7 @@ import logging
 import os
 import shutil
 import traceback
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 import aiofiles
@@ -386,8 +387,6 @@ class HistoryManager:
 
             if start_date:
                 try:
-                    from datetime import datetime
-
                     start_dt = datetime.fromisoformat(
                         start_date.replace("Z", "+00:00")
                     )
@@ -441,12 +440,10 @@ class HistoryManager:
         history_info = {
             "total_entries": len(self._conversation_history),
             "displayed_entries": len(limited_history),
-            "full_history_available": True,
         }
 
         return {
             "entries": limited_history,
-            "full_history": list(self._conversation_history),
             "info": history_info,
         }
 

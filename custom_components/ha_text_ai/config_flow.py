@@ -45,8 +45,13 @@ from .const import (
     MIN_API_TIMEOUT,
     MAX_API_TIMEOUT,
     DEFAULT_NAME_PREFIX,
+    DEFAULT_INSTANCE_NAME,
     DEFAULT_MAX_HISTORY,
     CONF_MAX_HISTORY_SIZE,
+    MIN_CONTEXT_MESSAGES,
+    MAX_CONTEXT_MESSAGES,
+    MIN_HISTORY_SIZE,
+    MAX_HISTORY_SIZE,
 )
 from homeassistant.util import dt as dt_util
 
@@ -91,7 +96,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Build provider configuration schema with optional defaults from data."""
         defaults = data or {}
         return vol.Schema({
-            vol.Required(CONF_NAME, default=defaults.get(CONF_NAME, "my_assistant")): str,
+            vol.Required(CONF_NAME, default=defaults.get(CONF_NAME, DEFAULT_INSTANCE_NAME)): str,
             vol.Required(CONF_API_KEY): str,
             vol.Required(CONF_MODEL, default=defaults.get(CONF_MODEL, get_default_model(self._provider))): str,
             vol.Required(CONF_API_ENDPOINT, default=defaults.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
@@ -116,14 +121,14 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 default=defaults.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
             ): vol.All(
                 vol.Coerce(int),
-                vol.Range(min=1, max=20)
+                vol.Range(min=MIN_CONTEXT_MESSAGES, max=MAX_CONTEXT_MESSAGES)
             ),
             vol.Optional(
                 CONF_MAX_HISTORY_SIZE,
                 default=defaults.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY)
             ): vol.All(
                 vol.Coerce(int),
-                vol.Range(min=1, max=100)
+                vol.Range(min=MIN_HISTORY_SIZE, max=MAX_HISTORY_SIZE)
             ),
         })
 
@@ -225,7 +230,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return False
 
             try:
-                endpoint = validate_endpoint(user_input[CONF_API_ENDPOINT])
+                endpoint = await validate_endpoint(self.hass, user_input[CONF_API_ENDPOINT])
             except ValueError as err:
                 _LOGGER.error("Endpoint validation failed: %s", err)
                 self._errors["base"] = "cannot_connect"
@@ -313,7 +318,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 return False
 
             try:
-                endpoint = validate_endpoint(endpoint)
+                endpoint = await validate_endpoint(self.hass, endpoint)
             except ValueError as err:
                 _LOGGER.error("Endpoint validation failed: %s", err)
                 self._errors["base"] = "cannot_connect"
@@ -507,13 +512,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 default=data.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
             ): vol.All(
                 vol.Coerce(int),
-                vol.Range(min=1, max=20)
+                vol.Range(min=MIN_CONTEXT_MESSAGES, max=MAX_CONTEXT_MESSAGES)
             ),
             vol.Optional(
                 CONF_MAX_HISTORY_SIZE,
                 default=data.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY)
             ): vol.All(
                 vol.Coerce(int),
-                vol.Range(min=1, max=100)
+                vol.Range(min=MIN_HISTORY_SIZE, max=MAX_HISTORY_SIZE)
             ),
         })

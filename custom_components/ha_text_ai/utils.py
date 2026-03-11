@@ -12,6 +12,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from homeassistant.const import CONF_API_KEY
+from homeassistant.core import HomeAssistant
 
 
 def normalize_name(name: str) -> str:
@@ -29,11 +30,27 @@ def safe_log_data(
     return {k: "***" if k in sensitive_keys else v for k, v in data.items()}
 
 
+class _RestrictedIPError(ValueError):
+    """Raised when an IP address is in a restricted range."""
 
-def validate_endpoint(endpoint: str) -> str:
+
+def _check_ip_restricted(addr: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    """Check if an IP address is in a restricted range."""
+    return (
+        addr.is_private
+        or addr.is_reserved
+        or addr.is_loopback
+        or addr.is_link_local
+        or addr.is_multicast
+        or addr.is_unspecified
+    )
+
+
+async def validate_endpoint(hass: HomeAssistant, endpoint: str) -> str:
     """Validate API endpoint URL for security.
 
     Ensures HTTPS-only and blocks private/reserved IP ranges (SSRF protection).
+    Uses async DNS resolution to avoid blocking the event loop.
     Returns the validated endpoint stripped of trailing slashes.
 
     Raises:
@@ -51,28 +68,25 @@ def validate_endpoint(endpoint: str) -> str:
     # Block private/reserved IPs (direct IP or resolved hostname)
     try:
         addr = ipaddress.ip_address(hostname)
-        if addr.is_private or addr.is_reserved or addr.is_loopback or addr.is_link_local:
-            raise ValueError("Private/reserved IP addresses are not allowed")
-    except ValueError as e:
-        if "not allowed" in str(e):
-            raise
+        if _check_ip_restricted(addr):
+            raise _RestrictedIPError("Private/reserved IP addresses are not allowed")
+    except _RestrictedIPError:
+        raise
+    except ValueError:
         # Not an IP literal — resolve hostname and check all resolved IPs
         # to prevent DNS rebinding attacks
         try:
-            addrinfos = socket.getaddrinfo(hostname, None)
+            addrinfos = await hass.async_add_executor_job(
+                socket.getaddrinfo, hostname, None
+            )
             for family, _type, _proto, _canonname, sockaddr in addrinfos:
                 ip_str = sockaddr[0]
                 resolved_addr = ipaddress.ip_address(ip_str)
-                if (
-                    resolved_addr.is_private
-                    or resolved_addr.is_reserved
-                    or resolved_addr.is_loopback
-                    or resolved_addr.is_link_local
-                ):
+                if _check_ip_restricted(resolved_addr):
                     raise ValueError(
-                        f"Hostname {hostname} resolves to private/reserved IP {ip_str}"
+                        "Hostname resolves to a restricted IP range"
                     )
-        except socket.gaierror:
-            raise ValueError(f"Cannot resolve hostname: {hostname}")
+        except socket.gaierror as err:
+            raise ValueError(f"Cannot resolve hostname: {hostname}") from err
 
     return endpoint.rstrip("/")

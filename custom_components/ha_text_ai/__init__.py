@@ -263,9 +263,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         model = config.get(CONF_MODEL, get_default_model(api_provider))
         raw_endpoint = config.get(CONF_API_ENDPOINT, get_default_endpoint(api_provider))
         try:
-            endpoint = validate_endpoint(raw_endpoint)
+            endpoint = await validate_endpoint(hass, raw_endpoint)
         except ValueError as err:
-            _LOGGER.error("Invalid API endpoint %s: %s", raw_endpoint, err)
+            _LOGGER.error("Invalid API endpoint: %s", err)
             raise ConfigEntryNotReady(f"Invalid API endpoint: {err}") from err
         # API key can now be updated via options
         api_key = config.get(CONF_API_KEY, entry.data.get(CONF_API_KEY))
@@ -292,6 +292,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             api_provider=api_provider,
             model=model,
             api_timeout=api_timeout,
+            api_key=api_key,
         )
 
         coordinator = HATextAICoordinator(

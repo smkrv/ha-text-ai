@@ -406,7 +406,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
             "history_info": {
                 "total_entries": 0,
                 "displayed_entries": 0,
-                "full_history_available": True,
             },
             "normalized_name": self.normalized_name,
         }

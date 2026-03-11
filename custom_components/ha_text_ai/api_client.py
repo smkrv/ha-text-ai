@@ -39,6 +39,7 @@ class APIClient:
         api_provider: str,
         model: str,
         api_timeout: int = DEFAULT_API_TIMEOUT,
+        api_key: Optional[str] = None,
     ) -> None:
         """Initialize API client."""
         self.session = session
@@ -48,6 +49,9 @@ class APIClient:
         self.model = model
         self.api_timeout = api_timeout
         self.timeout = ClientTimeout(total=api_timeout)
+        self._api_key = api_key
+        if self.api_provider == API_PROVIDER_GEMINI and not api_key:
+            raise ValueError("Gemini provider requires api_key parameter")
         self._closed = False
 
     async def __aenter__(self):
@@ -119,7 +123,8 @@ class APIClient:
                         raise HomeAssistantError("API rate limit exceeded")
 
                     # Client/server errors — don't retry
-                    _LOGGER.error("API error (status %d): %s", response.status, error_data)
+                    truncated_error = str(error_data)[:512]
+                    _LOGGER.error("API error (status %d): %s", response.status, truncated_error)
                     raise HomeAssistantError(f"API error: status {response.status}")
 
             except asyncio.TimeoutError:
@@ -368,8 +373,7 @@ class APIClient:
 
             genai = await asyncio.to_thread(import_genai)
 
-            # Extract API key from headers (Bearer token)
-            api_key = self.headers.get("Authorization", "").replace("Bearer ", "")
+            api_key = self._api_key
 
             def create_client():
                 if self.endpoint and self.endpoint != "https://generativelanguage.googleapis.com/v1beta":
@@ -502,11 +506,11 @@ class APIClient:
             }
 
         except ImportError as e:
-            _LOGGER.error(f"Google Gemini library not installed: {str(e)}")
-            raise HomeAssistantError(f"Missing dependency: {str(e)}. Please install google-genai.")
+            _LOGGER.error("Google Gemini library not installed: %s", e)
+            raise HomeAssistantError("Missing dependency: google-genai. Please install it.")
         except Exception as e:
-            _LOGGER.error(f"Gemini API error: {str(e)}")
-            raise HomeAssistantError(f"Gemini API error: {str(e)}")
+            _LOGGER.error("Gemini API error: %s", e)
+            raise HomeAssistantError("Gemini API request failed")
 
     async def shutdown(self) -> None:
         """Shutdown API client."""

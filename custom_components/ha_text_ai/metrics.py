@@ -11,6 +11,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import traceback
 from typing import Any, Dict
 
@@ -121,11 +122,19 @@ class MetricsManager:
         self._performance_metrics["failed_requests"] += 1
         await self._save_metrics()
 
+        error_msg = str(error)
+        # Strip URLs, API keys, and query parameters from error messages
+        error_msg = re.sub(r'https?://\S+', '[URL]', error_msg)
+        error_msg = re.sub(r'[?&]key=[^\s&]+', '?key=***', error_msg)
+        error_msg = re.sub(r'AIza[A-Za-z0-9_-]+', '***', error_msg)
+        if len(error_msg) > 256:
+            error_msg = error_msg[:256] + "..."
+
         error_details: Dict[str, Any] = {
             "timestamp": dt_util.utcnow().isoformat(),
             "model": model,
             "instance": self.instance_name,
-            "error_message": str(error),
+            "error_message": error_msg,
             "error_type": type(error).__name__,
             "traceback": traceback.format_exc()
             if _LOGGER.isEnabledFor(logging.DEBUG)
