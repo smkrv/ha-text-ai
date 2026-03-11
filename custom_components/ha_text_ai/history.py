@@ -407,14 +407,18 @@ class HistoryManager:
                 history = history[:limit]
 
             if include_metadata:
+                enriched = []
                 for entry in history:
-                    entry["metadata"] = {
+                    enriched_entry = dict(entry)
+                    enriched_entry["metadata"] = {
                         "entry_size": len(str(entry)),
                         "question_length": len(entry.get("question", "")),
                         "response_length": len(entry.get("response", "")),
                         "model_used": entry.get("model", default_model),
                         "instance": self.instance_name,
                     }
+                    enriched.append(enriched_entry)
+                return enriched
 
             return history
         except Exception as e:
