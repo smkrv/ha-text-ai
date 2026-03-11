@@ -27,5 +27,6 @@ Thumbs.db
 .storage/
 
 # Claude Code working files
+CLAUDE.md
 docs/specs/
 docs/superpowers/
