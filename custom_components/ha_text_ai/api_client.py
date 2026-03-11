@@ -138,6 +138,8 @@ class APIClient:
                     raise
                 await asyncio.sleep(2 ** attempt)
 
+        raise HomeAssistantError("API request failed after all retries")
+
     async def create(
         self,
         model: str,

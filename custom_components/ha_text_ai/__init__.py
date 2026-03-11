@@ -9,7 +9,6 @@ The HA Text AI integration.
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import Any, Dict
 
 import asyncio
@@ -22,6 +21,7 @@ from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import aiohttp_client
+from homeassistant.util import dt as dt_util
 
 from .coordinator import HATextAICoordinator
 from .api_client import APIClient
@@ -140,7 +140,7 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
                 "model_used": call.data.get("model", ""),
                 "instance": call.data["instance"],
                 "question": call.data["question"],
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": dt_util.utcnow().isoformat(),
                 "success": False,
                 "error": "Service call failed"
             }
@@ -266,7 +266,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             endpoint = validate_endpoint(raw_endpoint)
         except ValueError as err:
             _LOGGER.error("Invalid API endpoint %s: %s", raw_endpoint, err)
-            raise ConfigEntryNotReady(f"Invalid API endpoint: {err}")
+            raise ConfigEntryNotReady(f"Invalid API endpoint: {err}") from err
         # API key can now be updated via options
         api_key = config.get(CONF_API_KEY, entry.data.get(CONF_API_KEY))
         instance_name = entry.data.get(CONF_NAME, entry.entry_id)

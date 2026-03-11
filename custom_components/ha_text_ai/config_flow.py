@@ -306,7 +306,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
                     # Other fields remain the same
                 }),
-                errors={"base": str(e)}
+                errors={"base": "unknown"}
             )
 
         # All validation passed, create the entry
@@ -378,7 +378,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     if response.status == 401:
                         self._errors["base"] = "invalid_auth"
                         return False
-                    elif response.status not in [200, 404]:
+                    elif response.status != 200:
                         self._errors["base"] = "cannot_connect"
                         return False
                     return True
@@ -514,7 +514,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 if response.status == 401:
                     self._errors["base"] = "invalid_auth"
                     return False
-                elif response.status not in [200, 404]:
+                elif response.status != 200:
                     self._errors["base"] = "cannot_connect"
                     return False
                 return True

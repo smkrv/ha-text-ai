@@ -9,7 +9,7 @@ Constants for the HA text AI integration.
 import os
 import json
 from typing import Final
-from homeassistant.const import Platform, CONF_API_KEY, CONF_NAME
+from homeassistant.const import Platform
 import logging
 _LOGGER = logging.getLogger(__name__)
 
