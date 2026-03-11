@@ -9,8 +9,6 @@ Sensor platform for HA Text AI.
 import logging
 import math
 from typing import Any, Dict
-from datetime import datetime, timedelta
-
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
@@ -277,9 +275,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
                     METRIC_FAILED_REQUESTS: metrics.get("failed_requests", 0),
                     METRIC_AVERAGE_LATENCY: round(metrics.get("average_latency", 0), 2),
                     METRIC_MAX_LATENCY: round(metrics.get("max_latency", 0), 2),
-                    METRIC_MIN_LATENCY: (metrics.get("min_latency")
-                                       if metrics.get("min_latency") != float("inf")
-                                       else None),
+                    METRIC_MIN_LATENCY: metrics.get("min_latency", 0) or None,
                 })
 
             # Last response handling

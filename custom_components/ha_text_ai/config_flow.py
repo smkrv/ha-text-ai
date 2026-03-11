@@ -8,7 +8,6 @@ Config flow for HA text AI integration.
 """
 import logging
 from typing import Any, Dict, Optional
-from datetime import datetime, timedelta
 
 import voluptuous as vol
 from homeassistant import config_entries
@@ -49,8 +48,10 @@ from .const import (
     DEFAULT_MAX_HISTORY,
     CONF_MAX_HISTORY_SIZE,
 )
-from .utils import normalize_name, safe_log_data, validate_endpoint  # noqa: F401 — re-exported for backward compat
-from .providers import get_default_endpoint, get_default_model
+from homeassistant.util import dt as dt_util
+
+from .utils import normalize_name, safe_log_data, validate_endpoint
+from .providers import get_default_endpoint, get_default_model, build_auth_headers
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -84,52 +85,56 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._provider = user_input[CONF_API_PROVIDER]
         return await self.async_step_provider()
 
+    def _build_provider_schema(
+        self, data: Optional[Dict[str, Any]] = None
+    ) -> vol.Schema:
+        """Build provider configuration schema with optional defaults from data."""
+        defaults = data or {}
+        return vol.Schema({
+            vol.Required(CONF_NAME, default=defaults.get(CONF_NAME, "my_assistant")): str,
+            vol.Required(CONF_API_KEY): str,
+            vol.Required(CONF_MODEL, default=defaults.get(CONF_MODEL, get_default_model(self._provider))): str,
+            vol.Required(CONF_API_ENDPOINT, default=defaults.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
+            vol.Optional(CONF_TEMPERATURE, default=defaults.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)): vol.All(
+                vol.Coerce(float),
+                vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
+            ),
+            vol.Optional(CONF_MAX_TOKENS, default=defaults.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)): vol.All(
+                vol.Coerce(int),
+                vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
+            ),
+            vol.Optional(CONF_REQUEST_INTERVAL, default=defaults.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)): vol.All(
+                vol.Coerce(float),
+                vol.Range(min=MIN_REQUEST_INTERVAL)
+            ),
+            vol.Optional(CONF_API_TIMEOUT, default=defaults.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT)): vol.All(
+                vol.Coerce(int),
+                vol.Range(min=MIN_API_TIMEOUT, max=MAX_API_TIMEOUT)
+            ),
+            vol.Optional(
+                CONF_CONTEXT_MESSAGES,
+                default=defaults.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
+            ): vol.All(
+                vol.Coerce(int),
+                vol.Range(min=1, max=20)
+            ),
+            vol.Optional(
+                CONF_MAX_HISTORY_SIZE,
+                default=defaults.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY)
+            ): vol.All(
+                vol.Coerce(int),
+                vol.Range(min=1, max=100)
+            ),
+        })
+
     async def async_step_provider(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
         """Handle provider configuration step."""
         self._errors = {}
 
         if user_input is None:
-            default_endpoint = get_default_endpoint(self._provider)
-            default_model = get_default_model(self._provider)
-
             return self.async_show_form(
                 step_id="provider",
-                data_schema=vol.Schema({
-                    vol.Required(CONF_NAME, default="my_assistant"): str,
-                    vol.Required(CONF_API_KEY): str,
-                    vol.Required(CONF_MODEL, default=default_model): str,
-                    vol.Required(CONF_API_ENDPOINT, default=default_endpoint): str,
-                    vol.Optional(CONF_TEMPERATURE, default=DEFAULT_TEMPERATURE): vol.All(
-                        vol.Coerce(float),
-                        vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
-                    ),
-                    vol.Optional(CONF_MAX_TOKENS, default=DEFAULT_MAX_TOKENS): vol.All(
-                        vol.Coerce(int),
-                        vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
-                    ),
-                    vol.Optional(CONF_REQUEST_INTERVAL, default=DEFAULT_REQUEST_INTERVAL): vol.All(
-                        vol.Coerce(float),
-                        vol.Range(min=MIN_REQUEST_INTERVAL)
-                    ),
-                    vol.Optional(CONF_API_TIMEOUT, default=DEFAULT_API_TIMEOUT): vol.All(
-                        vol.Coerce(int),
-                        vol.Range(min=MIN_API_TIMEOUT, max=MAX_API_TIMEOUT)
-                    ),
-                    vol.Optional(
-                        CONF_CONTEXT_MESSAGES,
-                        default=DEFAULT_CONTEXT_MESSAGES
-                    ): vol.All(
-                        vol.Coerce(int),
-                        vol.Range(min=1, max=20)
-                    ),
-                    vol.Optional(
-                        CONF_MAX_HISTORY_SIZE,
-                        default=DEFAULT_MAX_HISTORY
-                    ): vol.All(
-                        vol.Coerce(int),
-                        vol.Range(min=1, max=100)
-                    ),
-                })
+                data_schema=self._build_provider_schema(),
             )
 
         _LOGGER.debug("Provider step input data: %s", safe_log_data(user_input))
@@ -139,7 +144,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Check if CONF_NAME exists in input_copy and ensure it's not empty
         if CONF_NAME not in input_copy or not input_copy[CONF_NAME]:
             _LOGGER.warning("Missing name in configuration input: %s", safe_log_data(input_copy))
-            input_copy[CONF_NAME] = f"assistant_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            input_copy[CONF_NAME] = f"assistant_{dt_util.utcnow().strftime('%Y%m%d_%H%M%S')}"
             _LOGGER.info("Auto-generated name: %s", input_copy[CONF_NAME])
 
         # Ensure API key is present
@@ -148,168 +153,35 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             _LOGGER.error("API validation error: 'api_key'")
             return self.async_show_form(
                 step_id="provider",
-                data_schema=vol.Schema({
-                    vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
-                    vol.Required(CONF_API_KEY): str,
-                    vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, get_default_model(self._provider))): str,
-                    vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
-                    vol.Optional(CONF_TEMPERATURE, default=input_copy.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)): vol.All(
-                        vol.Coerce(float),
-                        vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
-                    ),
-                    vol.Optional(CONF_MAX_TOKENS, default=input_copy.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)): vol.All(
-                        vol.Coerce(int),
-                        vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
-                    ),
-                    vol.Optional(CONF_REQUEST_INTERVAL, default=input_copy.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)): vol.All(
-                        vol.Coerce(float),
-                        vol.Range(min=MIN_REQUEST_INTERVAL)
-                    ),
-                    vol.Optional(CONF_API_TIMEOUT, default=input_copy.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT)): vol.All(
-                        vol.Coerce(int),
-                        vol.Range(min=MIN_API_TIMEOUT, max=MAX_API_TIMEOUT)
-                    ),
-                    vol.Optional(
-                        CONF_CONTEXT_MESSAGES,
-                        default=input_copy.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
-                    ): vol.All(
-                        vol.Coerce(int),
-                        vol.Range(min=1, max=20)
-                    ),
-                    vol.Optional(
-                        CONF_MAX_HISTORY_SIZE,
-                        default=input_copy.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY)
-                    ): vol.All(
-                        vol.Coerce(int),
-                        vol.Range(min=1, max=100)
-                    ),
-                }),
+                data_schema=self._build_provider_schema(input_copy),
                 errors=self._errors
             )
 
         try:
-            # Validate and normalize the name
             normalized_name = self._validate_and_normalize_name(input_copy[CONF_NAME])
             input_copy[CONF_NAME] = normalized_name
         except ValueError as e:
             return self.async_show_form(
                 step_id="provider",
-                data_schema=vol.Schema({
-                    vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
-                    vol.Required(CONF_API_KEY): str,
-                    vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, get_default_model(self._provider))): str,
-                    vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
-                    vol.Optional(CONF_TEMPERATURE, default=input_copy.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)): vol.All(
-                        vol.Coerce(float),
-                        vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
-                    ),
-                    vol.Optional(CONF_MAX_TOKENS, default=input_copy.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)): vol.All(
-                        vol.Coerce(int),
-                        vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
-                    ),
-                    vol.Optional(CONF_REQUEST_INTERVAL, default=input_copy.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)): vol.All(
-                        vol.Coerce(float),
-                        vol.Range(min=MIN_REQUEST_INTERVAL)
-                    ),
-                    vol.Optional(CONF_API_TIMEOUT, default=input_copy.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT)): vol.All(
-                        vol.Coerce(int),
-                        vol.Range(min=MIN_API_TIMEOUT, max=MAX_API_TIMEOUT)
-                    ),
-                    vol.Optional(
-                        CONF_CONTEXT_MESSAGES,
-                        default=input_copy.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
-                    ): vol.All(
-                        vol.Coerce(int),
-                        vol.Range(min=1, max=20)
-                    ),
-                    vol.Optional(
-                        CONF_MAX_HISTORY_SIZE,
-                        default=input_copy.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY)
-                    ): vol.All(
-                        vol.Coerce(int),
-                        vol.Range(min=1, max=100)
-                    ),
-                }),
+                data_schema=self._build_provider_schema(input_copy),
                 errors={"name": str(e)}
             )
 
         try:
-            # Special handling for Gemini API validation
-            if self._provider == API_PROVIDER_GEMINI:
-                # For Gemini, we just check if API key is present as there's no simple endpoint to validate
-                if not input_copy.get(CONF_API_KEY):
-                    self._errors["base"] = "invalid_auth"
-                    _LOGGER.error("API validation error: 'api_key'")
-                    return self.async_show_form(
-                        step_id="provider",
-                        data_schema=vol.Schema({
-                            vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
-                            vol.Required(CONF_API_KEY): str,
-                            vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, get_default_model(self._provider))): str,
-                            vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
-                            # Other fields remain the same
-                        }),
-                        errors=self._errors
-                    )
-            else:
-                # For other providers, validate API connection
-                if not await self._async_validate_api(input_copy):
-                    return self.async_show_form(
-                        step_id="provider",
-                        data_schema=vol.Schema({
-                            vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
-                            vol.Required(CONF_API_KEY): str,
-                            vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, get_default_model(self._provider))): str,
-                            vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
-                            vol.Optional(CONF_TEMPERATURE, default=input_copy.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)): vol.All(
-                                vol.Coerce(float),
-                                vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
-                            ),
-                            vol.Optional(CONF_MAX_TOKENS, default=input_copy.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)): vol.All(
-                                vol.Coerce(int),
-                                vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
-                            ),
-                            vol.Optional(CONF_REQUEST_INTERVAL, default=input_copy.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)): vol.All(
-                                vol.Coerce(float),
-                                vol.Range(min=MIN_REQUEST_INTERVAL)
-                            ),
-                            vol.Optional(CONF_API_TIMEOUT, default=input_copy.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT)): vol.All(
-                                vol.Coerce(int),
-                                vol.Range(min=MIN_API_TIMEOUT, max=MAX_API_TIMEOUT)
-                            ),
-                            vol.Optional(
-                                CONF_CONTEXT_MESSAGES,
-                                default=input_copy.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
-                            ): vol.All(
-                                vol.Coerce(int),
-                                vol.Range(min=1, max=20)
-                            ),
-                            vol.Optional(
-                                CONF_MAX_HISTORY_SIZE,
-                                default=input_copy.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY)
-                            ): vol.All(
-                                vol.Coerce(int),
-                                vol.Range(min=1, max=100)
-                            ),
-                        }),
-                        errors=self._errors
-                    )
-        except Exception as e:
-            # Handle any unexpected exceptions during validation
+            if not await self._async_validate_api(input_copy):
+                return self.async_show_form(
+                    step_id="provider",
+                    data_schema=self._build_provider_schema(input_copy),
+                    errors=self._errors
+                )
+        except Exception:
             _LOGGER.exception("Unexpected error during API validation")
             return self.async_show_form(
                 step_id="provider",
-                data_schema=vol.Schema({
-                    vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
-                    vol.Required(CONF_API_KEY): str,
-                    vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, get_default_model(self._provider))): str,
-                    vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
-                    # Other fields remain the same
-                }),
+                data_schema=self._build_provider_schema(input_copy),
                 errors={"base": "unknown"}
             )
 
-        # All validation passed, create the entry
         return await self._create_entry(input_copy)
 
     def _validate_and_normalize_name(self, name: str) -> str:
@@ -345,14 +217,13 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return normalized
 
     async def _async_validate_api(self, user_input: Dict[str, Any]) -> bool:
-        """Validate API connection."""
+        """Validate API connection using provider registry."""
         try:
             if CONF_API_KEY not in user_input:
                 _LOGGER.error("API validation error: 'api_key'")
                 self._errors["base"] = "invalid_auth"
                 return False
 
-            # Validate endpoint URL (HTTPS-only, SSRF protection)
             try:
                 endpoint = validate_endpoint(user_input[CONF_API_ENDPOINT])
             except ValueError as err:
@@ -360,56 +231,32 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._errors["base"] = "cannot_connect"
                 return False
 
-            session = async_get_clientsession(self.hass)
-            headers = self._get_api_headers(user_input)
-
             if self._provider == API_PROVIDER_GEMINI:
                 if not user_input[CONF_API_KEY]:
                     self._errors["base"] = "invalid_auth"
                     return False
                 return True
-            else:
-                check_url = (
-                    f"{endpoint}/v1/models" if self._provider == API_PROVIDER_ANTHROPIC
-                    else f"{endpoint}/models"
-                )
 
-                async with session.get(check_url, headers=headers) as response:
-                    if response.status == 401:
-                        self._errors["base"] = "invalid_auth"
-                        return False
-                    elif response.status != 200:
-                        self._errors["base"] = "cannot_connect"
-                        return False
-                    return True
+            session = async_get_clientsession(self.hass)
+            headers = build_auth_headers(self._provider, user_input[CONF_API_KEY])
+
+            from .providers import get_provider_config
+            check_path = get_provider_config(self._provider).get("check_path", "/models")
+            check_url = f"{endpoint}{check_path}"
+
+            async with session.get(check_url, headers=headers) as response:
+                if response.status == 401:
+                    self._errors["base"] = "invalid_auth"
+                    return False
+                elif response.status != 200:
+                    self._errors["base"] = "cannot_connect"
+                    return False
+                return True
 
         except Exception as err:
             _LOGGER.error("API validation error: %s", str(err))
             self._errors["base"] = "cannot_connect"
             return False
-
-    def _get_api_headers(self, user_input: Dict[str, Any]) -> Dict[str, str]:
-        """Get API headers based on provider."""
-        if CONF_API_KEY not in user_input:
-            return {"Content-Type": "application/json"}
-
-        api_key = user_input[CONF_API_KEY]
-
-        if self._provider == API_PROVIDER_ANTHROPIC:
-            return {
-                "x-api-key": api_key,
-                "anthropic-version": "2023-06-01",
-                "Content-Type": "application/json"
-            }
-        elif self._provider == API_PROVIDER_GEMINI:
-            return {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
-        return {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
 
     async def _create_entry(self, user_input: Dict[str, Any]) -> FlowResult:
         """Create the config entry with comprehensive data preservation."""
@@ -436,10 +283,6 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_MAX_HISTORY_SIZE: user_input.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY),
         }
 
-        for key, value in user_input.items():
-            if key not in entry_data:
-                entry_data[key] = value
-
         _LOGGER.debug("Creating config entry with data: %s", safe_log_data(entry_data))
 
         return self.async_create_entry(
@@ -462,35 +305,13 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         self._errors = {}
         self._selected_provider = None
 
-    def _get_default_endpoint(self, provider: str) -> str:
-        """Get default endpoint for provider."""
-        return get_default_endpoint(provider)
-
-    def _get_default_model(self, provider: str) -> str:
-        """Get default model for provider."""
-        return get_default_model(provider)
-
-    def _get_api_headers(self, api_key: str, provider: str) -> Dict[str, str]:
-        """Get API headers based on provider."""
-        if provider == API_PROVIDER_ANTHROPIC:
-            return {
-                "x-api-key": api_key,
-                "anthropic-version": "2023-06-01",
-                "Content-Type": "application/json"
-            }
-        return {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-
     async def _async_validate_api(self, provider: str, api_key: str, endpoint: str) -> bool:
-        """Validate API connection."""
+        """Validate API connection using provider registry."""
         try:
             if not api_key:
                 self._errors["base"] = "invalid_auth"
                 return False
 
-            # Validate endpoint URL (HTTPS-only, SSRF protection)
             try:
                 endpoint = validate_endpoint(endpoint)
             except ValueError as err:
@@ -498,17 +319,15 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 self._errors["base"] = "cannot_connect"
                 return False
 
-            # For Gemini, just check if API key is present
             if provider == API_PROVIDER_GEMINI:
                 return True
 
             session = async_get_clientsession(self.hass)
-            headers = self._get_api_headers(api_key, provider)
+            headers = build_auth_headers(provider, api_key)
 
-            check_url = (
-                f"{endpoint}/v1/models" if provider == API_PROVIDER_ANTHROPIC
-                else f"{endpoint}/models"
-            )
+            from .providers import get_provider_config
+            check_path = get_provider_config(provider).get("check_path", "/models")
+            check_url = f"{endpoint}{check_path}"
 
             async with session.get(check_url, headers=headers) as response:
                 if response.status == 401:
@@ -562,22 +381,45 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
 
         # Use new defaults if provider changed, otherwise use current values
         if provider_changed:
-            default_endpoint = self._get_default_endpoint(provider)
-            default_model = self._get_default_model(provider)
+            default_endpoint = get_default_endpoint(provider)
+            default_model = get_default_model(provider)
         else:
-            default_endpoint = current_data.get(CONF_API_ENDPOINT, self._get_default_endpoint(provider))
-            default_model = current_data.get(CONF_MODEL, self._get_default_model(provider))
+            default_endpoint = current_data.get(CONF_API_ENDPOINT, get_default_endpoint(provider))
+            default_model = current_data.get(CONF_MODEL, get_default_model(provider))
 
         if user_input is not None:
-            # Validate API connection
-            api_key = user_input.get(CONF_API_KEY, current_data.get(CONF_API_KEY, ""))
+            api_key = user_input.get(CONF_API_KEY, "").strip()
             endpoint = user_input.get(CONF_API_ENDPOINT, default_endpoint)
 
+            # Require API key re-entry when endpoint or provider changed
+            stored_endpoint = current_data.get(CONF_API_ENDPOINT, "")
+            endpoint_changed = endpoint != stored_endpoint
+            if not api_key and (provider_changed or endpoint_changed):
+                self._errors["base"] = "invalid_auth"
+                return self.async_show_form(
+                    step_id="settings",
+                    data_schema=self._get_settings_schema(
+                        provider=provider,
+                        current_data=current_data,
+                        user_input=user_input,
+                        default_endpoint=default_endpoint,
+                        default_model=default_model,
+                    ),
+                    errors=self._errors,
+                    description_placeholders={
+                        "provider": provider
+                    }
+                )
+
+            # Fall back to stored key if not re-entered and endpoint unchanged
+            if not api_key:
+                api_key = current_data.get(CONF_API_KEY, "")
+
             if await self._async_validate_api(provider, api_key, endpoint):
-                # Merge with provider selection
                 final_data = {
                     CONF_API_PROVIDER: provider,
-                    **user_input
+                    **user_input,
+                    CONF_API_KEY: api_key,
                 }
                 return self.async_create_entry(title="", data=final_data)
 
@@ -591,7 +433,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     default_endpoint=default_endpoint,
                     default_model=default_model,
                 ),
-                errors=self._errors
+                errors=self._errors,
+                description_placeholders={
+                    "provider": provider
+                }
             )
 
         return self.async_show_form(
@@ -620,7 +465,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         data = user_input or current_data
 
         return vol.Schema({
-            vol.Required(CONF_API_KEY): str,
+            vol.Optional(CONF_API_KEY, default=""): str,
             vol.Required(
                 CONF_API_ENDPOINT,
                 default=data.get(CONF_API_ENDPOINT, default_endpoint)

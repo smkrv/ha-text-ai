@@ -429,7 +429,6 @@ class APIClient:
             def generate_content():
                 # For single message without history, use generate_content
                 if len(contents) <= 1:
-                    # If we have no content yet, create a simple prompt
                     if not contents:
                         prompt = "I need your assistance."
                     else:
@@ -441,16 +440,30 @@ class APIClient:
                         config=config
                     )
                 else:
-                    # For multi-turn conversations, use chat
-                    chat = client.chats.create(model=model, config=config)
+                    # For multi-turn conversations, pass history to chat
+                    # and only send the last user message
+                    last_user_msg = None
+                    history = []
 
-                    # Send all messages in sequence
-                    for content in contents:
-                        if content["role"] == "user":
-                            response = chat.send_message(content["parts"][0]["text"])
-                            # We don't send assistant messages as they're already part of the history
+                    # Find the last user message — that's the new query
+                    for i in range(len(contents) - 1, -1, -1):
+                        if contents[i]["role"] == "user":
+                            last_user_msg = contents[i]["parts"][0]["text"]
+                            history = contents[:i]
+                            break
 
-                    return response
+                    if last_user_msg is None:
+                        # No user messages at all — shouldn't happen, but handle gracefully
+                        return client.models.generate_content(
+                            model=model,
+                            contents="I need your assistance.",
+                            config=config
+                        )
+
+                    chat = client.chats.create(
+                        model=model, config=config, history=history
+                    )
+                    return chat.send_message(last_user_msg)
 
             response = await asyncio.to_thread(generate_content)
 

@@ -7,6 +7,7 @@ Utility functions for HA Text AI integration.
 @source: https://github.com/smkrv/ha-text-ai
 """
 import ipaddress
+import socket
 from typing import Any
 from urllib.parse import urlparse
 
@@ -47,7 +48,7 @@ def validate_endpoint(endpoint: str) -> str:
     if not hostname:
         raise ValueError("Invalid endpoint URL: no hostname")
 
-    # Block private/reserved IPs
+    # Block private/reserved IPs (direct IP or resolved hostname)
     try:
         addr = ipaddress.ip_address(hostname)
         if addr.is_private or addr.is_reserved or addr.is_loopback or addr.is_link_local:
@@ -55,6 +56,23 @@ def validate_endpoint(endpoint: str) -> str:
     except ValueError as e:
         if "not allowed" in str(e):
             raise
-        # Not an IP address — it's a hostname, which is fine
+        # Not an IP literal — resolve hostname and check all resolved IPs
+        # to prevent DNS rebinding attacks
+        try:
+            addrinfos = socket.getaddrinfo(hostname, None)
+            for family, _type, _proto, _canonname, sockaddr in addrinfos:
+                ip_str = sockaddr[0]
+                resolved_addr = ipaddress.ip_address(ip_str)
+                if (
+                    resolved_addr.is_private
+                    or resolved_addr.is_reserved
+                    or resolved_addr.is_loopback
+                    or resolved_addr.is_link_local
+                ):
+                    raise ValueError(
+                        f"Hostname {hostname} resolves to private/reserved IP {ip_str}"
+                    )
+        except socket.gaierror:
+            raise ValueError(f"Cannot resolve hostname: {hostname}")
 
     return endpoint.rstrip("/")
