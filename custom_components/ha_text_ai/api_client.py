@@ -216,7 +216,7 @@ class APIClient:
                 }
                 _LOGGER.debug("DeepSeek structured output enabled with schema")
             except json.JSONDecodeError as e:
-                _LOGGER.warning(f"Invalid JSON schema provided: {e}. Falling back to json_object mode.")
+                _LOGGER.warning("Invalid JSON schema provided: %s. Falling back to json_object mode.", e)
                 payload["response_format"] = {"type": "json_object"}
 
         data = await self._make_request(url, payload)
@@ -266,7 +266,7 @@ class APIClient:
                 }
                 _LOGGER.debug("OpenAI structured output enabled with schema")
             except json.JSONDecodeError as e:
-                _LOGGER.warning(f"Invalid JSON schema provided: {e}. Falling back to json_object mode.")
+                _LOGGER.warning("Invalid JSON schema provided: %s. Falling back to json_object mode.", e)
                 payload["response_format"] = {"type": "json_object"}
 
         data = await self._make_request(url, payload)
@@ -407,7 +407,7 @@ class APIClient:
                     parsed_schema = json.loads(json_schema)
                     _LOGGER.debug("Gemini structured output enabled with schema")
                 except json.JSONDecodeError as e:
-                    _LOGGER.warning(f"Invalid JSON schema provided: {e}. Structured output disabled.")
+                    _LOGGER.warning("Invalid JSON schema provided: %s. Structured output disabled.", e)
 
             # Create configuration
             def create_config():

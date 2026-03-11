@@ -13,7 +13,7 @@ import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY, CONF_NAME
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
+from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers import selector
 
@@ -72,7 +72,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._data = {}
         self._provider = None
 
-    async def async_step_user(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
+    async def async_step_user(self, user_input: Optional[Dict[str, Any]] = None) -> ConfigFlowResult:
         """Handle the initial step."""
         if user_input is None:
             return self.async_show_form(
@@ -132,7 +132,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ),
         })
 
-    async def async_step_provider(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
+    async def async_step_provider(self, user_input: Optional[Dict[str, Any]] = None) -> ConfigFlowResult:
         """Handle provider configuration step."""
         self._errors = {}
 
@@ -263,7 +263,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._errors["base"] = "cannot_connect"
             return False
 
-    async def _create_entry(self, user_input: Dict[str, Any]) -> FlowResult:
+    async def _create_entry(self, user_input: Dict[str, Any]) -> ConfigFlowResult:
         """Create the config entry with comprehensive data preservation."""
         instance_name = user_input[CONF_NAME]
         normalized_name = normalize_name(instance_name)
@@ -305,11 +305,6 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow."""
 
-    def __init__(self) -> None:
-        """Initialize options flow."""
-        self._errors = {}
-        self._selected_provider = None
-
     async def _async_validate_api(self, provider: str, api_key: str, endpoint: str) -> bool:
         """Validate API connection using provider registry."""
         try:
@@ -348,8 +343,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             self._errors["base"] = "cannot_connect"
             return False
 
-    async def async_step_init(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
+    async def async_step_init(self, user_input: Optional[Dict[str, Any]] = None) -> ConfigFlowResult:
         """Handle provider selection step."""
+        if not hasattr(self, "_errors"):
+            self._errors: dict[str, str] = {}
+            self._selected_provider: Optional[str] = None
         current_data = {**self.config_entry.data, **self.config_entry.options}
         current_provider = current_data.get(CONF_API_PROVIDER, API_PROVIDER_OPENAI)
 
@@ -375,7 +373,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             }
         )
 
-    async def async_step_settings(self, user_input: Optional[Dict[str, Any]] = None) -> FlowResult:
+    async def async_step_settings(self, user_input: Optional[Dict[str, Any]] = None) -> ConfigFlowResult:
         """Handle settings configuration step."""
         self._errors = {}
         current_data = {**self.config_entry.data, **self.config_entry.options}

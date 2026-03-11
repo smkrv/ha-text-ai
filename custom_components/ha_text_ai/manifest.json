@@ -12,7 +12,6 @@
   "loggers": ["custom_components.ha_text_ai"],
   "requirements": [
     "aiofiles>=23.0.0",
-    "aiohttp>=3.8.0",
     "google-genai>=1.16.0"
   ],
   "single_config_entry": false,

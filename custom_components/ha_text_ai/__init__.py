@@ -343,16 +343,19 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
     try:
-        if entry.entry_id in hass.data[DOMAIN]:
-            coordinator = hass.data[DOMAIN][entry.entry_id]
+        unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+        if unload_ok and entry.entry_id in hass.data[DOMAIN]:
+            coordinator = hass.data[DOMAIN].pop(entry.entry_id)
 
             if hasattr(coordinator.client, 'shutdown'):
                 await coordinator.client.shutdown()
 
             await coordinator.async_shutdown()
-            hass.data[DOMAIN].pop(entry.entry_id)
 
-        return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+        if not hass.data.get(DOMAIN):
+            hass.data.pop(DOMAIN, None)
+
+        return unload_ok
 
     except Exception as ex:
         _LOGGER.exception("Error unloading entry: %s", str(ex))

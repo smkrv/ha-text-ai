@@ -6,12 +6,8 @@ Constants for the HA text AI integration.
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai
 """
-import os
-import json
 from typing import Final
 from homeassistant.const import Platform
-import logging
-_LOGGER = logging.getLogger(__name__)
 
 # Domain and platforms
 DOMAIN: Final = "ha_text_ai"
@@ -31,21 +27,7 @@ API_PROVIDERS: Final = [
     API_PROVIDER_GEMINI
 ]
 
-# Read version from manifest.json
-MANIFEST_PATH = os.path.join(os.path.dirname(__file__), "manifest.json")
-try:
-    with open(MANIFEST_PATH) as manifest_file:
-        manifest = json.load(manifest_file)
-        VERSION = manifest.get("version", "unknown")
-except FileNotFoundError:
-    VERSION = "unknown"
-    _LOGGER.warning("manifest.json not found at %s", MANIFEST_PATH)
-except json.JSONDecodeError as err:
-    VERSION = "unknown"
-    _LOGGER.error("Error decoding JSON from manifest.json: %s", err)
-except Exception as err:
-    VERSION = "unknown"
-    _LOGGER.error("Error reading manifest.json: %s", err)
+VERSION: Final = "2.4.0"
 
 # Default endpoints
 DEFAULT_OPENAI_ENDPOINT: Final = "https://api.openai.com/v1"
