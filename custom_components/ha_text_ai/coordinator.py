@@ -14,8 +14,6 @@ import aiofiles
 import os
 import json
 import asyncio
-import psutil
-import re
 import math
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional, Union
@@ -116,6 +114,9 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self.is_anthropic = is_anthropic
         self.api_timeout = api_timeout
 
+        # Concurrency control
+        self._request_lock = asyncio.Lock()
+
         # Initialize essential attributes
         self._is_processing = False
         self._is_rate_limited = False
@@ -170,14 +171,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
             "ha_text_ai_history"
         )
 
-        # Initialize all async tasks in proper order
-        self.hass.async_create_task(self._create_history_dir())
-        self.hass.async_create_task(self._check_history_directory())
-        self.hass.async_create_task(self._initialize_metrics())
-        self.hass.async_create_task(self.async_initialize_history_file())
-        self.hass.async_create_task(self._migrate_history_from_txt_to_json())
-
-        # History file path using instance name
+        # History file path using instance name — must be set before async_initialize
         self._history_file = os.path.join(
             self._history_dir,
             f"{self.normalized_name}_history.json"
@@ -188,7 +182,15 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
         self.context_messages = context_messages
 
-        _LOGGER.info(f"Initialized HA Text AI coordinator with instance: {instance_name}")
+        _LOGGER.info("Initialized HA Text AI coordinator with instance: %s", instance_name)
+
+    async def async_initialize(self) -> None:
+        """Initialize coordinator: directories, history, metrics. Must be awaited."""
+        await self._create_history_dir()
+        await self._check_history_directory()
+        await self._initialize_metrics()
+        await self.async_initialize_history_file()
+        await self._migrate_history_from_txt_to_json()
 
     @property
     def last_response(self) -> Dict[str, Any]:
@@ -357,7 +359,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
             HomeAssistantError: {"is_ha_error": True},
             ConnectionError: {
                 "is_connection_error": True,
-                "is_rate_limited": True
             },
             TimeoutError: {"is_timeout": True},
             PermissionError: {"is_permission_denied": True},
@@ -529,67 +530,14 @@ class HATextAICoordinator(DataUpdateCoordinator):
             _LOGGER.error(f"Error checking file size for {file_path}: {e}")
             return 0
 
-    def _sync_write_history_entry(self, entry: dict) -> None:
-        """Synchronous method to write history entry with enhanced error handling."""
-        try:
-            history = []
-            if os.path.exists(self._history_file):
-                try:
-                    with open(self._history_file, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                        if content.strip():
-                            history = json.loads(content)
-                except (json.JSONDecodeError, UnicodeDecodeError) as e:
-                    _LOGGER.warning(f"Corrupted history file, creating new: {e}")
-                    # Backup corrupted file
-                    backup_path = f"{self._history_file}.corrupted.{dt_util.utcnow().strftime('%Y%m%d_%H%M%S')}"
-                    try:
-                        os.rename(self._history_file, backup_path)
-                        _LOGGER.info(f"Corrupted history backed up to: {backup_path}")
-                    except OSError:
-                        pass
-                except PermissionError as e:
-                    _LOGGER.error(f"Permission denied reading history file: {e}")
-                    raise
-                except OSError as e:
-                    _LOGGER.error(f"OS error reading history file: {e}")
-                    raise
-
-            history.append(entry)
-
-            if len(history) > self.max_history_size:
-                history = history[-self.max_history_size:]
-
-            # Write with atomic operation
-            temp_file = f"{self._history_file}.tmp"
-            try:
-                with open(temp_file, 'w', encoding='utf-8') as f:
-                    json.dump(history, f, indent=2, ensure_ascii=False)
-                os.replace(temp_file, self._history_file)
-            except PermissionError as e:
-                _LOGGER.error(f"Permission denied writing history file: {e}")
-                raise
-            except OSError as e:
-                _LOGGER.error(f"OS error writing history file: {e}")
-                # Clean up temp file if it exists
-                try:
-                    os.remove(temp_file)
-                except OSError:
-                    pass
-                raise
-
-        except Exception as e:
-            _LOGGER.error(f"Synchronous history entry writing failed: {e}")
-            raise
-
     async def _rotate_history(self) -> None:
         """Rotate conversation history with file management."""
         try:
-            _LOGGER.debug(f"Starting history rotation for {self._history_file}")
-            await self.hass.async_add_executor_job(self._rotate_history_files)
-            _LOGGER.debug(f"Completed history rotation")
+            _LOGGER.debug("Starting history rotation for %s", self._history_file)
+            await self._rotate_history_files()
+            _LOGGER.debug("Completed history rotation")
         except Exception as e:
-            _LOGGER.error(f"Error rotating history: {e}")
+            _LOGGER.error("Error rotating history: %s", e)
             _LOGGER.debug(traceback.format_exc())
 
     async def _check_history_directory(self) -> None:
@@ -639,9 +587,10 @@ class HATextAICoordinator(DataUpdateCoordinator):
                         f"{self.normalized_name}_history_{dt_util.utcnow().strftime('%Y%m%d_%H%M%S')}.json"
                     )
 
-                    # Rotate files
+                    # Rotate files (shutil.move for cross-device safety)
+                    import shutil
                     await self.hass.async_add_executor_job(
-                        os.rename,
+                        shutil.move,
                         self._history_file,
                         archive_file
                     )
@@ -662,37 +611,36 @@ class HATextAICoordinator(DataUpdateCoordinator):
     async def _async_update_data(self) -> Dict[str, Any]:
         """Update coordinator data with improved error handling and performance."""
         try:
-            async with asyncio.Semaphore(1):
-                current_state = self._get_current_state()
+            current_state = self._get_current_state()
 
-                # Get limited history with info
-                history_data = await self._get_limited_history()
+            # Get limited history with info
+            history_data = await self._get_limited_history()
 
-                metrics = await self._get_current_metrics()
-                if metrics is None:
-                    metrics = {}
+            metrics = await self._get_current_metrics()
+            if metrics is None:
+                metrics = {}
 
-                data = {
-                    "state": current_state,
-                    "metrics": metrics,
-                    "last_response": await self._get_sanitized_last_response(),
-                    "is_processing": self._is_processing,
-                    "is_rate_limited": self._is_rate_limited,
-                    "is_maintenance": self._is_maintenance,
-                    "endpoint_status": self.endpoint_status,
-                    "uptime": self._calculate_uptime(),
-                    "system_prompt": self._get_truncated_system_prompt(),
-                    "history_size": len(self._conversation_history),
-                    "conversation_history": history_data["entries"],
-                    "history_info": history_data["info"],
-                    "normalized_name": self.normalized_name,
-                }
+            data = {
+                "state": current_state,
+                "metrics": metrics,
+                "last_response": await self._get_sanitized_last_response(),
+                "is_processing": self._is_processing,
+                "is_rate_limited": self._is_rate_limited,
+                "is_maintenance": self._is_maintenance,
+                "endpoint_status": self.endpoint_status,
+                "uptime": self._calculate_uptime(),
+                "system_prompt": self._get_truncated_system_prompt(),
+                "history_size": len(self._conversation_history),
+                "conversation_history": history_data["entries"],
+                "history_info": history_data["info"],
+                "normalized_name": self.normalized_name,
+            }
 
-                await self._validate_update_data(data)
-                return data
+            await self._validate_update_data(data)
+            return data
 
         except Exception as err:
-            _LOGGER.error(f"Error updating data: {err}", exc_info=True)
+            _LOGGER.error("Error updating data: %s", err, exc_info=True)
             return self._get_safe_initial_state()
 
     async def _get_limited_history(self) -> Dict[str, Any]:
@@ -712,7 +660,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
             "total_entries": len(self._conversation_history),
             "displayed_entries": len(limited_history),
             "full_history_available": True,
-            "history_path": self._history_file,
         }
 
         return {
@@ -764,21 +711,14 @@ class HATextAICoordinator(DataUpdateCoordinator):
             raise ValueError("Invalid metrics format")
 
     async def async_update_ha_state(self) -> None:
-        """Update Home Assistant state."""
+        """Update Home Assistant state via coordinator refresh."""
         try:
             _LOGGER.debug(
-                f"Requesting state update for {self.instance_name} (normalized: {self.normalized_name})"
+                "Requesting state update for %s", self.instance_name,
             )
             await self.async_request_refresh()
-
-            # Force update of all entities
-            entity_id_base = f"sensor.ha_text_ai_{self.normalized_name.lower()}"
-            for entity_id in self.hass.states.async_entity_ids():
-                if entity_id.startswith(entity_id_base):
-                    self.hass.states.async_set(entity_id, self._get_current_state())
-
         except Exception as err:
-            _LOGGER.error(f"Error updating HA state for {self.instance_name}: {err}")
+            _LOGGER.error("Error updating HA state for %s: %s", self.instance_name, err)
 
     def _get_current_state(self) -> str:
         """Get current state based on internal flags."""
@@ -860,61 +800,56 @@ class HATextAICoordinator(DataUpdateCoordinator):
             if self.client is None:
                 raise HomeAssistantError("AI client not initialized")
 
-            try:
-                self._is_processing = True
-                await self.async_update_ha_state()
+            async with self._request_lock:
+                try:
+                    self._is_processing = True
+                    await self.async_update_ha_state()
 
-                temp_context_messages = context_messages or self.context_messages
-                temp_model = model or self.model
-                temp_temperature = temperature or self.temperature
-                temp_max_tokens = max_tokens or self.max_tokens
-                temp_system_prompt = system_prompt or self._system_prompt
+                    temp_context_messages = context_messages if context_messages is not None else self.context_messages
+                    temp_model = model if model is not None else self.model
+                    temp_temperature = temperature if temperature is not None else self.temperature
+                    temp_max_tokens = max_tokens if max_tokens is not None else self.max_tokens
+                    temp_system_prompt = system_prompt if system_prompt is not None else self._system_prompt
 
-                # Start timing
-                start_time = dt_util.utcnow()
+                    start_time = dt_util.utcnow()
 
-                # Prepare messages with system prompt
-                messages = []
-                if temp_system_prompt:
-                    messages.append({"role": "system", "content": temp_system_prompt})
+                    messages = []
+                    if temp_system_prompt:
+                        messages.append({"role": "system", "content": temp_system_prompt})
 
-                # Add context from history
-                context_history = self._conversation_history[-temp_context_messages:]
-                for entry in context_history:
-                    messages.append({"role": "user", "content": entry["question"]})
-                    messages.append({"role": "assistant", "content": entry["response"]})
+                    context_history = self._conversation_history[-temp_context_messages:]
+                    for entry in context_history:
+                        messages.append({"role": "user", "content": entry["question"]})
+                        messages.append({"role": "assistant", "content": entry["response"]})
 
-                # Add current question
-                messages.append({"role": "user", "content": question})
+                    messages.append({"role": "user", "content": question})
 
-                # Process message
-                kwargs = {
-                    "model": temp_model,
-                    "temperature": temp_temperature,
-                    "max_tokens": temp_max_tokens,
-                    "messages": messages,
-                    "structured_output": structured_output,
-                    "json_schema": json_schema,
-                }
+                    kwargs = {
+                        "model": temp_model,
+                        "temperature": temp_temperature,
+                        "max_tokens": temp_max_tokens,
+                        "messages": messages,
+                        "structured_output": structured_output,
+                        "json_schema": json_schema,
+                    }
 
-                response = await self.async_process_message(question, **kwargs)
+                    response = await self.async_process_message(question, **kwargs)
 
-                # Update metrics
-                end_time = dt_util.utcnow()
-                latency = (end_time - start_time).total_seconds()
-                await self._update_metrics(latency, response)
+                    end_time = dt_util.utcnow()
+                    latency = (end_time - start_time).total_seconds()
+                    await self._update_metrics(latency, response)
 
-                await self._update_history(question, response)
+                    await self._update_history(question, response)
 
-                return response
+                    return response
 
-            except Exception as err:
-                await self._handle_error(err)
-                raise HomeAssistantError(f"Failed to process question: {err}")
+                except Exception as err:
+                    await self._handle_error(err)
+                    raise HomeAssistantError(f"Failed to process question: {err}")
 
-            finally:
-                self._is_processing = False
-                await self.async_update_ha_state()
+                finally:
+                    self._is_processing = False
+                    await self.async_update_ha_state()
 
     async def async_process_message(self, question: str, **kwargs) -> dict:
         """Process message using the AI client."""
@@ -928,6 +863,10 @@ class HATextAICoordinator(DataUpdateCoordinator):
                     question, structured_output=structured_output,
                     json_schema=json_schema, **kwargs
                 )
+
+            # Reset error state on success
+            self._is_rate_limited = False
+            self.endpoint_status = "ready"
 
             # Add timestamp and model information to response
             timestamp = dt_util.utcnow().isoformat()
@@ -1039,9 +978,10 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 async with AsyncFileHandler(self._history_file, 'w') as f:
                     await f.write(json.dumps(history_entries, indent=2))
 
-                # Backup old file
+                # Backup old file (use shutil.move for cross-device safety)
+                import shutil
                 backup_file = old_history_file + '.backup'
-                os.rename(old_history_file, backup_file)
+                await self.hass.async_add_executor_job(shutil.move, old_history_file, backup_file)
 
                 _LOGGER.info(
                     f"Successfully migrated {len(history_entries)} entries "
@@ -1132,25 +1072,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self._system_prompt = prompt
         await self.async_update_ha_state()
 
-    def _check_memory_available(self) -> bool:
-        """Check if enough memory is available."""
-        try:
-            memory = psutil.virtual_memory()
-            
-            # Log the total and available memory
-            _LOGGER.debug("Total memory: %s, Available memory: %s", memory.total, memory.available)
-            
-            if memory.available > 1024 * 1024 * 100:  # 100MB
-                _LOGGER.debug("Sufficient memory available: %s bytes", memory.available)
-                return True
-            else:
-                _LOGGER.warning("Insufficient memory available: %s bytes", memory.available)
-                return False
-        except Exception as e:
-            _LOGGER.error("Error checking memory availability: %s", e)
-            return True  # Assume memory is available if check fails
-
     async def async_shutdown(self) -> None:
         """Shutdown coordinator."""
-        _LOGGER.debug(f"Shutting down coordinator for {self.instance_name}")
-        self.hass.data[DOMAIN].pop(self.instance_name, None)
+        _LOGGER.debug("Shutting down coordinator for %s", self.instance_name)

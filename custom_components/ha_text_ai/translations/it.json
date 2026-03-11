@@ -2,15 +2,6 @@
   "config": {
     "step": {
       "provider": {
-        "title": "Seleziona fornitore AI",
-        "description": "Scegli quale fornitore di servizi AI utilizzare per questa istanza.",
-        "data": {
-          "api_provider": "Fornitore API",
-          "context_messages": "Numero di messaggi di contesto da mantenere (1-20)",
-          "max_history_size": "Dimensione massima della cronologia delle conversazioni (1-100)"
-        }
-      },
-      "provider": {
         "title": "Impostazioni fornitore",
         "description": "Fornisci i dettagli di connessione per il tuo fornitore di AI scelto.",
         "data": {

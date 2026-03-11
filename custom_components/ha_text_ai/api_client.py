@@ -10,10 +10,7 @@ import logging
 import asyncio
 from typing import Any, Dict, List, Optional
 from aiohttp import ClientSession, ClientTimeout
-from async_timeout import timeout
-from datetime import datetime, timedelta
 
-from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from .const import (
     DEFAULT_API_TIMEOUT,
@@ -88,38 +85,58 @@ class APIClient:
         url: str,
         payload: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """Make API request with retry logic."""
-        # Log request without sensitive data
+        """Make API request with retry logic for transient errors only."""
         safe_payload = {k: v for k, v in payload.items() if k not in ['messages', 'system']}
-        _LOGGER.debug(f"API Request: URL={url}, Safe payload: {safe_payload}")
-        
+        _LOGGER.debug("API Request: URL=%s, Safe payload: %s", url, safe_payload)
+
         for attempt in range(API_RETRY_COUNT):
             try:
-                async with timeout(self.api_timeout):
-                    async with self.session.post(
-                        url,
-                        json=payload,
-                        headers=self.headers,
-                        timeout=self.timeout,
-                    ) as response:
-                        _LOGGER.debug(f"Response status: {response.status}")
-                        if response.status != 200:
-                            error_data = await response.json()
-                            # Log error without sensitive data
-                            safe_error = {k: v for k, v in error_data.items() if k not in ['message', 'details']}
-                            _LOGGER.error(f"API error (status {response.status}): {safe_error}")
-                            raise HomeAssistantError(f"API error: status {response.status}")
+                async with self.session.post(
+                    url,
+                    json=payload,
+                    headers=self.headers,
+                    timeout=self.timeout,
+                ) as response:
+                    _LOGGER.debug("Response status: %s", response.status)
+                    if response.status == 200:
                         return await response.json()
+
+                    # Try to get error details
+                    error_data = {}
+                    try:
+                        error_data = await response.json()
+                    except Exception:
+                        error_data = {"raw": await response.text()}
+
+                    # Rate limit — retry with backoff
+                    if response.status == 429:
+                        _LOGGER.warning(
+                            "Rate limit on attempt %d/%d", attempt + 1, API_RETRY_COUNT
+                        )
+                        if attempt < API_RETRY_COUNT - 1:
+                            await asyncio.sleep(2 ** attempt)
+                            continue
+                        raise HomeAssistantError("API rate limit exceeded")
+
+                    # Client/server errors — don't retry
+                    _LOGGER.error("API error (status %d): %s", response.status, error_data)
+                    raise HomeAssistantError(f"API error: status {response.status}")
+
             except asyncio.TimeoutError:
-                _LOGGER.warning(f"Timeout on attempt {attempt + 1}/{API_RETRY_COUNT}")
+                _LOGGER.warning("Timeout on attempt %d/%d", attempt + 1, API_RETRY_COUNT)
                 if attempt == API_RETRY_COUNT - 1:
                     raise HomeAssistantError("API request timed out")
-                await asyncio.sleep(1 * (attempt + 1))
+                await asyncio.sleep(2 ** attempt)
+            except HomeAssistantError:
+                raise
             except Exception as e:
-                _LOGGER.warning(f"API request failed on attempt {attempt + 1}/{API_RETRY_COUNT}: {type(e).__name__}")
+                _LOGGER.warning(
+                    "API request failed on attempt %d/%d: %s",
+                    attempt + 1, API_RETRY_COUNT, type(e).__name__,
+                )
                 if attempt == API_RETRY_COUNT - 1:
                     raise
-                await asyncio.sleep(1 * (attempt + 1))
+                await asyncio.sleep(2 ** attempt)
 
     async def create(
         self,
@@ -319,15 +336,6 @@ class APIClient:
                 "total_tokens": data["usage"]["input_tokens"] + data["usage"]["output_tokens"],
             },
         }
-
-    async def check_connection(self) -> bool:
-        """Check API connection."""
-        try:
-            await self._make_request(self.endpoint, {"test": "connection"})
-            return True
-        except Exception as e:
-            _LOGGER.error(f"Connection check failed: {str(e)}")
-            return False
 
     async def _create_gemini_completion(
         self,

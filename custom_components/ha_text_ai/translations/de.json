@@ -2,15 +2,6 @@
   "config": {
     "step": {
       "provider": {
-        "title": "Wählen Sie AI-Anbieter",
-        "description": "Wählen Sie, welchen AI-Dienstanbieter Sie für diese Instanz verwenden möchten.",
-        "data": {
-          "api_provider": "API-Anbieter",
-          "context_messages": "Anzahl der zu behaltenden Kontextnachrichten (1-20)",
-          "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)"
-        }
-      },
-      "provider": {
         "title": "Anbieter-Einstellungen",
         "description": "Geben Sie die Verbindungsdetails für Ihren gewählten AI-Anbieter an.",
         "data": {

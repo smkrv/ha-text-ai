@@ -2,15 +2,6 @@
   "config": {
     "step": {
       "provider": {
-        "title": "Seleccionar proveedor de IA",
-        "description": "Elige qué proveedor de servicio de IA utilizar para esta instancia.",
-        "data": {
-          "api_provider": "Proveedor de API",
-          "context_messages": "Número de mensajes de contexto a retener (1-20)",
-          "max_history_size": "Tamaño máximo del historial de conversación (1-100)"
-        }
-      },
-      "provider": {
         "title": "Configuración del proveedor",
         "description": "Proporciona los detalles de conexión para tu proveedor de IA elegido.",
         "data": {

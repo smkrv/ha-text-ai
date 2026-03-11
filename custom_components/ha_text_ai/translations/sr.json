@@ -204,7 +204,7 @@
           "ready": "Спремно",
           "processing": "Обрада",
           "error": "Грешка",
-          "disconnected": "Прекључено",
+          "disconnected": "Искључено",
           "rate_limited": "Ограничење захтева",
           "maintenance": "Одржавање",
           "initializing": "Инициализује се",

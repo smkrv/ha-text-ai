@@ -6,8 +6,9 @@ Utility functions for HA Text AI integration.
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai
 """
-import hashlib
+import ipaddress
 from typing import Any
+from urllib.parse import urlparse
 
 from homeassistant.const import CONF_API_KEY
 
@@ -19,18 +20,41 @@ def normalize_name(name: str) -> str:
     return normalized.lower()
 
 
-def get_file_hash(file_path: str) -> str:
-    """Calculate SHA256 hash of file."""
-    sha256_hash = hashlib.sha256()
-    with open(file_path, "rb") as f:
-        for byte_block in iter(lambda: f.read(4096), b""):
-            sha256_hash.update(byte_block)
-    return sha256_hash.hexdigest()
-
-
 def safe_log_data(
     data: dict[str, Any],
     sensitive_keys: tuple[str, ...] = (CONF_API_KEY,),
 ) -> dict[str, Any]:
     """Filter sensitive keys from data for safe logging."""
     return {k: "***" if k in sensitive_keys else v for k, v in data.items()}
+
+
+
+def validate_endpoint(endpoint: str) -> str:
+    """Validate API endpoint URL for security.
+
+    Ensures HTTPS-only and blocks private/reserved IP ranges (SSRF protection).
+    Returns the validated endpoint stripped of trailing slashes.
+
+    Raises:
+        ValueError: If the endpoint fails validation.
+    """
+    parsed = urlparse(endpoint)
+
+    if parsed.scheme not in ("https",):
+        raise ValueError("Only HTTPS endpoints are allowed")
+
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValueError("Invalid endpoint URL: no hostname")
+
+    # Block private/reserved IPs
+    try:
+        addr = ipaddress.ip_address(hostname)
+        if addr.is_private or addr.is_reserved or addr.is_loopback or addr.is_link_local:
+            raise ValueError("Private/reserved IP addresses are not allowed")
+    except ValueError as e:
+        if "not allowed" in str(e):
+            raise
+        # Not an IP address — it's a hostname, which is fine
+
+    return endpoint.rstrip("/")

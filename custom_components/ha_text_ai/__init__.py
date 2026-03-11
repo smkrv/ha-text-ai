@@ -9,24 +9,23 @@ The HA Text AI integration.
 from __future__ import annotations
 
 import logging
-import os
-import shutil
-from datetime import datetime, timedelta
-from typing import Any, Dict, TypeVar
+from datetime import datetime
+from typing import Any, Dict
+
+import asyncio
 
 import voluptuous as vol
-from async_timeout import timeout
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_API_KEY, CONF_NAME, Platform
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.const import CONF_API_KEY, CONF_NAME
+from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import aiohttp_client
 
 from .coordinator import HATextAICoordinator
 from .api_client import APIClient
-from .utils import get_file_hash, safe_log_data
+from .utils import safe_log_data, validate_endpoint
 from .providers import get_default_endpoint, get_default_model, build_auth_headers
 from .const import (
     DOMAIN,
@@ -53,24 +52,24 @@ from .const import (
     SERVICE_SET_SYSTEM_PROMPT,
     DEFAULT_MAX_HISTORY,
     CONF_MAX_HISTORY_SIZE,
-    ICONS_SUBDOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
-ConfigType = TypeVar("ConfigType", bound=Dict[str, Any])
 
 SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
     vol.Required("instance"): cv.string,
-    vol.Required("question"): cv.string,
-    vol.Optional("system_prompt"): cv.string,
+    vol.Required("question"): vol.All(cv.string, vol.Length(min=1, max=100000)),
+    vol.Optional("system_prompt"): vol.All(cv.string, vol.Length(max=50000)),
     vol.Optional("model"): cv.string,
-    vol.Optional("temperature"): cv.positive_float,
+    vol.Optional("temperature"): vol.All(
+        vol.Coerce(float), vol.Range(min=0.0, max=2.0)
+    ),
     vol.Optional("max_tokens"): cv.positive_int,
     vol.Optional("context_messages"): cv.positive_int,
     vol.Optional("structured_output", default=False): cv.boolean,
-    vol.Optional("json_schema"): cv.string,
+    vol.Optional("json_schema"): vol.All(cv.string, vol.Length(max=50000)),
 })
 
 SERVICE_SCHEMA_SET_SYSTEM_PROMPT = vol.Schema({
@@ -98,7 +97,7 @@ def get_coordinator_by_instance(hass: HomeAssistant, instance: str) -> HATextAIC
 
     raise HomeAssistantError(f"Instance {instance} not found")
 
-async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
     """Set up the Home Assistant Text AI component."""
     # Initialize domain data storage
     hass.data.setdefault(DOMAIN, {})
@@ -143,7 +142,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
                 "question": call.data["question"],
                 "timestamp": datetime.now().isoformat(),
                 "success": False,
-                "error": str(err)
+                "error": "Service call failed"
             }
 
     async def async_clear_history(call: ServiceCall) -> None:
@@ -185,7 +184,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         SERVICE_ASK_QUESTION,
         async_ask_question,
         schema=SERVICE_SCHEMA_ASK_QUESTION,
-        supports_response=True
+        supports_response=SupportsResponse.OPTIONAL
     )
 
     hass.services.async_register(
@@ -199,7 +198,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         DOMAIN,
         SERVICE_GET_HISTORY,
         async_get_history,
-        schema=SERVICE_SCHEMA_GET_HISTORY
+        schema=SERVICE_SCHEMA_GET_HISTORY,
+        supports_response=SupportsResponse.OPTIONAL
     )
 
     hass.services.async_register(
@@ -208,53 +208,6 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
         async_set_system_prompt,
         schema=SERVICE_SCHEMA_SET_SYSTEM_PROMPT
     )
-
-    # Handle icons
-    try:
-        source_icon_path = os.path.join(
-            os.path.dirname(__file__),
-            ICONS_SUBDOMAIN,
-            'icon@2x.png'
-        )
-
-        destination_directory = os.path.join(
-            hass.config.path('www'),
-            DOMAIN,
-            ICONS_SUBDOMAIN
-        )
-
-        destination_icon_path = os.path.join(
-            destination_directory,
-            'icon.png'
-        )
-
-        if not os.path.exists(source_icon_path):
-            _LOGGER.error("Source icon not found: %s", source_icon_path)
-            return True
-
-        def create_directory():
-            os.makedirs(destination_directory, exist_ok=True)
-
-        await hass.async_add_executor_job(create_directory)
-
-        should_copy = True
-
-        if os.path.exists(destination_icon_path):
-            source_hash = await hass.async_add_executor_job(get_file_hash, source_icon_path)
-            dest_hash = await hass.async_add_executor_job(get_file_hash, destination_icon_path)
-            should_copy = source_hash != dest_hash
-
-        if should_copy:
-            def copy_file():
-                shutil.copyfile(source_icon_path, destination_icon_path)
-
-            await hass.async_add_executor_job(copy_file)
-            _LOGGER.debug("Icon updated: %s", destination_icon_path)
-
-    except PermissionError as e:
-        _LOGGER.error("Permission denied when managing icons: %s", str(e))
-    except Exception as e:
-        _LOGGER.error("Failed to manage icons: %s", str(e))
 
     return True
 
@@ -275,9 +228,9 @@ async def async_check_api(session, endpoint: str, headers: dict, provider: str, 
         else:  # OpenAI
             check_url = f"{endpoint}/models"
 
-        async with timeout(api_timeout):
+        async with asyncio.timeout(api_timeout):
             async with session.get(check_url, headers=headers) as response:
-                if response.status in [200, 404]:
+                if response.status == 200:
                     return True
                 elif response.status == 401:
                     _LOGGER.error("Invalid API key")
@@ -294,7 +247,7 @@ async def async_check_api(session, endpoint: str, headers: dict, provider: str, 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up HA Text AI from a config entry."""
-    _LOGGER.debug(f"Setting up HA Text AI entry: {entry.data}")
+    _LOGGER.debug("Setting up HA Text AI entry: %s", safe_log_data(dict(entry.data)))
 
     try:
         # Get provider from data or options (options takes precedence)
@@ -308,7 +261,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         session = aiohttp_client.async_get_clientsession(hass)
 
         model = config.get(CONF_MODEL, get_default_model(api_provider))
-        endpoint = config.get(CONF_API_ENDPOINT, get_default_endpoint(api_provider)).rstrip('/')
+        raw_endpoint = config.get(CONF_API_ENDPOINT, get_default_endpoint(api_provider))
+        try:
+            endpoint = validate_endpoint(raw_endpoint)
+        except ValueError as err:
+            _LOGGER.error("Invalid API endpoint %s: %s", raw_endpoint, err)
+            raise ConfigEntryNotReady(f"Invalid API endpoint: {err}")
         # API key can now be updated via options
         api_key = config.get(CONF_API_KEY, entry.data.get(CONF_API_KEY))
         instance_name = entry.data.get(CONF_NAME, entry.entry_id)
@@ -350,13 +308,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             api_timeout=api_timeout,
         )
 
-        _LOGGER.debug(f"Created coordinator for {instance_name}")
+        # Initialize coordinator (directories, history, metrics)
+        await coordinator.async_initialize()
+
+        _LOGGER.debug("Created coordinator for %s", instance_name)
 
         # Store coordinator
         hass.data.setdefault(DOMAIN, {})
         hass.data[DOMAIN][entry.entry_id] = coordinator
 
-        _LOGGER.debug(f"Stored coordinator in hass.data[{DOMAIN}][{entry.entry_id}]")
+        _LOGGER.debug("Stored coordinator in hass.data[%s][%s]", DOMAIN, entry.entry_id)
 
         # Set up platforms
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -364,12 +325,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Register update listener for options changes
         entry.async_on_unload(entry.add_update_listener(async_update_options))
 
-        _LOGGER.debug(f"Setup completed for {instance_name}")
+        _LOGGER.debug("Setup completed for %s", instance_name)
 
         return True
 
     except Exception as err:
-        _LOGGER.exception(f"Error setting up HA Text AI: {err}")
+        _LOGGER.exception("Error setting up HA Text AI: %s", err)
         raise
 
 async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:

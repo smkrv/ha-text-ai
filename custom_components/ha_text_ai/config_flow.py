@@ -49,7 +49,7 @@ from .const import (
     DEFAULT_MAX_HISTORY,
     CONF_MAX_HISTORY_SIZE,
 )
-from .utils import normalize_name  # noqa: F401 — re-exported for backward compat
+from .utils import normalize_name, safe_log_data, validate_endpoint  # noqa: F401 — re-exported for backward compat
 from .providers import get_default_endpoint, get_default_model
 
 _LOGGER = logging.getLogger(__name__)
@@ -132,16 +132,15 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 })
             )
 
-        # Debug log to identify what's in the input
-        _LOGGER.debug(f"Provider step input data: {user_input}")
+        _LOGGER.debug("Provider step input data: %s", safe_log_data(user_input))
 
         input_copy = user_input.copy()
 
         # Check if CONF_NAME exists in input_copy and ensure it's not empty
         if CONF_NAME not in input_copy or not input_copy[CONF_NAME]:
-            _LOGGER.warning(f"Missing name in configuration input: {input_copy}")
-            input_copy[CONF_NAME] = f"gemini_assistant_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            _LOGGER.info(f"Auto-generated name: {input_copy[CONF_NAME]}")
+            _LOGGER.warning("Missing name in configuration input: %s", safe_log_data(input_copy))
+            input_copy[CONF_NAME] = f"assistant_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            _LOGGER.info("Auto-generated name: %s", input_copy[CONF_NAME])
 
         # Ensure API key is present
         if CONF_API_KEY not in input_copy or not input_copy[CONF_API_KEY]:
@@ -197,7 +196,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 step_id="provider",
                 data_schema=vol.Schema({
                     vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
-                    vol.Required(CONF_API_KEY, default=input_copy.get(CONF_API_KEY, "")): str,
+                    vol.Required(CONF_API_KEY): str,
                     vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, get_default_model(self._provider))): str,
                     vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
                     vol.Optional(CONF_TEMPERATURE, default=input_copy.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)): vol.All(
@@ -259,7 +258,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         step_id="provider",
                         data_schema=vol.Schema({
                             vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
-                            vol.Required(CONF_API_KEY, default=input_copy.get(CONF_API_KEY, "")): str,
+                            vol.Required(CONF_API_KEY): str,
                             vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, get_default_model(self._provider))): str,
                             vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
                             vol.Optional(CONF_TEMPERATURE, default=input_copy.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)): vol.All(
@@ -302,7 +301,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 step_id="provider",
                 data_schema=vol.Schema({
                     vol.Required(CONF_NAME, default=input_copy.get(CONF_NAME, "my_assistant")): str,
-                    vol.Required(CONF_API_KEY, default=input_copy.get(CONF_API_KEY, "")): str,
+                    vol.Required(CONF_API_KEY): str,
                     vol.Required(CONF_MODEL, default=input_copy.get(CONF_MODEL, get_default_model(self._provider))): str,
                     vol.Required(CONF_API_ENDPOINT, default=input_copy.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
                     # Other fields remain the same
@@ -353,9 +352,16 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._errors["base"] = "invalid_auth"
                 return False
 
+            # Validate endpoint URL (HTTPS-only, SSRF protection)
+            try:
+                endpoint = validate_endpoint(user_input[CONF_API_ENDPOINT])
+            except ValueError as err:
+                _LOGGER.error("Endpoint validation failed: %s", err)
+                self._errors["base"] = "cannot_connect"
+                return False
+
             session = async_get_clientsession(self.hass)
             headers = self._get_api_headers(user_input)
-            endpoint = user_input[CONF_API_ENDPOINT].rstrip('/')
 
             if self._provider == API_PROVIDER_GEMINI:
                 if not user_input[CONF_API_KEY]:
@@ -434,7 +440,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if key not in entry_data:
                 entry_data[key] = value
 
-        _LOGGER.debug(f"Creating config entry with data: {entry_data}")
+        _LOGGER.debug("Creating config entry with data: %s", safe_log_data(entry_data))
 
         return self.async_create_entry(
             title=instance_name,
@@ -484,13 +490,20 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 self._errors["base"] = "invalid_auth"
                 return False
 
+            # Validate endpoint URL (HTTPS-only, SSRF protection)
+            try:
+                endpoint = validate_endpoint(endpoint)
+            except ValueError as err:
+                _LOGGER.error("Endpoint validation failed: %s", err)
+                self._errors["base"] = "cannot_connect"
+                return False
+
             # For Gemini, just check if API key is present
             if provider == API_PROVIDER_GEMINI:
                 return True
 
             session = async_get_clientsession(self.hass)
             headers = self._get_api_headers(api_key, provider)
-            endpoint = endpoint.rstrip('/')
 
             check_url = (
                 f"{endpoint}/v1/models" if provider == API_PROVIDER_ANTHROPIC
@@ -607,10 +620,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         data = user_input or current_data
 
         return vol.Schema({
-            vol.Required(
-                CONF_API_KEY,
-                default=data.get(CONF_API_KEY, "")
-            ): str,
+            vol.Required(CONF_API_KEY): str,
             vol.Required(
                 CONF_API_ENDPOINT,
                 default=data.get(CONF_API_ENDPOINT, default_endpoint)

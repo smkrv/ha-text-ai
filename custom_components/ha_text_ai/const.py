@@ -9,15 +9,13 @@ Constants for the HA text AI integration.
 import os
 import json
 from typing import Final
-import voluptuous as vol
 from homeassistant.const import Platform, CONF_API_KEY, CONF_NAME
-from homeassistant.helpers import config_validation as cv
 import logging
 _LOGGER = logging.getLogger(__name__)
 
 # Domain and platforms
 DOMAIN: Final = "ha_text_ai"
-PLATFORMS: list[str] = ["sensor"]
+PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 # Provider configuration
 CONF_API_PROVIDER: Final = "api_provider"
@@ -72,11 +70,9 @@ CONF_JSON_SCHEMA: Final = "json_schema"
 ABSOLUTE_MAX_HISTORY_SIZE = 500
 MAX_ATTRIBUTE_SIZE = 4 * 1024
 MAX_HISTORY_FILE_SIZE = 1 * 1024 * 1024
-ICONS_SUBDOMAIN = "icons"
-
 # Default values
 DEFAULT_MODEL: Final = "gpt-4o-mini"
-DEFAULT_ANTHROPIC_MODEL: Final = "claude-3-5-sonnet"
+DEFAULT_ANTHROPIC_MODEL: Final = "claude-sonnet-4-6"
 DEFAULT_DEEPSEEK_MODEL: Final = "deepseek-chat"
 DEFAULT_GEMINI_MODEL: Final = "gemini-2.0-flash"
 DEFAULT_TEMPERATURE: Final = 0.1
@@ -184,74 +180,3 @@ STATE_DISCONNECTED: Final = "disconnected"
 EVENT_RESPONSE_RECEIVED: Final = f"{DOMAIN}_response_received"
 EVENT_ERROR_OCCURRED: Final = f"{DOMAIN}_error_occurred"
 EVENT_STATE_CHANGED: Final = f"{DOMAIN}_state_changed"
-
-# Service schema constants
-SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
-    vol.Required(CONF_INSTANCE): cv.string,
-    vol.Required("question"): cv.string,
-    vol.Optional("system_prompt"): cv.string,
-    vol.Optional("model"): cv.string,
-    vol.Optional("temperature"): vol.All(
-        vol.Coerce(float),
-        vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
-    ),
-    vol.Optional("max_tokens"): vol.All(
-        vol.Coerce(int),
-        vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
-    ),
-    vol.Optional("context_messages"): vol.All(
-        vol.Coerce(int),
-        vol.Range(min=1, max=20)
-    ),
-    vol.Optional(CONF_STRUCTURED_OUTPUT, default=False): cv.boolean,
-    vol.Optional(CONF_JSON_SCHEMA): cv.string,
-})
-
-SERVICE_SCHEMA_SET_SYSTEM_PROMPT = vol.Schema({
-    vol.Required(CONF_INSTANCE): cv.string,
-    vol.Required("prompt"): cv.string
-})
-
-SERVICE_SCHEMA_GET_HISTORY = vol.Schema({
-    vol.Required(CONF_INSTANCE): cv.string,
-    vol.Optional("limit", default=10): vol.All(
-        vol.Coerce(int),
-        vol.Range(min=1, max=100),
-    ),
-    vol.Optional("filter_model"): cv.string
-})
-
-# Configuration schema
-CONFIG_SCHEMA = vol.Schema({
-    DOMAIN: vol.Schema({
-        vol.Required(CONF_NAME): cv.string,
-        vol.Required(CONF_API_KEY): cv.string,
-        vol.Required(CONF_API_PROVIDER): vol.In(API_PROVIDERS),
-        vol.Optional(CONF_MODEL, default=DEFAULT_MODEL): cv.string,
-        vol.Optional(CONF_TEMPERATURE, default=DEFAULT_TEMPERATURE): vol.All(
-            vol.Coerce(float),
-            vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
-        ),
-        vol.Optional(CONF_MAX_TOKENS, default=DEFAULT_MAX_TOKENS): vol.All(
-            vol.Coerce(int),
-            vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
-        ),
-        vol.Optional(CONF_API_ENDPOINT): cv.string,
-        vol.Optional(CONF_REQUEST_INTERVAL, default=DEFAULT_REQUEST_INTERVAL): vol.All(
-            vol.Coerce(float),
-            vol.Range(min=MIN_REQUEST_INTERVAL, max=MAX_REQUEST_INTERVAL)
-        ),
-        vol.Optional(CONF_API_TIMEOUT, default=DEFAULT_API_TIMEOUT): vol.All(
-            vol.Coerce(int),
-            vol.Range(min=MIN_API_TIMEOUT, max=MAX_API_TIMEOUT)
-        ),
-        vol.Optional(CONF_MAX_HISTORY_SIZE, default=DEFAULT_MAX_HISTORY): vol.All(  # Correct usage
-            vol.Coerce(int),
-            vol.Range(min=1, max=100),
-        ),
-        vol.Optional(CONF_CONTEXT_MESSAGES, default=DEFAULT_CONTEXT_MESSAGES): vol.All(
-            vol.Coerce(int),
-            vol.Range(min=1, max=20)
-        )
-    })
-}, extra=vol.ALLOW_EXTRA)

@@ -73,6 +73,7 @@ from .const import (
 )
 
 from .coordinator import HATextAICoordinator
+from .utils import safe_log_data
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -83,23 +84,23 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the HA Text AI sensor."""
-    _LOGGER.debug(f"Starting sensor setup for entry: {entry.entry_id}")
+    _LOGGER.debug("Starting sensor setup for entry: %s", entry.entry_id)
 
     try:
         coordinator = hass.data[DOMAIN][entry.entry_id]
-        _LOGGER.debug(f"Found coordinator for entry {entry.entry_id}")
+        _LOGGER.debug("Found coordinator for entry %s", entry.entry_id)
 
         instance_name = coordinator.instance_name
-        _LOGGER.debug(f"Setting up sensor with instance: {instance_name}")
+        _LOGGER.debug("Setting up sensor with instance: %s", instance_name)
 
         sensor = HATextAISensor(coordinator, entry)
-        _LOGGER.debug(f"Created sensor instance: {sensor.entity_id}")
+        _LOGGER.debug("Created sensor instance: %s", sensor.entity_id)
 
         async_add_entities([sensor], True)
-        _LOGGER.debug(f"Added sensor entity: {sensor.entity_id}")
+        _LOGGER.debug("Added sensor entity: %s", sensor.entity_id)
 
     except Exception as err:
-        _LOGGER.exception(f"Error setting up sensor: {err}")
+        _LOGGER.exception("Error setting up sensor: %s", err)
         raise
 
 class HATextAISensor(CoordinatorEntity, SensorEntity):
@@ -113,7 +114,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         config_entry: ConfigEntry,
     ) -> None:
         """Initialize the sensor."""
-        _LOGGER.debug(f"Initializing sensor with config entry: {config_entry.data}")
+        _LOGGER.debug("Initializing sensor with config entry: %s", safe_log_data(dict(config_entry.data)))
 
         super().__init__(coordinator)
 
@@ -121,8 +122,8 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._instance_name = coordinator.instance_name
         self._normalized_name = coordinator.normalized_name
 
-        _LOGGER.debug(f"Instance name: {self._instance_name}")
-        _LOGGER.debug(f"Normalized name: {self._normalized_name}")
+        _LOGGER.debug("Instance name: %s", self._instance_name)
+        _LOGGER.debug("Normalized name: %s", self._normalized_name)
 
         self._conversation_history = []
         self._system_prompt = None
@@ -131,9 +132,9 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self.entity_id = f"sensor.ha_text_ai_{self._normalized_name}"
         self._attr_unique_id = f"{config_entry.entry_id}"
 
-        _LOGGER.debug(f"Created sensor with entity_id: {self.entity_id}")
-        _LOGGER.debug(f"Sensor name: {self._attr_name}")
-        _LOGGER.debug(f"Unique ID: {self._attr_unique_id}")
+        _LOGGER.debug("Created sensor with entity_id: %s", self.entity_id)
+        _LOGGER.debug("Sensor name: %s", self._attr_name)
+        _LOGGER.debug("Unique ID: %s", self._attr_unique_id)
 
         self.entity_description = SensorEntityDescription(
             key=f"ha_text_ai_{self._normalized_name.lower()}",
@@ -160,7 +161,8 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         )
 
         _LOGGER.debug(
-            f"Initialized sensor: {self.entity_id} for instance: {self._instance_name}"
+            "Initialized sensor: %s for instance: %s",
+            self.entity_id, self._instance_name,
         )
 
     @property
@@ -200,7 +202,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         ]
 
         metrics_values = {k: sanitized.get(k) for k in metrics_keys if k in sanitized}
-        _LOGGER.debug(f"Metrics for {self.entity_id}: {metrics_values}")
+        _LOGGER.debug("Metrics for %s: %s", self.entity_id, metrics_values)
 
         return sanitized
 
@@ -302,7 +304,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         """When entity is added to hass."""
         await super().async_added_to_hass()
         self._handle_coordinator_update()
-        _LOGGER.debug(f"Entity {self.entity_id} added to Home Assistant")
+        _LOGGER.debug("Entity %s added to Home Assistant", self.entity_id)
 
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
@@ -310,7 +312,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             data = self.coordinator.data
             if not self.coordinator.last_update_success or not data:
                 self._current_state = STATE_DISCONNECTED
-                _LOGGER.warning(f"No data available for {self.entity_id}")
+                _LOGGER.warning("No data available for %s", self.entity_id)
                 self.async_write_ha_state()
                 return
 
@@ -320,7 +322,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             metrics = data.get("metrics", {})
             if isinstance(metrics, dict):
                 self._metrics.update(metrics)
-                _LOGGER.debug(f"Updated metrics for {self.entity_id}: {self._metrics}")
+                _LOGGER.debug("Updated metrics for %s: %s", self.entity_id, self._metrics)
 
             # Update conversation history and system prompt
             self._conversation_history = data.get("conversation_history", [])
@@ -344,8 +346,8 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             self._last_update = dt_util.utcnow()
 
             _LOGGER.debug(
-                f"Updated {self.entity_id} state to: {self._current_state} "
-                f"(available: {self.available})"
+                "Updated %s state to: %s (available: %s)",
+                self.entity_id, self._current_state, self.available,
             )
 
         except Exception as err:
