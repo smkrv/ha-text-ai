@@ -25,7 +25,7 @@ from homeassistant.util import dt as dt_util
 
 from .coordinator import HATextAICoordinator
 from .api_client import APIClient
-from .utils import safe_log_data, validate_endpoint
+from .utils import normalize_name, safe_log_data, validate_endpoint
 from .providers import get_default_endpoint, get_default_model, build_auth_headers
 from .const import (
     DOMAIN,
@@ -38,9 +38,6 @@ from .const import (
     CONF_API_TIMEOUT,
     CONF_API_PROVIDER,
     CONF_CONTEXT_MESSAGES,
-    API_PROVIDER_ANTHROPIC,
-    API_PROVIDER_DEEPSEEK,
-    API_PROVIDER_GEMINI,
     DEFAULT_TEMPERATURE,
     DEFAULT_MAX_TOKENS,
     DEFAULT_REQUEST_INTERVAL,
@@ -87,12 +84,22 @@ SERVICE_SCHEMA_GET_HISTORY = vol.Schema({
 })
 
 def get_coordinator_by_instance(hass: HomeAssistant, instance: str) -> HATextAICoordinator:
-    """Get coordinator by instance name."""
+    """Get coordinator by instance name or normalized name.
+
+    Accepts instance_name, normalized_name, or sensor entity_id.
+    """
     if instance.startswith("sensor."):
         instance = instance.replace("sensor.ha_text_ai_", "", 1)
 
+    normalized_input = normalize_name(instance)
+
     for entry_id, coord in hass.data[DOMAIN].items():
-        if isinstance(coord, HATextAICoordinator) and coord.instance_name.lower() == instance.lower():
+        if not isinstance(coord, HATextAICoordinator):
+            continue
+        if (
+            coord.instance_name.lower() == instance.lower()
+            or coord.normalized_name == normalized_input
+        ):
             return coord
 
     raise HomeAssistantError(f"Instance {instance} not found")
@@ -142,7 +149,8 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
                 "question": call.data["question"],
                 "timestamp": dt_util.utcnow().isoformat(),
                 "success": False,
-                "error": "Service call failed"
+                "error": str(err),
+                "error_type": type(err).__name__
             }
 
     async def async_clear_history(call: ServiceCall) -> None:
@@ -212,21 +220,22 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
     return True
 
 async def async_check_api(session, endpoint: str, headers: dict, provider: str, api_timeout: int = DEFAULT_API_TIMEOUT) -> bool:
-    """Check API availability for different providers."""
+    """Check API availability using provider registry configuration."""
     try:
-        if provider == API_PROVIDER_GEMINI:
-            # Gemini API does not support GET /models for validation, just check key presence
-            if headers.get("Authorization", "").replace("Bearer ", ""):
+        from .providers import get_provider_config
+        provider_config = get_provider_config(provider)
+        check_path = provider_config.get("check_path")
+
+        if check_path is None:
+            # Provider does not support /models check (e.g. Gemini)
+            auth_header = provider_config["auth_header"]
+            auth_value = headers.get(auth_header, "").replace(provider_config.get("auth_prefix", ""), "")
+            if auth_value:
                 return True
-            else:
-                _LOGGER.error("Gemini API key is missing or empty")
-                return False
-        elif provider == API_PROVIDER_ANTHROPIC:
-            check_url = f"{endpoint}/v1/models"
-        elif provider == API_PROVIDER_DEEPSEEK:
-            check_url = f"{endpoint}/models"
-        else:  # OpenAI
-            check_url = f"{endpoint}/models"
+            _LOGGER.error("API key is missing or empty for %s", provider)
+            return False
+
+        check_url = f"{endpoint}{check_path}"
 
         async with asyncio.timeout(api_timeout):
             async with session.get(check_url, headers=headers) as response:
@@ -276,7 +285,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         temperature = config.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
         max_history_size = config.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY)
         context_messages = config.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
-        is_anthropic = api_provider == API_PROVIDER_ANTHROPIC
 
         headers = build_auth_headers(api_provider, api_key)
 
@@ -301,11 +309,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             model=model,
             update_interval=request_interval,
             instance_name=instance_name,
+            config_entry=entry,
             max_tokens=max_tokens,
             temperature=temperature,
             max_history_size=max_history_size,
             context_messages=context_messages,
-            is_anthropic=is_anthropic,
             api_timeout=api_timeout,
         )
 

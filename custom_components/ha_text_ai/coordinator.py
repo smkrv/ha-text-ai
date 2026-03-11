@@ -14,6 +14,7 @@ import os
 from datetime import timedelta
 from typing import Any, Dict, List, Optional
 
+from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
@@ -49,11 +50,11 @@ class HATextAICoordinator(DataUpdateCoordinator):
         model: str,
         update_interval: int,
         instance_name: str,
+        config_entry: ConfigEntry,
         max_tokens: int = DEFAULT_MAX_TOKENS,
         temperature: float = DEFAULT_TEMPERATURE,
         max_history_size: int = DEFAULT_MAX_HISTORY,
         context_messages: int = DEFAULT_CONTEXT_MESSAGES,
-        is_anthropic: bool = False,
         api_timeout: int = DEFAULT_API_TIMEOUT,
     ) -> None:
         """Initialize coordinator."""
@@ -87,7 +88,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self.is_anthropic = is_anthropic
         self.api_timeout = api_timeout
 
         # Concurrency control
@@ -115,6 +115,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
             _LOGGER,
             name=instance_name,
             update_interval=timedelta(seconds=update_interval),
+            config_entry=config_entry,
         )
 
         self.available = True
@@ -213,23 +214,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
         structured_output: bool = False,
         json_schema: Optional[str] = None,
     ) -> dict:
-        """Process a question with optional parameters."""
-        return await self.async_process_question(
-            question, model, temperature, max_tokens, system_prompt,
-            context_messages, structured_output, json_schema,
-        )
-
-    async def async_process_question(
-        self,
-        question: str,
-        model: Optional[str] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        system_prompt: Optional[str] = None,
-        context_messages: Optional[int] = None,
-        structured_output: bool = False,
-        json_schema: Optional[str] = None,
-    ) -> dict:
         """Process question with context management."""
         if self.client is None:
             raise HomeAssistantError("AI client not initialized")
@@ -295,17 +279,20 @@ class HATextAICoordinator(DataUpdateCoordinator):
         structured_output: bool = False,
         json_schema: Optional[str] = None,
     ) -> dict:
-        """Send request to AI provider and return structured response."""
+        """Send request to AI provider and return structured response.
+
+        Note: timeout is handled by APIClient via aiohttp ClientTimeout.
+        No additional asyncio.timeout wrapper to avoid dual timeout stacking.
+        """
         try:
-            async with asyncio.timeout(self.api_timeout):
-                response = await self.client.create(
-                    model=model,
-                    messages=messages,
-                    temperature=temperature,
-                    max_tokens=max_tokens,
-                    structured_output=structured_output,
-                    json_schema=json_schema,
-                )
+            response = await self.client.create(
+                model=model,
+                messages=messages,
+                temperature=temperature,
+                max_tokens=max_tokens,
+                structured_output=structured_output,
+                json_schema=json_schema,
+            )
 
             # Reset error state on success
             self._is_rate_limited = False
@@ -339,8 +326,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 "success": True,
             }
 
-        except asyncio.TimeoutError:
-            raise HomeAssistantError("Request timed out")
         except Exception as err:
             _LOGGER.error("Error in API call: %s", err)
             raise

@@ -6,6 +6,8 @@ API Client for HA Text AI.
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai
 """
+from __future__ import annotations
+
 import logging
 import asyncio
 from typing import Any, Dict, List, Optional
@@ -182,6 +184,30 @@ class APIClient:
             _LOGGER.error("API request failed: %s", str(e))
             raise HomeAssistantError(f"API request failed: {str(e)}")
 
+    @staticmethod
+    def _apply_structured_output(
+        payload: Dict[str, Any],
+        structured_output: bool,
+        json_schema: Optional[str],
+    ) -> None:
+        """Apply OpenAI-compatible structured output to payload in-place."""
+        if not (structured_output and json_schema):
+            return
+        import json
+        try:
+            schema = json.loads(json_schema)
+            payload["response_format"] = {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "structured_response",
+                    "strict": True,
+                    "schema": schema,
+                },
+            }
+        except json.JSONDecodeError as e:
+            _LOGGER.warning("Invalid JSON schema: %s. Falling back to json_object.", e)
+            payload["response_format"] = {"type": "json_object"}
+
     async def _create_deepseek_completion(
         self,
         model: str,
@@ -198,26 +224,9 @@ class APIClient:
             "messages": messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
-            "stream": False
+            "stream": False,
         }
-
-        # Add structured output format if enabled (DeepSeek is OpenAI-compatible)
-        if structured_output and json_schema:
-            try:
-                import json
-                schema = json.loads(json_schema)
-                payload["response_format"] = {
-                    "type": "json_schema",
-                    "json_schema": {
-                        "name": "structured_response",
-                        "strict": True,
-                        "schema": schema
-                    }
-                }
-                _LOGGER.debug("DeepSeek structured output enabled with schema")
-            except json.JSONDecodeError as e:
-                _LOGGER.warning("Invalid JSON schema provided: %s. Falling back to json_object mode.", e)
-                payload["response_format"] = {"type": "json_object"}
+        self._apply_structured_output(payload, structured_output, json_schema)
 
         data = await self._make_request(url, payload)
         return {
@@ -250,24 +259,7 @@ class APIClient:
             "temperature": temperature,
             "max_tokens": max_tokens,
         }
-
-        # Add structured output format if enabled
-        if structured_output and json_schema:
-            try:
-                import json
-                schema = json.loads(json_schema)
-                payload["response_format"] = {
-                    "type": "json_schema",
-                    "json_schema": {
-                        "name": "structured_response",
-                        "strict": True,
-                        "schema": schema
-                    }
-                }
-                _LOGGER.debug("OpenAI structured output enabled with schema")
-            except json.JSONDecodeError as e:
-                _LOGGER.warning("Invalid JSON schema provided: %s. Falling back to json_object mode.", e)
-                payload["response_format"] = {"type": "json_object"}
+        self._apply_structured_output(payload, structured_output, json_schema)
 
         data = await self._make_request(url, payload)
         return {
@@ -469,7 +461,10 @@ class APIClient:
                     )
                     return chat.send_message(last_user_msg)
 
-            response = await asyncio.to_thread(generate_content)
+            # Gemini uses sync SDK via to_thread, so needs its own timeout
+            # (aiohttp ClientTimeout doesn't apply here)
+            async with asyncio.timeout(self.api_timeout):
+                response = await asyncio.to_thread(generate_content)
 
             # Extract response text
             def extract_response():

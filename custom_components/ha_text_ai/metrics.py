@@ -123,10 +123,13 @@ class MetricsManager:
         await self._save_metrics()
 
         error_msg = str(error)
-        # Strip URLs, API keys, and query parameters from error messages
+        # Strip URLs, API keys, tokens, and query parameters from error messages
         error_msg = re.sub(r'https?://\S+', '[URL]', error_msg)
         error_msg = re.sub(r'[?&]key=[^\s&]+', '?key=***', error_msg)
         error_msg = re.sub(r'AIza[A-Za-z0-9_-]+', '***', error_msg)
+        error_msg = re.sub(r'Bearer\s+\S+', 'Bearer ***', error_msg)
+        error_msg = re.sub(r'sk-[A-Za-z0-9_-]{20,}', '***', error_msg)
+        error_msg = re.sub(r'x-api-key:\s*\S+', 'x-api-key: ***', error_msg, flags=re.IGNORECASE)
         if len(error_msg) > 256:
             error_msg = error_msg[:256] + "..."
 

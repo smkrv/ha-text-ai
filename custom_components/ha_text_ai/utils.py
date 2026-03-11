@@ -6,6 +6,8 @@ Utility functions for HA Text AI integration.
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai
 """
+from __future__ import annotations
+
 import ipaddress
 import socket
 from typing import Any

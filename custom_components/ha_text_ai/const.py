@@ -6,6 +6,8 @@ Constants for the HA text AI integration.
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai
 """
+from __future__ import annotations
+
 from typing import Final
 from homeassistant.const import Platform
 
@@ -44,12 +46,11 @@ CONF_REQUEST_INTERVAL: Final = "request_interval"
 CONF_API_TIMEOUT: Final = "api_timeout"
 CONF_INSTANCE: Final = "instance"
 CONF_MAX_HISTORY_SIZE: Final = "max_history_size"  # Correct constant name
-CONF_IS_ANTHROPIC: Final = "is_anthropic"
 CONF_CONTEXT_MESSAGES: Final = "context_messages"
 CONF_STRUCTURED_OUTPUT: Final = "structured_output"
 CONF_JSON_SCHEMA: Final = "json_schema"
 
-ABSOLUTE_MAX_HISTORY_SIZE = 500
+ABSOLUTE_MAX_HISTORY_SIZE: Final = 200  # Hard cap; UI allows max MAX_HISTORY_SIZE (100)
 MAX_ATTRIBUTE_SIZE = 4 * 1024
 MAX_HISTORY_FILE_SIZE = 1 * 1024 * 1024
 # Default values
@@ -60,7 +61,6 @@ DEFAULT_GEMINI_MODEL: Final = "gemini-2.0-flash"
 DEFAULT_TEMPERATURE: Final = 0.1
 DEFAULT_MAX_TOKENS: Final = 1000
 DEFAULT_REQUEST_INTERVAL: Final = 1.0
-DEFAULT_TIMEOUT: Final = 30
 DEFAULT_API_TIMEOUT: Final = 30
 DEFAULT_MAX_HISTORY: Final = 50
 DEFAULT_NAME: Final = "HA Text AI"
@@ -85,7 +85,6 @@ MIN_API_TIMEOUT: Final = 5
 MAX_API_TIMEOUT: Final = 600
 
 # API constants
-API_TIMEOUT: Final = 30  # Legacy constant, use CONF_API_TIMEOUT from config
 API_RETRY_COUNT: Final = 3
 
 # Service names

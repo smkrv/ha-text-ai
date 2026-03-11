@@ -42,6 +42,7 @@
       "name_exists": "An instance with this name already exists",
       "invalid_name": "Invalid instance name",
       "invalid_auth": "Authentication failed - check your API key",
+      "api_key_required": "API key is required when changing provider or endpoint",
       "invalid_api_key": "Invalid API key - please verify your credentials",
       "cannot_connect": "Failed to connect to API service",
       "invalid_model": "Selected model is not available",
@@ -55,7 +56,6 @@
       "invalid_instance": "Invalid instance specified",
       "unknown": "Unexpected error occurred",
       "empty": "Name cannot be empty",
-      "invalid_characters": "Name can only contain letters, numbers, spaces, underscores and hyphens",
       "name_too_long": "Name must be 50 characters or less"
     },
     "abort": {
@@ -208,8 +208,7 @@
           "rate_limited": "Rate Limited",
           "maintenance": "Maintenance",
           "initializing": "Initializing",
-          "retrying": "Retrying",
-          "queued": "Queued"
+          "retrying": "Retrying"
         },
         "state_attributes": {
           "question": {
@@ -301,6 +300,24 @@
           },
           "min_latency": {
             "name": "Minimum Latency"
+          },
+          "last_model": {
+            "name": "Last Used Model"
+          },
+          "last_timestamp": {
+            "name": "Last Response Time"
+          },
+          "instance_name": {
+            "name": "Instance Name"
+          },
+          "normalized_name": {
+            "name": "Normalized Name"
+          },
+          "last_error": {
+            "name": "Last Error"
+          },
+          "conversation_history": {
+            "name": "Conversation History"
           }
         }
       }

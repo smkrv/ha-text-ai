@@ -6,6 +6,8 @@ Sensor platform for HA Text AI.
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai
 """
+from __future__ import annotations
+
 import logging
 import math
 from typing import Any, Dict
@@ -42,7 +44,6 @@ from .const import (
     ATTR_API_PROVIDER,
     ATTR_MODEL,
     ATTR_SYSTEM_PROMPT,
-    ATTR_API_STATUS,
     ATTR_RESPONSE,
     ATTR_QUESTION,
     ATTR_CONVERSATION_HISTORY,
@@ -126,9 +127,10 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._conversation_history = []
         self._system_prompt = None
 
-        self._attr_name = f"HA Text AI {self._instance_name}"
+        self._attr_has_entity_name = True
+        self._attr_name = self._instance_name
         self.entity_id = f"sensor.ha_text_ai_{self._normalized_name}"
-        self._attr_unique_id = f"{config_entry.entry_id}"
+        self._attr_unique_id = config_entry.entry_id
 
         _LOGGER.debug("Created sensor with entity_id: %s", self.entity_id)
         _LOGGER.debug("Sensor name: %s", self._attr_name)
@@ -238,7 +240,6 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             attributes = {
                 ATTR_MODEL: self._config_entry.data.get(CONF_MODEL, "Unknown"),
                 ATTR_API_PROVIDER: self._config_entry.data.get(CONF_API_PROVIDER, "Unknown"),
-                ATTR_API_STATUS: self._current_state,
                 ATTR_TOTAL_ERRORS: metrics.get("total_errors", 0),
                 "instance_name": self._instance_name,
                 "normalized_name": self._normalized_name,

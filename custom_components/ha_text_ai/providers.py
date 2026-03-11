@@ -9,6 +9,8 @@ across __init__.py, config_flow.py, and api_client.py.
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai
 """
+from __future__ import annotations
+
 from typing import Any
 
 from .const import (

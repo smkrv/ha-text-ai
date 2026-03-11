@@ -6,6 +6,8 @@ Config flow for HA text AI integration.
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai
 """
+from __future__ import annotations
+
 import logging
 from typing import Any, Dict, Optional
 
@@ -61,6 +63,36 @@ from .providers import get_default_endpoint, get_default_model, build_auth_heade
 _LOGGER = logging.getLogger(__name__)
 
 
+def _build_parameter_schema(data: Dict[str, Any]) -> dict:
+    """Build shared parameter schema fields used by both ConfigFlow and OptionsFlow."""
+    return {
+        vol.Optional(
+            CONF_TEMPERATURE,
+            default=data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
+        ): vol.All(vol.Coerce(float), vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)),
+        vol.Optional(
+            CONF_MAX_TOKENS,
+            default=data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
+        ): vol.All(vol.Coerce(int), vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)),
+        vol.Optional(
+            CONF_REQUEST_INTERVAL,
+            default=data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL),
+        ): vol.All(vol.Coerce(float), vol.Range(min=MIN_REQUEST_INTERVAL)),
+        vol.Optional(
+            CONF_API_TIMEOUT,
+            default=data.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT),
+        ): vol.All(vol.Coerce(int), vol.Range(min=MIN_API_TIMEOUT, max=MAX_API_TIMEOUT)),
+        vol.Optional(
+            CONF_CONTEXT_MESSAGES,
+            default=data.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES),
+        ): vol.All(vol.Coerce(int), vol.Range(min=MIN_CONTEXT_MESSAGES, max=MAX_CONTEXT_MESSAGES)),
+        vol.Optional(
+            CONF_MAX_HISTORY_SIZE,
+            default=data.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY),
+        ): vol.All(vol.Coerce(int), vol.Range(min=MIN_HISTORY_SIZE, max=MAX_HISTORY_SIZE)),
+    }
+
+
 class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for HA text AI."""
 
@@ -95,42 +127,14 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     ) -> vol.Schema:
         """Build provider configuration schema with optional defaults from data."""
         defaults = data or {}
-        return vol.Schema({
+        schema_dict = {
             vol.Required(CONF_NAME, default=defaults.get(CONF_NAME, DEFAULT_INSTANCE_NAME)): str,
             vol.Required(CONF_API_KEY): str,
             vol.Required(CONF_MODEL, default=defaults.get(CONF_MODEL, get_default_model(self._provider))): str,
             vol.Required(CONF_API_ENDPOINT, default=defaults.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
-            vol.Optional(CONF_TEMPERATURE, default=defaults.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)): vol.All(
-                vol.Coerce(float),
-                vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
-            ),
-            vol.Optional(CONF_MAX_TOKENS, default=defaults.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)): vol.All(
-                vol.Coerce(int),
-                vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
-            ),
-            vol.Optional(CONF_REQUEST_INTERVAL, default=defaults.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)): vol.All(
-                vol.Coerce(float),
-                vol.Range(min=MIN_REQUEST_INTERVAL)
-            ),
-            vol.Optional(CONF_API_TIMEOUT, default=defaults.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT)): vol.All(
-                vol.Coerce(int),
-                vol.Range(min=MIN_API_TIMEOUT, max=MAX_API_TIMEOUT)
-            ),
-            vol.Optional(
-                CONF_CONTEXT_MESSAGES,
-                default=defaults.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
-            ): vol.All(
-                vol.Coerce(int),
-                vol.Range(min=MIN_CONTEXT_MESSAGES, max=MAX_CONTEXT_MESSAGES)
-            ),
-            vol.Optional(
-                CONF_MAX_HISTORY_SIZE,
-                default=defaults.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY)
-            ): vol.All(
-                vol.Coerce(int),
-                vol.Range(min=MIN_HISTORY_SIZE, max=MAX_HISTORY_SIZE)
-            ),
-        })
+        }
+        schema_dict.update(_build_parameter_schema(defaults))
+        return vol.Schema(schema_dict)
 
     async def async_step_provider(self, user_input: Optional[Dict[str, Any]] = None) -> ConfigFlowResult:
         """Handle provider configuration step."""
@@ -190,34 +194,24 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return await self._create_entry(input_copy)
 
     def _validate_and_normalize_name(self, name: str) -> str:
-        """
-        Validate and normalize name with detailed error handling.
+        """Validate and normalize name.
+
+        Truncates before uniqueness check to prevent collisions.
 
         Raises:
-            ValueError: If name is invalid
-
-        Returns:
-            Normalized name
+            ValueError: If name is invalid or already exists.
         """
-        if not name:
+        if not name or not name.strip():
             raise ValueError("empty")
 
-        name = name.strip()
-        normalized = ''.join(
-            c if c.isalnum() or c in ' _' else '_'  # Only allow underscores
-            for c in name
-        )
+        normalized = normalize_name(name.strip())[:50]
 
-        normalized = normalized.replace(' ', '_').lower()
+        if not normalized:
+            raise ValueError("empty")
 
         for entry in self._async_current_entries():
             if entry.data.get(CONF_NAME, "") == normalized:
                 raise ValueError("name_exists")
-
-        normalized = normalized[:50]
-
-        if not normalized:
-            raise ValueError("empty")
 
         return normalized
 
@@ -264,21 +258,21 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return False
 
     async def _create_entry(self, user_input: Dict[str, Any]) -> ConfigFlowResult:
-        """Create the config entry with comprehensive data preservation."""
+        """Create the config entry with unique_id deduplication."""
         instance_name = user_input[CONF_NAME]
         normalized_name = normalize_name(instance_name)
 
-        unique_id = f"{DOMAIN}_{normalized_name}_{self._provider}".lower()
+        unique_id = f"{DOMAIN}_{normalized_name}_{self._provider}"
+        await self.async_set_unique_id(unique_id)
+        self._abort_if_unique_id_configured()
 
         default_model = get_default_model(self._provider)
 
         entry_data = {
             CONF_API_PROVIDER: self._provider,
             CONF_NAME: instance_name,
-            "normalized_name": normalized_name,
             CONF_API_KEY: user_input.get(CONF_API_KEY),
             CONF_API_ENDPOINT: user_input.get(CONF_API_ENDPOINT),
-            "unique_id": unique_id,
             CONF_MODEL: user_input.get(CONF_MODEL, default_model),
             CONF_TEMPERATURE: user_input.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE),
             CONF_MAX_TOKENS: user_input.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS),
@@ -398,7 +392,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             stored_endpoint = current_data.get(CONF_API_ENDPOINT, "")
             endpoint_changed = endpoint != stored_endpoint
             if not api_key and (provider_changed or endpoint_changed):
-                self._errors["base"] = "invalid_auth"
+                self._errors["base"] = "api_key_required"
                 return self.async_show_form(
                     step_id="settings",
                     data_schema=self._get_settings_schema(
@@ -464,59 +458,19 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         default_endpoint: str,
         default_model: str,
     ) -> vol.Schema:
-        """Build settings schema."""
+        """Build settings schema using shared parameter definitions."""
         data = user_input or current_data
 
-        return vol.Schema({
+        schema_dict = {
             vol.Optional(CONF_API_KEY, default=""): str,
             vol.Required(
                 CONF_API_ENDPOINT,
-                default=data.get(CONF_API_ENDPOINT, default_endpoint)
+                default=data.get(CONF_API_ENDPOINT, default_endpoint),
             ): str,
             vol.Required(
                 CONF_MODEL,
-                default=data.get(CONF_MODEL, default_model)
+                default=data.get(CONF_MODEL, default_model),
             ): str,
-            vol.Optional(
-                CONF_TEMPERATURE,
-                default=data.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
-            ): vol.All(
-                vol.Coerce(float),
-                vol.Range(min=MIN_TEMPERATURE, max=MAX_TEMPERATURE)
-            ),
-            vol.Optional(
-                CONF_MAX_TOKENS,
-                default=data.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)
-            ): vol.All(
-                vol.Coerce(int),
-                vol.Range(min=MIN_MAX_TOKENS, max=MAX_MAX_TOKENS)
-            ),
-            vol.Optional(
-                CONF_REQUEST_INTERVAL,
-                default=data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL)
-            ): vol.All(
-                vol.Coerce(float),
-                vol.Range(min=MIN_REQUEST_INTERVAL)
-            ),
-            vol.Optional(
-                CONF_API_TIMEOUT,
-                default=data.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT)
-            ): vol.All(
-                vol.Coerce(int),
-                vol.Range(min=MIN_API_TIMEOUT, max=MAX_API_TIMEOUT)
-            ),
-            vol.Optional(
-                CONF_CONTEXT_MESSAGES,
-                default=data.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
-            ): vol.All(
-                vol.Coerce(int),
-                vol.Range(min=MIN_CONTEXT_MESSAGES, max=MAX_CONTEXT_MESSAGES)
-            ),
-            vol.Optional(
-                CONF_MAX_HISTORY_SIZE,
-                default=data.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY)
-            ): vol.All(
-                vol.Coerce(int),
-                vol.Range(min=MIN_HISTORY_SIZE, max=MAX_HISTORY_SIZE)
-            ),
-        })
+        }
+        schema_dict.update(_build_parameter_schema(data))
+        return vol.Schema(schema_dict)

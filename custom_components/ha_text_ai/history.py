@@ -28,6 +28,10 @@ from .const import (
     TRUNCATION_INDICATOR,
 )
 
+# Per-entry storage cap (32KB per field) to prevent disk exhaustion
+MAX_STORED_FIELD_SIZE = 32 * 1024
+MAX_ARCHIVE_FILES = 3
+
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -107,7 +111,6 @@ class HistoryManager:
     async def _check_history_directory(self) -> None:
         """Check history directory permissions and writability."""
         try:
-            await self._create_history_dir()
             test_file_path = os.path.join(self._history_dir, ".write_test")
             await self.hass.async_add_executor_job(
                 self._sync_test_directory_write, test_file_path
@@ -129,8 +132,6 @@ class HistoryManager:
     async def _initialize_history_file(self) -> None:
         """Initialize history file and load existing history."""
         try:
-            await self._create_history_dir()
-
             if await self._file_exists(self._history_file):
                 async with AsyncFileHandler(self._history_file, "r") as f:
                     content = await f.read()
@@ -155,71 +156,43 @@ class HistoryManager:
             _LOGGER.debug(traceback.format_exc())
 
     async def update_history(self, question: str, response: dict) -> None:
-        """Update conversation history with size validation."""
+        """Update conversation history.
+
+        In-memory history stores full text for context retrieval.
+        On-disk storage caps per-field size to prevent disk exhaustion.
+        Display truncation is handled by get_limited_history().
+        """
         try:
+            content = response.get("content", "")
             history_entry = {
                 "timestamp": dt_util.utcnow().isoformat(),
-                "question": self._truncate_text(question, MAX_ATTRIBUTE_SIZE),
-                "response": self._truncate_text(
-                    response.get("content", ""), MAX_ATTRIBUTE_SIZE
-                ),
+                "question": question[:MAX_STORED_FIELD_SIZE],
+                "response": content[:MAX_STORED_FIELD_SIZE],
             }
-
-            entry_size = len(json.dumps(history_entry).encode("utf-8"))
-            current_size = await self._check_file_size(self._history_file)
-
-            if current_size + entry_size > MAX_HISTORY_FILE_SIZE:
-                _LOGGER.warning(
-                    "History size limit approaching. Current: %d, Entry: %d, Max: %d",
-                    current_size, entry_size, MAX_HISTORY_FILE_SIZE,
-                )
-                await self._rotate_history()
 
             self._conversation_history.append(history_entry)
 
             while len(self._conversation_history) > self.max_history_size:
                 self._conversation_history.pop(0)
 
-            await self._write_history_entry(history_entry)
+            await self._save_history_to_file()
         except Exception as e:
             _LOGGER.error("Error updating history: %s", e)
             _LOGGER.debug(traceback.format_exc())
 
-    async def _write_history_entry(self, entry: dict) -> None:
-        """Write history entry with file size checks."""
+    async def _save_history_to_file(self) -> None:
+        """Serialize in-memory history to file with rotation if needed."""
         try:
-            if not await self._file_exists(self._history_dir):
-                await self._create_history_dir()
+            data = json.dumps(self._conversation_history, indent=2)
+            data_size = len(data.encode("utf-8"))
 
-            current_size = 0
-            if await self._file_exists(self._history_file):
-                current_size = await self.hass.async_add_executor_job(
-                    os.path.getsize, self._history_file
-                )
-
-            entry_size = len(json.dumps(entry).encode("utf-8"))
-            if current_size + entry_size > MAX_HISTORY_FILE_SIZE:
-                _LOGGER.warning(
-                    "History file size limit reached. Current: %d, Entry: %d, Max: %d",
-                    current_size, entry_size, MAX_HISTORY_FILE_SIZE,
-                )
+            if data_size > MAX_HISTORY_FILE_SIZE:
                 await self._rotate_history()
 
-            history = []
-            if await self._file_exists(self._history_file):
-                async with AsyncFileHandler(self._history_file, "r") as f:
-                    content = await f.read()
-                    if content:
-                        history = json.loads(content)
-
-            history.append(entry)
-            if len(history) > self.max_history_size:
-                history = history[-self.max_history_size :]
-
             async with AsyncFileHandler(self._history_file, "w") as f:
-                await f.write(json.dumps(history, indent=2))
+                await f.write(data)
         except Exception as e:
-            _LOGGER.error("Error writing history entry: %s", e)
+            _LOGGER.error("Error writing history file: %s", e)
             _LOGGER.debug(traceback.format_exc())
 
     async def _check_history_size(self) -> None:
@@ -283,9 +256,33 @@ class HistoryManager:
                         )
 
                     _LOGGER.info("History file rotated to: %s", archive_file)
+
+                    # Clean up old archive files, keep only MAX_ARCHIVE_FILES
+                    await self._cleanup_archives()
         except Exception as e:
             _LOGGER.error("History rotation failed: %s", e)
             _LOGGER.debug(traceback.format_exc())
+
+    async def _cleanup_archives(self) -> None:
+        """Remove old archive files beyond MAX_ARCHIVE_FILES."""
+        try:
+            prefix = f"{self.normalized_name}_history_"
+
+            def find_archives():
+                archives = []
+                for f in os.listdir(self._history_dir):
+                    if f.startswith(prefix) and f.endswith(".json") and f != os.path.basename(self._history_file):
+                        archives.append(os.path.join(self._history_dir, f))
+                archives.sort()
+                return archives
+
+            archives = await self.hass.async_add_executor_job(find_archives)
+            if len(archives) > MAX_ARCHIVE_FILES:
+                for old_file in archives[:-MAX_ARCHIVE_FILES]:
+                    await self.hass.async_add_executor_job(os.remove, old_file)
+                    _LOGGER.debug("Removed old archive: %s", old_file)
+        except Exception as e:
+            _LOGGER.warning("Archive cleanup error: %s", e)
 
     async def _migrate_history_from_txt_to_json(self) -> None:
         """Migrate old .txt history to .json format."""
@@ -424,27 +421,27 @@ class HistoryManager:
             _LOGGER.error("Error getting history: %s", e)
             return []
 
-    def get_limited_history(self) -> Dict[str, Any]:
-        """Get limited conversation history showing only last Q&A."""
-        limited_history = []
+    def get_limited_history(self, max_display: int = 5) -> Dict[str, Any]:
+        """Get limited conversation history for sensor attributes.
 
-        if self._conversation_history:
-            last_entry = self._conversation_history[-1]
-            limited_entry = {
-                "timestamp": last_entry["timestamp"],
-                "question": self._truncate_text(last_entry["question"], 4096),
-                "response": self._truncate_text(last_entry["response"], 4096),
+        Returns last `max_display` entries with truncated text for HA state.
+        """
+        recent = self._conversation_history[-max_display:]
+        limited_history = [
+            {
+                "timestamp": entry["timestamp"],
+                "question": self._truncate_text(entry["question"], 4096),
+                "response": self._truncate_text(entry["response"], 4096),
             }
-            limited_history.append(limited_entry)
-
-        history_info = {
-            "total_entries": len(self._conversation_history),
-            "displayed_entries": len(limited_history),
-        }
+            for entry in recent
+        ]
 
         return {
             "entries": limited_history,
-            "info": history_info,
+            "info": {
+                "total_entries": len(self._conversation_history),
+                "displayed_entries": len(limited_history),
+            },
         }
 
     @staticmethod
