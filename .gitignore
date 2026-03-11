@@ -25,3 +25,7 @@ Thumbs.db
 
 # Home Assistant
 .storage/
+
+# Claude Code working files
+docs/specs/
+docs/superpowers/
