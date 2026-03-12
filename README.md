@@ -12,7 +12,7 @@
 </div>
 
 <p align="center">
-Transform your smart home experience with powerful AI assistance powered by multiple AI providers including OpenAI GPT, DeepSeek and Anthropic Claude models. Get intelligent responses, automate complex scenarios, and enhance your home automation with advanced natural language processing.
+Transform your smart home experience with powerful AI assistance powered by multiple AI providers including OpenAI GPT, Anthropic Claude, DeepSeek and Google Gemini models. Get intelligent responses, automate complex scenarios, and enhance your home automation with advanced natural language processing.
 
 </p>
 
@@ -28,7 +28,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 
 ## 🌟 Features
 
-- 🧠 **Multi-Provider AI Integration**: Support for OpenAI GPT, DeepSeek and Anthropic Claude models
+- 🧠 **Multi-Provider AI Integration**: Support for OpenAI GPT, Anthropic Claude, DeepSeek and Google Gemini models
 - 💬 **Advanced Language Processing**: Context-aware, multi-turn conversations
 - 📝 **Enhanced Memory Management**: Secure file-based history storage
 - ⚡ **Performance Optimization**: Efficient token usage and smart rate limiting
@@ -44,6 +44,7 @@ Transform your smart home experience with powerful AI assistance powered by mult
 - Support for OpenAI GPT models
 - Anthropic Claude integration
 - DeepSeek integration
+- Google Gemini integration
 - Custom API endpoints
 - Flexible model selection
 
@@ -135,18 +136,18 @@ Transform your smart home experience with powerful AI assistance powered by mult
 - **GPT-5** - The latest flagship model, best for complex reasoning
 - **GPT-5 mini** - A cost-effective and fast model, suitable for most tasks
 
-#### Anthropic Claude Models  
-- **Claude Opus 4.1** - The most capable model for handling complex tasks
-- **Claude Sonnet 4** - Offers a balance between performance and cost
-- **Claude Haiku 4** - The fastest and most economical option in the series
+#### Anthropic Claude Models
+- **Claude Opus 4.6** - The most capable model for handling complex tasks
+- **Claude Sonnet 4.6** - Offers a balance between performance and cost
+- **Claude Haiku 4.5** - The fastest and most economical option in the series
 
 #### DeepSeek Models
-- **DeepSeek-V3.1** - A general-purpose model for a wide range of tasks
+- **DeepSeek-V3** - A general-purpose model for a wide range of tasks
 - **DeepSeek-R1** - A specialized model focused on reasoning and coding
 
 #### Google Gemini Models
-- **Gemini 2.5 Pro & 2.5 Flash** - The newest and most advanced models available
-- **Gemini 2.0 Pro & 2.0 Flash** - Previous generation models that are still powerful and efficient
+- **Gemini 3.1 Pro** - The newest and most advanced model available
+- **Gemini 3.1 Flash Lite** - Fastest and most cost-efficient model for high-volume workloads
 
 <details>
 <summary>🌐 Potentially Compatible Providers</summary>
@@ -201,7 +202,7 @@ If the integration is not found in the default repository:
 1. Download the latest release
 2. Extract and copy `custom_components/ha_text_ai` to your `custom_components` directory
 3. Restart Home Assistant
-4. Add configuration via UI or YAML
+4. Add configuration via UI (Settings → Devices & Services → Add Integration)
 
 ## ⚙️ Configuration
 
@@ -211,66 +212,7 @@ If the integration is not found in the default repository:
 3. Search for "HA Text AI"
 4. Follow the configuration steps
 
-<details>
-<summary>📦 Via YAML (Advanced)</summary>
-
-### Platform Configuration (Global Settings)
-
-```yaml
-ha_text_ai:
-  api_provider: openai  # Required
-  api_key: !secret ai_api_key  # Required
-  model: gpt-4o  # Strongly recommended
-  temperature: 0.7  # Optional
-  max_tokens: 1000  # Optional
-  request_interval: 1.0  # Optional
-  api_endpoint: https://api.openai.com/v1  # Required
-  system_prompt: |  # Optional
-    You are a home automation expert assistant.
-    Focus on practical and efficient solutions.
-```
-
-### Sensor Configuration
-
-```yaml
-sensor:
-  - platform: ha_text_ai
-    name: "My AI Assistant"  # Required, unique identifier
-    api_provider: openai  # Optional (inherits from platform)
-    model: "gpt-4o"  # Optional
-    temperature: 0.7  # Optional
-    max_tokens: 1000  # Optional
-```
-
-### 📋 Configuration Parameters
-
-#### Platform Configuration
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `api_provider` | String | ✅ | - | AI service provider (openai, anthropic, deepseek, gemini) |
-| `api_key` | String | ✅ | - | Authentication key for AI service |
-| `model` | String | ⚠️ | gpt-4o-mini | Strongly recommended: Specific AI model to use. Default varies by provider |
-| `temperature` | Float | ❌ | 0.1 | Response creativity level (0.0-2.0) |
-| `max_tokens` | Integer | ❌ | 1000 | Maximum response length |
-| `request_interval` | Float | ❌ | 1.0 | Delay between API requests |
-| `api_endpoint` | URL | ⚠️ | Provider default | Custom API endpoint |
-| `system_prompt` | String | ❌ | - | Default context for AI interactions |
-| `max_history_size` | Integer | ❌ | 50 | Maximum number of conversation entries to store |
-| `context_messages` | Integer | ❌ | 5 | Number of previous messages to include in context (1-20) |
-
-#### Sensor Configuration
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `platform` | String | ✅ | - | Must be `ha_text_ai` |
-| `name` | String | ✅ | - | Unique sensor identifier |
-| `api_provider` | String | ❌ | Platform setting | Override global provider |
-| `model` | String | ⚠️ | Provider default | Recommended: Override global model (gpt-4o-mini, deepseek-chat, gemini-2.0-flash) |
-| `temperature` | Float | ❌ | 0.1 | Override global temperature |
-| `max_tokens` | Integer | ❌ | 1000 | Override global max tokens |
-
-</details>
+> **Note:** This integration is configured exclusively through the UI (config entries). YAML configuration is not supported.
 
 ## 🛠️ Available Services
 
@@ -289,7 +231,7 @@ sensor:
 service: ha_text_ai.ask_question
 data:
   question: "What's the optimal temperature for sleeping?"
-  model: "claude-3.5-sonnet"  # optional
+  model: "claude-sonnet-4-6-20260217"  # optional
   temperature: 0.5  # optional
   max_tokens: 500  # optional
   context_messages: 10  #optional, number of previous messages to include in context, default: 5
@@ -305,7 +247,7 @@ response_text: "The optimal sleeping temperature is 65-68°F (18-20°C)..."
 tokens_used: 150
 prompt_tokens: 50
 completion_tokens: 100
-model_used: "claude-3.5-sonnet"
+model_used: "claude-sonnet-4-6-20260217"
 instance: "sensor.ha_text_ai_gpt"
 question: "What's the optimal temperature for sleeping?"
 timestamp: "2025-02-09T16:57:00.000Z"
@@ -563,10 +505,7 @@ automation:
 
 #### System Status
 ```yaml
-# Current operational readiness of the AI service API  
-{{ state_attr('sensor.ha_text_ai_gpt', 'Api status') }}      # ready  
-
-# Indicates if a request is currently being processed  
+# Indicates if a request is currently being processed
 {{ state_attr('sensor.ha_text_ai_gpt', 'Is processing') }}   # false  
 
 # Shows if the API has hit its request rate limit  
@@ -608,7 +547,7 @@ automation:
 # Number of entries in current history file
 {{ state_attr('sensor.ha_text_ai_gpt', 'History size') }}          # 0  
 
-# Last few conversation entries (limited to 1 for performance)
+# Last few conversation entries (last 5 for performance)
 {{ state_attr('sensor.ha_text_ai_gpt', 'conversation_history') }}  # [...]
 ```
 
@@ -656,7 +595,7 @@ Conversation history stored in `.storage/ha_text_ai_history/` directory:
 A: OpenAI (GPT models), Anthropic (Claude models), DeepSeek, Google Gemini, and OpenRouter are officially supported, with many other OpenAI-compatible providers working as well.
 
 **Q: How can I reduce API costs?**
-A: Use gpt-4o-mini or claude-3.5-haiku for most queries, implement caching, and optimize token usage.
+A: Use gpt-5-mini or claude-haiku-4-5 for most queries, implement caching, and optimize token usage.
 
 **Q: Are there limitations on the number of requests?**
 A: Depends on your API provider's plan. We recommend monitoring usage and implementing request throttling via `request_interval` configuration.
@@ -668,7 +607,7 @@ A: Yes, you can configure custom endpoints and use any compatible model by speci
 A: Simply change the model parameter in your configuration or service calls to use the desired provider's model.
 
 **Q: What are the token limits for different models?**
-A: Token limits vary by provider and model. OpenAI's gpt-4o supports up to 128K tokens, Claude 3.5 Sonnet supports up to 200K tokens, while smaller models typically have 8K-32K limits. Check your provider's documentation for specific limits.
+A: Token limits vary by provider and model. OpenAI's GPT-5 supports up to 1M context tokens, Claude Opus 4.6 supports up to 1M tokens, Gemini 3.1 Pro supports up to 1M tokens, while smaller models typically have 128K-200K limits. Check your provider's documentation for specific limits.
 
 **Q: How do I monitor token usage?**
 A: Use the sensor attributes like `Total tokens`, `Prompt tokens`, and `Completion tokens` to track usage. You can also create automations to alert you when usage exceeds certain thresholds.
@@ -686,7 +625,7 @@ A: History is stored in files under the `.storage/ha_text_ai_history/` directory
 A: Yes, archived history files are stored with timestamps and can be accessed manually if needed.
 
 **Q: How much history is kept?**  
-A: By default, up to 100 conversations are stored, but this can be configured. Files are automatically rotated when they reach 1MB.
+A: By default, up to 50 conversations are stored (max 200), configurable via UI. Files are automatically rotated when they reach 1MB.
 
 ## 🤝 Contributing
 
