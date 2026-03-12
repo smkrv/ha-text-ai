@@ -46,7 +46,6 @@ from .const import (
     ATTR_SYSTEM_PROMPT,
     ATTR_RESPONSE,
     ATTR_QUESTION,
-    ATTR_CONVERSATION_HISTORY,
     METRIC_TOTAL_TOKENS,
     METRIC_PROMPT_TOKENS,
     METRIC_COMPLETION_TOKENS,
@@ -67,7 +66,6 @@ from .const import (
     ENTITY_ICON_PROCESSING,
     DEFAULT_NAME_PREFIX,
     CONF_MAX_HISTORY_SIZE,
-    MAX_ATTRIBUTE_SIZE,
     VERSION,
 )
 
@@ -75,6 +73,11 @@ from .coordinator import HATextAICoordinator
 from .utils import safe_log_data
 
 _LOGGER = logging.getLogger(__name__)
+
+# HA Recorder limit is 16384 bytes for state_attributes.
+# Budget per field to stay well within the limit.
+_ATTR_TEXT_LIMIT = 2048
+_ATTR_PROMPT_LIMIT = 512
 
 
 async def async_setup_entry(
@@ -243,7 +246,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
                 ATTR_TOTAL_ERRORS: metrics.get("total_errors", 0),
                 "instance_name": self._instance_name,
                 "normalized_name": self._normalized_name,
-                ATTR_SYSTEM_PROMPT: (data.get("system_prompt", "")[:MAX_ATTRIBUTE_SIZE]
+                ATTR_SYSTEM_PROMPT: (data.get("system_prompt", "")[:_ATTR_PROMPT_LIMIT]
                                    if data.get("system_prompt") else None),
                 ATTR_IS_PROCESSING: data.get("is_processing", False),
                 ATTR_IS_RATE_LIMITED: data.get("is_rate_limited", False),
@@ -253,18 +256,19 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
                 ATTR_HISTORY_SIZE: data.get("history_size", 0),
             }
 
-            # History limit
+            # Conversation history preview (compact: last 3, truncated to 256 chars).
+            # Full history is available via ha_text_ai.get_history service.
             conversation_history = data.get("conversation_history", [])
             if conversation_history:
-                limited_history = []
-                for entry in conversation_history:
-                    limited_entry = {
+                preview = conversation_history[-3:]
+                attributes["conversation_history"] = [
+                    {
                         "timestamp": entry["timestamp"],
-                        "question": entry["question"][:MAX_ATTRIBUTE_SIZE],
-                        "response": entry["response"][:MAX_ATTRIBUTE_SIZE]
+                        "question": entry["question"][:256],
+                        "response": entry["response"][:256],
                     }
-                    limited_history.append(limited_entry)
-                attributes[ATTR_CONVERSATION_HISTORY] = limited_history
+                    for entry in preview
+                ]
 
             # Metrics
             if isinstance(metrics, dict):
@@ -283,11 +287,11 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             last_response = data.get("last_response", {})
             if isinstance(last_response, dict):
                 attributes.update({
-                    ATTR_RESPONSE: last_response.get("response", "")[:MAX_ATTRIBUTE_SIZE],
-                    ATTR_QUESTION: last_response.get("question", "")[:MAX_ATTRIBUTE_SIZE],
+                    ATTR_RESPONSE: last_response.get("response", "")[:_ATTR_TEXT_LIMIT],
+                    ATTR_QUESTION: last_response.get("question", "")[:_ATTR_TEXT_LIMIT],
                     "last_model": last_response.get("model", ""),
                     "last_timestamp": last_response.get("timestamp", ""),
-                    "last_error": (last_response.get("error", "")[:MAX_ATTRIBUTE_SIZE]
+                    "last_error": (last_response.get("error", "")[:_ATTR_TEXT_LIMIT]
                                  if last_response.get("error") else None),
                 })
 

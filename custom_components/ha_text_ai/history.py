@@ -123,6 +123,7 @@ class HistoryManager:
     @staticmethod
     def _sync_test_directory_write(test_file_path: str) -> None:
         try:
+            os.makedirs(os.path.dirname(test_file_path), mode=0o755, exist_ok=True)
             with open(test_file_path, "w") as f:
                 f.write("Permission test")
             os.remove(test_file_path)
