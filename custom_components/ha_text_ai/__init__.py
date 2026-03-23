@@ -49,6 +49,8 @@ from .const import (
     SERVICE_SET_SYSTEM_PROMPT,
     DEFAULT_MAX_HISTORY,
     CONF_MAX_HISTORY_SIZE,
+    CONF_ALLOW_LOCAL_NETWORK,
+    DEFAULT_ALLOW_LOCAL_NETWORK,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -271,8 +273,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         model = config.get(CONF_MODEL, get_default_model(api_provider))
         raw_endpoint = config.get(CONF_API_ENDPOINT, get_default_endpoint(api_provider))
+        allow_local = config.get(CONF_ALLOW_LOCAL_NETWORK, DEFAULT_ALLOW_LOCAL_NETWORK)
+        if allow_local:
+            _LOGGER.warning(
+                "Local network mode enabled for endpoint %s — "
+                "SSRF protection disabled, API credentials may be sent without TLS",
+                raw_endpoint,
+            )
         try:
-            endpoint = await validate_endpoint(hass, raw_endpoint)
+            endpoint = await validate_endpoint(hass, raw_endpoint, allow_local=allow_local)
         except ValueError as err:
             _LOGGER.error("Invalid API endpoint: %s", err)
             raise ConfigEntryNotReady(f"Invalid API endpoint: {err}") from err

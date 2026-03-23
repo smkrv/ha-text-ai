@@ -14,7 +14,8 @@
           "request_interval": "Minimale Zeit zwischen Anfragen (0,1-60 Sekunden)",
           "api_timeout": "API-Anfrage Timeout in Sekunden (5-600)",
           "context_messages": "Anzahl der zu behaltenden Kontextnachrichten (1-20)",
-          "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)"
+          "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)",
+          "allow_local_network": "Lokale Netzwerkendpunkte erlauben (für selbst gehostete Proxys)"
         }
       },
       "user": {
@@ -31,7 +32,8 @@
           "request_interval": "Minimale Zeit zwischen Anfragen (0,1-60 Sekunden)",
           "api_timeout": "API-Anfrage Timeout in Sekunden (5-600)",
           "context_messages": "Anzahl der zu behaltenden Kontextnachrichten (1-20)",
-          "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)"
+          "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)",
+          "allow_local_network": "Lokale Netzwerkendpunkte erlauben (für selbst gehostete Proxys)"
         }
       }
     },
@@ -83,7 +85,8 @@
           "request_interval": "Minimales Anfrageintervall (0,1-60 Sekunden)",
           "api_timeout": "API-Anfrage Timeout in Sekunden (5-600)",
           "context_messages": "Anzahl der vorherigen Nachrichten, die im Kontext enthalten sein sollen (1-20)",
-          "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)"
+          "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)",
+          "allow_local_network": "Lokale Netzwerkendpunkte erlauben (für selbst gehostete Proxys)"
         }
       }
     }

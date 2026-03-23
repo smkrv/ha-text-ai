@@ -54,6 +54,8 @@ from .const import (
     MAX_CONTEXT_MESSAGES,
     MIN_HISTORY_SIZE,
     MAX_HISTORY_SIZE,
+    CONF_ALLOW_LOCAL_NETWORK,
+    DEFAULT_ALLOW_LOCAL_NETWORK,
 )
 from homeassistant.util import dt as dt_util
 
@@ -132,6 +134,10 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             vol.Required(CONF_API_KEY): str,
             vol.Required(CONF_MODEL, default=defaults.get(CONF_MODEL, get_default_model(self._provider))): str,
             vol.Required(CONF_API_ENDPOINT, default=defaults.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
+            vol.Optional(
+                CONF_ALLOW_LOCAL_NETWORK,
+                default=defaults.get(CONF_ALLOW_LOCAL_NETWORK, DEFAULT_ALLOW_LOCAL_NETWORK),
+            ): bool,
         }
         schema_dict.update(_build_parameter_schema(defaults))
         return vol.Schema(schema_dict)
@@ -224,7 +230,10 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return False
 
             try:
-                endpoint = await validate_endpoint(self.hass, user_input[CONF_API_ENDPOINT])
+                allow_local = user_input.get(CONF_ALLOW_LOCAL_NETWORK, DEFAULT_ALLOW_LOCAL_NETWORK)
+                endpoint = await validate_endpoint(
+                    self.hass, user_input[CONF_API_ENDPOINT], allow_local=allow_local
+                )
             except ValueError as err:
                 _LOGGER.error("Endpoint validation failed: %s", err)
                 self._errors["base"] = "cannot_connect"
@@ -280,6 +289,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_API_TIMEOUT: user_input.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT),
             CONF_CONTEXT_MESSAGES: user_input.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES),
             CONF_MAX_HISTORY_SIZE: user_input.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY),
+            CONF_ALLOW_LOCAL_NETWORK: user_input.get(CONF_ALLOW_LOCAL_NETWORK, DEFAULT_ALLOW_LOCAL_NETWORK),
         }
 
         _LOGGER.debug("Creating config entry with data: %s", safe_log_data(entry_data))
@@ -299,7 +309,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow."""
 
-    async def _async_validate_api(self, provider: str, api_key: str, endpoint: str) -> bool:
+    async def _async_validate_api(self, provider: str, api_key: str, endpoint: str, *, allow_local: bool = False) -> bool:
         """Validate API connection using provider registry."""
         try:
             if not api_key:
@@ -307,7 +317,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 return False
 
             try:
-                endpoint = await validate_endpoint(self.hass, endpoint)
+                endpoint = await validate_endpoint(self.hass, endpoint, allow_local=allow_local)
             except ValueError as err:
                 _LOGGER.error("Endpoint validation failed: %s", err)
                 self._errors["base"] = "cannot_connect"
@@ -412,7 +422,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             if not api_key:
                 api_key = current_data.get(CONF_API_KEY, "")
 
-            if await self._async_validate_api(provider, api_key, endpoint):
+            allow_local = user_input.get(CONF_ALLOW_LOCAL_NETWORK, DEFAULT_ALLOW_LOCAL_NETWORK)
+            if await self._async_validate_api(provider, api_key, endpoint, allow_local=allow_local):
                 final_data = {
                     CONF_API_PROVIDER: provider,
                     **user_input,
@@ -471,6 +482,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 CONF_MODEL,
                 default=data.get(CONF_MODEL, default_model),
             ): str,
+            vol.Optional(
+                CONF_ALLOW_LOCAL_NETWORK,
+                default=data.get(CONF_ALLOW_LOCAL_NETWORK, DEFAULT_ALLOW_LOCAL_NETWORK),
+            ): bool,
         }
         schema_dict.update(_build_parameter_schema(data))
         return vol.Schema(schema_dict)

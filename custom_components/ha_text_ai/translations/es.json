@@ -14,7 +14,8 @@
           "request_interval": "Tiempo mínimo entre solicitudes (0.1-60 segundos)",
           "api_timeout": "Tiempo de espera de solicitud API en segundos (5-600)",
           "context_messages": "Número de mensajes de contexto a retener (1-20)",
-          "max_history_size": "Tamaño máximo del historial de conversación (1-100)"
+          "max_history_size": "Tamaño máximo del historial de conversación (1-100)",
+          "allow_local_network": "Permitir endpoints de red local (para proxies autoalojados)"
         }
       },
       "user": {
@@ -31,7 +32,8 @@
           "request_interval": "Tiempo mínimo entre solicitudes (0.1-60 segundos)",
           "api_timeout": "Tiempo de espera de solicitud API en segundos (5-600)",
           "context_messages": "Número de mensajes de contexto a retener (1-20)",
-          "max_history_size": "Tamaño máximo del historial de conversación (1-100)"
+          "max_history_size": "Tamaño máximo del historial de conversación (1-100)",
+          "allow_local_network": "Permitir endpoints de red local (para proxies autoalojados)"
         }
       }
     },
@@ -83,7 +85,8 @@
           "request_interval": "Intervalo mínimo de solicitud (0.1-60 segundos)",
           "api_timeout": "Tiempo de espera de solicitud API en segundos (5-600)",
           "context_messages": "Número de mensajes anteriores a incluir en el contexto (1-20)",
-          "max_history_size": "Tamaño máximo del historial de conversación (1-100)"
+          "max_history_size": "Tamaño máximo del historial de conversación (1-100)",
+          "allow_local_network": "Permitir endpoints de red local (para proxies autoalojados)"
         }
       }
     }

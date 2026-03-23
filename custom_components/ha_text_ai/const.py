@@ -29,7 +29,7 @@ API_PROVIDERS: Final = [
     API_PROVIDER_GEMINI
 ]
 
-VERSION: Final = "2.4.0"
+VERSION: Final = "2.4.1"
 
 # Default endpoints
 DEFAULT_OPENAI_ENDPOINT: Final = "https://api.openai.com/v1"
@@ -49,6 +49,7 @@ CONF_MAX_HISTORY_SIZE: Final = "max_history_size"  # Correct constant name
 CONF_CONTEXT_MESSAGES: Final = "context_messages"
 CONF_STRUCTURED_OUTPUT: Final = "structured_output"
 CONF_JSON_SCHEMA: Final = "json_schema"
+CONF_ALLOW_LOCAL_NETWORK: Final = "allow_local_network"
 
 ABSOLUTE_MAX_HISTORY_SIZE: Final = 200  # Hard cap; UI allows max MAX_HISTORY_SIZE (100)
 MAX_ATTRIBUTE_SIZE = 4 * 1024
@@ -67,6 +68,7 @@ DEFAULT_NAME: Final = "HA Text AI"
 DEFAULT_NAME_PREFIX = "ha_text_ai"
 DEFAULT_INSTANCE_NAME: Final = "my_assistant"
 DEFAULT_CONTEXT_MESSAGES: Final = 5
+DEFAULT_ALLOW_LOCAL_NETWORK: Final = False
 MIN_CONTEXT_MESSAGES: Final = 1
 MAX_CONTEXT_MESSAGES: Final = 20
 MIN_HISTORY_SIZE: Final = 1

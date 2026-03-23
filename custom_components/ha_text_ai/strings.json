@@ -14,7 +14,8 @@
           "request_interval": "Minimum time between requests (0.1-60 seconds)",
           "api_timeout": "API request timeout in seconds (5-600)",
           "context_messages": "Number of context messages to retain (1-20)",
-          "max_history_size": "Maximum conversation history size (1-100)"
+          "max_history_size": "Maximum conversation history size (1-100)",
+          "allow_local_network": "Allow local network endpoints (for self-hosted proxies)"
         }
       },
       "user": {
@@ -31,7 +32,8 @@
           "request_interval": "Minimum time between requests (0.1-60 seconds)",
           "api_timeout": "API request timeout in seconds (5-600)",
           "context_messages": "Number of context messages to retain (1-20)",
-          "max_history_size": "Maximum conversation history size (1-100)"
+          "max_history_size": "Maximum conversation history size (1-100)",
+          "allow_local_network": "Allow local network endpoints (for self-hosted proxies)"
         }
       }
     },
@@ -83,7 +85,8 @@
           "request_interval": "Minimum request interval (0.1-60 seconds)",
           "api_timeout": "API request timeout in seconds (5-600)",
           "context_messages": "Number of previous messages to include in context (1-20)",
-          "max_history_size": "Maximum conversation history size (1-100)"
+          "max_history_size": "Maximum conversation history size (1-100)",
+          "allow_local_network": "Allow local network endpoints (for self-hosted proxies)"
         }
       }
     }
