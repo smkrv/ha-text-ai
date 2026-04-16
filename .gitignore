@@ -28,6 +28,12 @@ Thumbs.db
 
 # Claude Code working files
 CLAUDE.md
+AGENTS.md
+GEMINI.md
+.claude/
+.cursor/
+.cursorrules
+.windsurfrules
 docs/specs/
 docs/superpowers/
 docs/plans/
