@@ -15,7 +15,8 @@
           "api_timeout": "Временско ограничење API захтева у секундама (5-600)",
           "context_messages": "Број контекстуалних порука које треба задржати (1-20)",
           "max_history_size": "Максимална величина историје разговора (1-100)",
-          "allow_local_network": "Дозволи локалне мрежне адресе (за self-hosted проксије)"
+          "allow_local_network": "Дозволи локалне мрежне адресе (за self-hosted проксије)",
+          "disable_thinking": "Онемогући thinking/reasoning режим (Qwen /no_think, уклања <think> блокове, Gemini 2.5 thinking_budget=0)"
         }
       },
       "user": {
@@ -33,7 +34,8 @@
           "api_timeout": "Временско ограничење API захтева у секундама (5-600)",
           "context_messages": "Број контекстуалних порука које треба задржати (1-20)",
           "max_history_size": "Максимална величина историје разговора (1-100)",
-          "allow_local_network": "Дозволи локалне мрежне адресе (за self-hosted проксије)"
+          "allow_local_network": "Дозволи локалне мрежне адресе (за self-hosted проксије)",
+          "disable_thinking": "Онемогући thinking/reasoning режим (Qwen /no_think, уклања <think> блокове, Gemini 2.5 thinking_budget=0)"
         }
       }
     },
@@ -86,7 +88,8 @@
           "api_timeout": "Временско ограничење API захтева у секундама (5-600)",
           "context_messages": "Број претходних порука које треба укључити у контекст (1-20)",
           "max_history_size": "Максимална величина историје разговора (1-100)",
-          "allow_local_network": "Дозволи локалне мрежне адресе (за self-hosted проксије)"
+          "allow_local_network": "Дозволи локалне мрежне адресе (за self-hosted проксије)",
+          "disable_thinking": "Онемогући thinking/reasoning режим (Qwen /no_think, уклања <think> блокове, Gemini 2.5 thinking_budget=0)"
         }
       }
     }
@@ -141,6 +144,10 @@
         "json_schema": {
           "name": "JSON шема",
           "description": "JSON шема која дефинише структуру очекиваног одговора. Обавезна када је structured_output омогућен."
+        },
+        "disable_thinking": {
+          "name": "Онемогући thinking",
+          "description": "Онемогући thinking/reasoning режим за овај захтев. Надмашује поставку интеграције."
         }
       }
     },

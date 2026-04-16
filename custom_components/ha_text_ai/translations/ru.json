@@ -15,7 +15,8 @@
           "api_timeout": "Таймаут API-запроса в секундах (5-600)",
           "context_messages": "Количество сохраняемых контекстных сообщений (1-20)",
           "max_history_size": "Максимальный размер истории разговора (1-100)",
-          "allow_local_network": "Разрешить локальные сетевые адреса (для self-hosted прокси)"
+          "allow_local_network": "Разрешить локальные сетевые адреса (для self-hosted прокси)",
+          "disable_thinking": "Отключить режим thinking/reasoning (Qwen /no_think, срезание блоков <think>, Gemini 2.5 thinking_budget=0)"
         }
       },
       "user": {
@@ -33,7 +34,8 @@
           "api_timeout": "Таймаут API-запроса в секундах (5-600)",
           "context_messages": "Количество сохраняемых контекстных сообщений (1-20)",
           "max_history_size": "Максимальный размер истории разговора (1-100)",
-          "allow_local_network": "Разрешить локальные сетевые адреса (для self-hosted прокси)"
+          "allow_local_network": "Разрешить локальные сетевые адреса (для self-hosted прокси)",
+          "disable_thinking": "Отключить режим thinking/reasoning (Qwen /no_think, срезание блоков <think>, Gemini 2.5 thinking_budget=0)"
         }
       }
     },
@@ -86,7 +88,8 @@
           "api_timeout": "Таймаут API-запроса в секундах (5-600)",
           "context_messages": "Количество предыдущих сообщений для включения в контекст (1-20)",
           "max_history_size": "Максимальный размер истории разговора (1-100)",
-          "allow_local_network": "Разрешить локальные сетевые адреса (для self-hosted прокси)"
+          "allow_local_network": "Разрешить локальные сетевые адреса (для self-hosted прокси)",
+          "disable_thinking": "Отключить режим thinking/reasoning (Qwen /no_think, срезание блоков <think>, Gemini 2.5 thinking_budget=0)"
         }
       }
     }
@@ -141,6 +144,10 @@
         "json_schema": {
           "name": "JSON Schema",
           "description": "JSON-схема, определяющая структуру ожидаемого ответа. Обязательна при включении structured_output."
+        },
+        "disable_thinking": {
+          "name": "Отключить thinking",
+          "description": "Отключить режим thinking/reasoning для этого запроса. Переопределяет настройку интеграции."
         }
       }
     },

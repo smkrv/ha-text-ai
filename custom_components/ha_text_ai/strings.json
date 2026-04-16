@@ -15,7 +15,8 @@
           "api_timeout": "API request timeout in seconds (5-600)",
           "context_messages": "Number of context messages to retain (1-20)",
           "max_history_size": "Maximum conversation history size (1-100)",
-          "allow_local_network": "Allow local network endpoints (for self-hosted proxies)"
+          "allow_local_network": "Allow local network endpoints (for self-hosted proxies)",
+          "disable_thinking": "Disable thinking/reasoning mode (Qwen /no_think, strips <think> blocks, Gemini 2.5 thinking_budget=0)"
         }
       },
       "user": {
@@ -33,7 +34,8 @@
           "api_timeout": "API request timeout in seconds (5-600)",
           "context_messages": "Number of context messages to retain (1-20)",
           "max_history_size": "Maximum conversation history size (1-100)",
-          "allow_local_network": "Allow local network endpoints (for self-hosted proxies)"
+          "allow_local_network": "Allow local network endpoints (for self-hosted proxies)",
+          "disable_thinking": "Disable thinking/reasoning mode (Qwen /no_think, strips <think> blocks, Gemini 2.5 thinking_budget=0)"
         }
       }
     },
@@ -86,7 +88,8 @@
           "api_timeout": "API request timeout in seconds (5-600)",
           "context_messages": "Number of previous messages to include in context (1-20)",
           "max_history_size": "Maximum conversation history size (1-100)",
-          "allow_local_network": "Allow local network endpoints (for self-hosted proxies)"
+          "allow_local_network": "Allow local network endpoints (for self-hosted proxies)",
+          "disable_thinking": "Disable thinking/reasoning mode (Qwen /no_think, strips <think> blocks, Gemini 2.5 thinking_budget=0)"
         }
       }
     }
@@ -141,6 +144,10 @@
         "json_schema": {
           "name": "JSON Schema",
           "description": "JSON Schema defining the structure of the expected response. Required when structured_output is enabled."
+        },
+        "disable_thinking": {
+          "name": "Disable Thinking",
+          "description": "Disable model thinking/reasoning for this request. Overrides the integration-level setting."
         }
       }
     },

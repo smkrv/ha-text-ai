@@ -1,7 +1,7 @@
 """
 Config flow for HA text AI integration.
 
-@license: PolyForm Noncommercial 1.0.0 (https://polyformproject.org/licenses/noncommercial/1.0.0)
+@license: MIT (https://opensource.org/licenses/MIT)
 @author: SMKRV
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai
@@ -56,6 +56,8 @@ from .const import (
     MAX_HISTORY_SIZE,
     CONF_ALLOW_LOCAL_NETWORK,
     DEFAULT_ALLOW_LOCAL_NETWORK,
+    CONF_DISABLE_THINKING,
+    DEFAULT_DISABLE_THINKING,
 )
 from homeassistant.util import dt as dt_util
 
@@ -92,6 +94,10 @@ def _build_parameter_schema(data: Dict[str, Any]) -> dict:
             CONF_MAX_HISTORY_SIZE,
             default=data.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY),
         ): vol.All(vol.Coerce(int), vol.Range(min=MIN_HISTORY_SIZE, max=MAX_HISTORY_SIZE)),
+        vol.Optional(
+            CONF_DISABLE_THINKING,
+            default=data.get(CONF_DISABLE_THINKING, DEFAULT_DISABLE_THINKING),
+        ): bool,
     }
 
 
@@ -131,7 +137,9 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         defaults = data or {}
         schema_dict = {
             vol.Required(CONF_NAME, default=defaults.get(CONF_NAME, DEFAULT_INSTANCE_NAME)): str,
-            vol.Required(CONF_API_KEY): str,
+            vol.Required(CONF_API_KEY): selector.TextSelector(
+                selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+            ),
             vol.Required(CONF_MODEL, default=defaults.get(CONF_MODEL, get_default_model(self._provider))): str,
             vol.Required(CONF_API_ENDPOINT, default=defaults.get(CONF_API_ENDPOINT, get_default_endpoint(self._provider))): str,
             vol.Optional(
@@ -290,6 +298,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             CONF_CONTEXT_MESSAGES: user_input.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES),
             CONF_MAX_HISTORY_SIZE: user_input.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY),
             CONF_ALLOW_LOCAL_NETWORK: user_input.get(CONF_ALLOW_LOCAL_NETWORK, DEFAULT_ALLOW_LOCAL_NETWORK),
+            CONF_DISABLE_THINKING: user_input.get(CONF_DISABLE_THINKING, DEFAULT_DISABLE_THINKING),
         }
 
         _LOGGER.debug("Creating config entry with data: %s", safe_log_data(entry_data))
@@ -398,7 +407,10 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             api_key = user_input.get(CONF_API_KEY, "").strip()
             endpoint = user_input.get(CONF_API_ENDPOINT, default_endpoint)
 
-            # Require API key re-entry when endpoint or provider changed
+            # Require API key re-entry when endpoint or provider changed.
+            # Why: reusing a stored key after provider/endpoint change could
+            # ship credentials to a different service (e.g. OpenAI key to
+            # api.anthropic.com). Always force explicit re-entry.
             stored_endpoint = current_data.get(CONF_API_ENDPOINT, "")
             endpoint_changed = endpoint != stored_endpoint
             if not api_key and (provider_changed or endpoint_changed):
@@ -418,8 +430,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     }
                 )
 
-            # Fall back to stored key if not re-entered and endpoint unchanged
-            if not api_key:
+            # Fall back to stored key only when neither provider nor endpoint changed.
+            # Defensive: never silently reuse stored key across providers.
+            if not api_key and not provider_changed and not endpoint_changed:
                 api_key = current_data.get(CONF_API_KEY, "")
 
             allow_local = user_input.get(CONF_ALLOW_LOCAL_NETWORK, DEFAULT_ALLOW_LOCAL_NETWORK)
@@ -473,7 +486,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
         data = user_input or current_data
 
         schema_dict = {
-            vol.Optional(CONF_API_KEY, default=""): str,
+            vol.Optional(CONF_API_KEY, default=""): selector.TextSelector(
+                selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+            ),
             vol.Required(
                 CONF_API_ENDPOINT,
                 default=data.get(CONF_API_ENDPOINT, default_endpoint),

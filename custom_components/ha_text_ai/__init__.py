@@ -1,7 +1,7 @@
 """
 The HA Text AI integration.
 
-@license: PolyForm Noncommercial 1.0.0 (https://polyformproject.org/licenses/noncommercial/1.0.0)
+@license: MIT (https://opensource.org/licenses/MIT)
 @author: SMKRV
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai
@@ -51,6 +51,8 @@ from .const import (
     CONF_MAX_HISTORY_SIZE,
     CONF_ALLOW_LOCAL_NETWORK,
     DEFAULT_ALLOW_LOCAL_NETWORK,
+    CONF_DISABLE_THINKING,
+    DEFAULT_DISABLE_THINKING,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -69,6 +71,7 @@ SERVICE_SCHEMA_ASK_QUESTION = vol.Schema({
     vol.Optional("context_messages"): cv.positive_int,
     vol.Optional("structured_output", default=False): cv.boolean,
     vol.Optional("json_schema"): vol.All(cv.string, vol.Length(max=50000)),
+    vol.Optional("disable_thinking"): cv.boolean,
 })
 
 SERVICE_SCHEMA_SET_SYSTEM_PROMPT = vol.Schema({
@@ -78,7 +81,8 @@ SERVICE_SCHEMA_SET_SYSTEM_PROMPT = vol.Schema({
 
 SERVICE_SCHEMA_GET_HISTORY = vol.Schema({
     vol.Required("instance"): cv.string,
-    vol.Optional("limit"): cv.positive_int,
+    # Cap limit to protect automations from huge response payloads.
+    vol.Optional("limit", default=10): vol.All(cv.positive_int, vol.Range(min=1, max=100)),
     vol.Optional("filter_model"): cv.string,
     vol.Optional("start_date"): cv.string,
     vol.Optional("include_metadata"): cv.boolean,
@@ -124,6 +128,7 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
                 context_messages=call.data.get("context_messages"),
                 structured_output=call.data.get("structured_output", False),
                 json_schema=call.data.get("json_schema"),
+                disable_thinking=call.data.get("disable_thinking"),
             )
             
             # Return structured response data
@@ -162,7 +167,7 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
             await coordinator.async_clear_history()
         except Exception as err:
             _LOGGER.error("Error clearing history: %s", str(err))
-            raise HomeAssistantError(f"Failed to clear history: {str(err)}")
+            raise HomeAssistantError(f"Failed to clear history: {str(err)}") from err
 
     async def async_get_history(call: ServiceCall) -> list:
         """Handle get_history service."""
@@ -177,7 +182,7 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
             )
         except Exception as err:
             _LOGGER.error("Error getting history: %s", str(err))
-            raise HomeAssistantError(f"Failed to get history: {str(err)}")
+            raise HomeAssistantError(f"Failed to get history: {str(err)}") from err
 
     async def async_set_system_prompt(call: ServiceCall) -> None:
         """Handle set_system_prompt service."""
@@ -186,7 +191,7 @@ async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
             await coordinator.async_set_system_prompt(call.data["prompt"])
         except Exception as err:
             _LOGGER.error("Error setting system prompt: %s", str(err))
-            raise HomeAssistantError(f"Failed to set system prompt: {str(err)}")
+            raise HomeAssistantError(f"Failed to set system prompt: {str(err)}") from err
 
     # Register services
     hass.services.async_register(
@@ -294,6 +299,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         temperature = config.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
         max_history_size = config.get(CONF_MAX_HISTORY_SIZE, DEFAULT_MAX_HISTORY)
         context_messages = config.get(CONF_CONTEXT_MESSAGES, DEFAULT_CONTEXT_MESSAGES)
+        disable_thinking = config.get(CONF_DISABLE_THINKING, DEFAULT_DISABLE_THINKING)
 
         headers = build_auth_headers(api_provider, api_key)
 
@@ -324,6 +330,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             max_history_size=max_history_size,
             context_messages=context_messages,
             api_timeout=api_timeout,
+            disable_thinking=disable_thinking,
         )
 
         # Initialize coordinator (directories, history, metrics)
@@ -369,8 +376,18 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
             await coordinator.async_shutdown()
 
+        # When removing the last config entry, also unregister services and
+        # clear the domain bucket so HA doesn't show stale services in the UI.
         if not hass.data.get(DOMAIN):
             hass.data.pop(DOMAIN, None)
+            for service in (
+                SERVICE_ASK_QUESTION,
+                SERVICE_CLEAR_HISTORY,
+                SERVICE_GET_HISTORY,
+                SERVICE_SET_SYSTEM_PROMPT,
+            ):
+                if hass.services.has_service(DOMAIN, service):
+                    hass.services.async_remove(DOMAIN, service)
 
         return unload_ok
 

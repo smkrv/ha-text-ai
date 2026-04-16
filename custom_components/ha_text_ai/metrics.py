@@ -1,7 +1,7 @@
 """
 Metrics management for HA Text AI integration.
 
-@license: PolyForm Noncommercial 1.0.0 (https://polyformproject.org/licenses/noncommercial/1.0.0)
+@license: MIT (https://opensource.org/licenses/MIT)
 @author: SMKRV
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai
@@ -123,13 +123,26 @@ class MetricsManager:
         await self._save_metrics()
 
         error_msg = str(error)
-        # Strip URLs, API keys, tokens, and query parameters from error messages
+        # Strip URLs, API keys, tokens, and query parameters from error messages.
+        # Patterns use word boundaries and explicit length bounds so that
+        # overly greedy matches don't accidentally swallow adjacent text.
         error_msg = re.sub(r'https?://\S+', '[URL]', error_msg)
         error_msg = re.sub(r'[?&]key=[^\s&]+', '?key=***', error_msg)
-        error_msg = re.sub(r'AIza[A-Za-z0-9_-]+', '***', error_msg)
-        error_msg = re.sub(r'Bearer\s+\S+', 'Bearer ***', error_msg)
-        error_msg = re.sub(r'sk-[A-Za-z0-9_-]{20,}', '***', error_msg)
-        error_msg = re.sub(r'x-api-key:\s*\S+', 'x-api-key: ***', error_msg, flags=re.IGNORECASE)
+        # Google API key: fixed prefix + 30+ url-safe chars, bounded by non-key char.
+        error_msg = re.sub(
+            r'AIza[A-Za-z0-9_\-]{30,}(?=[^A-Za-z0-9_\-]|$)', '***', error_msg
+        )
+        # Anthropic / OpenAI / DeepSeek format: "sk-..." (anchors on word boundary).
+        error_msg = re.sub(r'\bsk-[A-Za-z0-9_\-]{20,}\b', '***', error_msg)
+        # Bearer tokens: header-style and JSON-embedded ("Bearer xxx").
+        error_msg = re.sub(r'[Bb]earer\s+[A-Za-z0-9_\-\.=]+', 'Bearer ***', error_msg)
+        # x-api-key header in any case, both raw and JSON-serialized forms.
+        error_msg = re.sub(
+            r'"?x-api-key"?\s*[:=]\s*"?[A-Za-z0-9_\-\.]+"?',
+            'x-api-key: ***',
+            error_msg,
+            flags=re.IGNORECASE,
+        )
         if len(error_msg) > 256:
             error_msg = error_msg[:256] + "..."
 

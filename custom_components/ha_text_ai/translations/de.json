@@ -15,7 +15,8 @@
           "api_timeout": "API-Anfrage Timeout in Sekunden (5-600)",
           "context_messages": "Anzahl der zu behaltenden Kontextnachrichten (1-20)",
           "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)",
-          "allow_local_network": "Lokale Netzwerkendpunkte erlauben (für selbst gehostete Proxys)"
+          "allow_local_network": "Lokale Netzwerkendpunkte erlauben (für selbst gehostete Proxys)",
+          "disable_thinking": "Thinking/Reasoning-Modus deaktivieren (Qwen /no_think, <think>-Blöcke entfernen, Gemini 2.5 thinking_budget=0)"
         }
       },
       "user": {
@@ -33,7 +34,8 @@
           "api_timeout": "API-Anfrage Timeout in Sekunden (5-600)",
           "context_messages": "Anzahl der zu behaltenden Kontextnachrichten (1-20)",
           "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)",
-          "allow_local_network": "Lokale Netzwerkendpunkte erlauben (für selbst gehostete Proxys)"
+          "allow_local_network": "Lokale Netzwerkendpunkte erlauben (für selbst gehostete Proxys)",
+          "disable_thinking": "Thinking/Reasoning-Modus deaktivieren (Qwen /no_think, <think>-Blöcke entfernen, Gemini 2.5 thinking_budget=0)"
         }
       }
     },
@@ -86,7 +88,8 @@
           "api_timeout": "API-Anfrage Timeout in Sekunden (5-600)",
           "context_messages": "Anzahl der vorherigen Nachrichten, die im Kontext enthalten sein sollen (1-20)",
           "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)",
-          "allow_local_network": "Lokale Netzwerkendpunkte erlauben (für selbst gehostete Proxys)"
+          "allow_local_network": "Lokale Netzwerkendpunkte erlauben (für selbst gehostete Proxys)",
+          "disable_thinking": "Thinking/Reasoning-Modus deaktivieren (Qwen /no_think, <think>-Blöcke entfernen, Gemini 2.5 thinking_budget=0)"
         }
       }
     }
@@ -141,6 +144,10 @@
         "json_schema": {
           "name": "JSON-Schema",
           "description": "JSON-Schema, das die Struktur der erwarteten Antwort definiert. Erforderlich wenn structured_output aktiviert ist."
+        },
+        "disable_thinking": {
+          "name": "Thinking deaktivieren",
+          "description": "Thinking/Reasoning-Modus für diese Anfrage deaktivieren. Überschreibt die Integrationseinstellung."
         }
       }
     },

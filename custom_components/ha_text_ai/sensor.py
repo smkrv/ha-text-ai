@@ -1,7 +1,7 @@
 """
 Sensor platform for HA Text AI.
 
-@license: PolyForm Noncommercial 1.0.0 (https://polyformproject.org/licenses/noncommercial/1.0.0)
+@license: MIT (https://opensource.org/licenses/MIT)
 @author: SMKRV
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai
@@ -17,7 +17,7 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -161,6 +161,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             manufacturer="Community",
             model=f"{model} ({api_provider} provider)",
             sw_version=VERSION,
+            entry_type=DeviceEntryType.SERVICE,
         )
 
         _LOGGER.debug(

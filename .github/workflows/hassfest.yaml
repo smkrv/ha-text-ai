@@ -26,15 +26,16 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - name: ⤵️ Check out code from GitHub
+      - name: Check out code from GitHub
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
 
-      - name: 🚀 Run hassfest validation
+      - name: Run hassfest validation
         uses: home-assistant/actions/hassfest@master
 
-      - name: ℹ️ Print hassfest version
+      - name: Print hassfest version
         if: always()
         run: |
           echo "Hassfest version: $(hassfest --version)"

@@ -1,7 +1,7 @@
 """
 API Client for HA Text AI.
 
-@license: PolyForm Noncommercial 1.0.0 (https://polyformproject.org/licenses/noncommercial/1.0.0)
+@license: MIT (https://opensource.org/licenses/MIT)
 @author: SMKRV
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai
@@ -91,9 +91,19 @@ class APIClient:
         url: str,
         payload: Dict[str, Any],
     ) -> Dict[str, Any]:
-        """Make API request with retry logic for transient errors only."""
+        """Make API request with retry logic for transient errors only.
+
+        Retries on:
+        - asyncio.TimeoutError
+        - HTTP 429 (rate limit) — honors Retry-After header when present
+        - HTTP 502/503/504 (upstream transient errors)
+
+        4xx (other than 429) return immediately — they are not retryable.
+        """
         safe_payload = {k: v for k, v in payload.items() if k not in ['messages', 'system']}
         _LOGGER.debug("API Request: URL=%s, Safe payload: %s", url, safe_payload)
+
+        retryable_5xx = {502, 503, 504}
 
         for attempt in range(API_RETRY_COUNT):
             try:
@@ -114,25 +124,41 @@ class APIClient:
                     except Exception:
                         error_data = {"raw": await response.text()}
 
-                    # Rate limit — retry with backoff
+                    # Rate limit — retry with backoff, prefer Retry-After header
                     if response.status == 429:
                         _LOGGER.warning(
                             "Rate limit on attempt %d/%d", attempt + 1, API_RETRY_COUNT
                         )
                         if attempt < API_RETRY_COUNT - 1:
-                            await asyncio.sleep(2 ** attempt)
+                            retry_after = self._parse_retry_after(
+                                response.headers.get("Retry-After")
+                            )
+                            await asyncio.sleep(retry_after or (2 ** attempt))
                             continue
                         raise HomeAssistantError("API rate limit exceeded")
 
-                    # Client/server errors — don't retry
+                    # Upstream transient errors — retry with backoff
+                    if response.status in retryable_5xx:
+                        _LOGGER.warning(
+                            "Upstream %d on attempt %d/%d",
+                            response.status, attempt + 1, API_RETRY_COUNT,
+                        )
+                        if attempt < API_RETRY_COUNT - 1:
+                            await asyncio.sleep(2 ** attempt)
+                            continue
+                        raise HomeAssistantError(
+                            f"Upstream error after retries: status {response.status}"
+                        )
+
+                    # Other client/server errors — don't retry
                     truncated_error = str(error_data)[:512]
                     _LOGGER.error("API error (status %d): %s", response.status, truncated_error)
                     raise HomeAssistantError(f"API error: status {response.status}")
 
-            except asyncio.TimeoutError:
+            except asyncio.TimeoutError as err:
                 _LOGGER.warning("Timeout on attempt %d/%d", attempt + 1, API_RETRY_COUNT)
                 if attempt == API_RETRY_COUNT - 1:
-                    raise HomeAssistantError("API request timed out")
+                    raise HomeAssistantError("API request timed out") from err
                 await asyncio.sleep(2 ** attempt)
             except HomeAssistantError:
                 raise
@@ -147,6 +173,19 @@ class APIClient:
 
         raise HomeAssistantError("API request failed after all retries")
 
+    @staticmethod
+    def _parse_retry_after(value: Optional[str]) -> Optional[float]:
+        """Parse Retry-After header (seconds). Caps at 60s to avoid long stalls."""
+        if not value:
+            return None
+        try:
+            seconds = float(value.strip())
+        except (ValueError, AttributeError):
+            return None
+        if seconds <= 0:
+            return None
+        return min(seconds, 60.0)
+
     async def create(
         self,
         model: str,
@@ -155,6 +194,7 @@ class APIClient:
         max_tokens: int,
         structured_output: bool = False,
         json_schema: Optional[str] = None,
+        disable_thinking: bool = False,
     ) -> Dict[str, Any]:
         """Create completion using appropriate API."""
         try:
@@ -163,26 +203,103 @@ class APIClient:
             if self.api_provider == API_PROVIDER_ANTHROPIC:
                 return await self._create_anthropic_completion(
                     model, messages, temperature, max_tokens,
-                    structured_output, json_schema
+                    structured_output, json_schema, disable_thinking
                 )
             elif self.api_provider == API_PROVIDER_DEEPSEEK:
                 return await self._create_deepseek_completion(
                     model, messages, temperature, max_tokens,
-                    structured_output, json_schema
+                    structured_output, json_schema, disable_thinking
                 )
             elif self.api_provider == API_PROVIDER_GEMINI:
                 return await self._create_gemini_completion(
                     model, messages, temperature, max_tokens,
-                    structured_output, json_schema
+                    structured_output, json_schema, disable_thinking
                 )
             else:
                 return await self._create_openai_completion(
                     model, messages, temperature, max_tokens,
-                    structured_output, json_schema
+                    structured_output, json_schema, disable_thinking
                 )
         except Exception as e:
             _LOGGER.error("API request failed: %s", str(e))
-            raise HomeAssistantError(f"API request failed: {str(e)}")
+            raise HomeAssistantError(f"API request failed: {str(e)}") from e
+
+    @staticmethod
+    def _is_openai_reasoning_model(model: str) -> bool:
+        """Detect OpenAI reasoning models (o-series and GPT-5 family).
+
+        Reasoning models require max_completion_tokens (not max_tokens),
+        do not accept custom temperature, and use "developer" role instead
+        of "system". Cutoff: models released 2025-09 and later are all
+        reasoning-by-default (o3, o4-mini, gpt-5, gpt-5-mini, gpt-5-nano).
+        """
+        if not model:
+            return False
+        m = model.lower().lstrip()
+        # Match bare model names and dated variants (o3-2025-04-16 etc.)
+        return (
+            m.startswith(("o1", "o3", "o4-mini", "o4"))
+            or m.startswith(("gpt-5", "gpt5"))
+        )
+
+    @staticmethod
+    def _convert_system_to_developer(
+        messages: List[Dict[str, str]],
+    ) -> List[Dict[str, str]]:
+        """Rename role "system" to "developer" for OpenAI reasoning models."""
+        return [
+            {**m, "role": "developer"} if m.get("role") == "system" else m
+            for m in messages
+        ]
+
+    @staticmethod
+    def _apply_no_think_tag(
+        messages: List[Dict[str, str]],
+    ) -> List[Dict[str, str]]:
+        """Append Qwen-style /no_think soft switch to the last user message.
+
+        Why: Qwen3 reasoning models treat "/no_think" in the last user turn as a
+        request to skip thinking. Non-Qwen models ignore the trailing token
+        harmlessly, so this is safe to apply to all OpenAI-compatible backends.
+        """
+        if not messages:
+            return messages
+        patched = [m.copy() for m in messages]
+        for i in range(len(patched) - 1, -1, -1):
+            if patched[i].get("role") == "user":
+                content = patched[i].get("content", "")
+                if "/no_think" not in content:
+                    patched[i]["content"] = f"{content} /no_think".strip()
+                break
+        return patched
+
+    @staticmethod
+    def _strip_think_blocks(text: str) -> str:
+        """Remove <think>...</think> reasoning blocks from model output.
+
+        Why: Some reasoning models (DeepSeek-R1, Qwen-Thinking) emit chain-of-thought
+        wrapped in <think> tags even when thinking is nominally disabled. Strip them
+        so the final answer stays clean. Handles nested blocks via iterative
+        replacement, and drops dangling opening tags when a response is
+        truncated mid-block.
+        """
+        if not text or "<think>" not in text:
+            return text
+        import re
+        pattern = re.compile(r"<think>.*?</think>", flags=re.DOTALL)
+        cleaned = text
+        # Iterative pass: each iteration peels one layer of nested tags.
+        # Bounded to 10 iterations to avoid pathological inputs.
+        for _ in range(10):
+            new = pattern.sub("", cleaned)
+            if new == cleaned:
+                break
+            cleaned = new
+        # If a truncated response left a dangling <think> open, drop the rest
+        # from that marker onward to avoid leaking partial reasoning.
+        if "<think>" in cleaned:
+            cleaned = cleaned.split("<think>", 1)[0]
+        return cleaned.strip()
 
     @staticmethod
     def _apply_structured_output(
@@ -216,12 +333,14 @@ class APIClient:
         max_tokens: int,
         structured_output: bool = False,
         json_schema: Optional[str] = None,
+        disable_thinking: bool = False,
     ) -> Dict[str, Any]:
         """Create completion using DeepSeek API."""
         url = f"{self.endpoint}/chat/completions"
+        final_messages = self._apply_no_think_tag(messages) if disable_thinking else messages
         payload = {
             "model": model,
-            "messages": messages,
+            "messages": final_messages,
             "temperature": temperature,
             "max_tokens": max_tokens,
             "stream": False,
@@ -229,10 +348,13 @@ class APIClient:
         self._apply_structured_output(payload, structured_output, json_schema)
 
         data = await self._make_request(url, payload)
+        content = data["choices"][0]["message"]["content"]
+        if disable_thinking:
+            content = self._strip_think_blocks(content)
         return {
             "choices": [
                 {
-                    "message": {"content": data["choices"][0]["message"]["content"]},
+                    "message": {"content": content},
                 }
             ],
             "usage": {
@@ -250,22 +372,51 @@ class APIClient:
         max_tokens: int,
         structured_output: bool = False,
         json_schema: Optional[str] = None,
+        disable_thinking: bool = False,
     ) -> Dict[str, Any]:
-        """Create completion using OpenAI API."""
+        """Create completion using OpenAI API.
+
+        Reasoning models (o-series, gpt-5 family) require a different payload
+        shape: max_completion_tokens instead of max_tokens, no custom
+        temperature, and role "developer" instead of "system". When
+        disable_thinking=True for a reasoning model we set reasoning_effort
+        to "low" to minimize hidden CoT tokens. For classic chat models the
+        Qwen-style /no_think soft switch is appended instead.
+        """
         url = f"{self.endpoint}/chat/completions"
-        payload = {
-            "model": model,
-            "messages": messages,
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-        }
+        is_reasoning = self._is_openai_reasoning_model(model)
+
+        if is_reasoning:
+            prepared_messages = self._convert_system_to_developer(messages)
+            payload: Dict[str, Any] = {
+                "model": model,
+                "messages": prepared_messages,
+                "max_completion_tokens": max_tokens,
+            }
+            if disable_thinking:
+                payload["reasoning_effort"] = "low"
+        else:
+            prepared_messages = (
+                self._apply_no_think_tag(messages) if disable_thinking else messages
+            )
+            payload = {
+                "model": model,
+                "messages": prepared_messages,
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            }
         self._apply_structured_output(payload, structured_output, json_schema)
 
         data = await self._make_request(url, payload)
+        content = data["choices"][0]["message"]["content"]
+        # Strip <think> blocks only for classic chat models. Reasoning models
+        # never emit the tags in user-facing content.
+        if disable_thinking and not is_reasoning:
+            content = self._strip_think_blocks(content)
         return {
             "choices": [
                 {
-                    "message": {"content": data["choices"][0]["message"]["content"]},
+                    "message": {"content": content},
                 }
             ],
             "usage": {
@@ -283,6 +434,7 @@ class APIClient:
         max_tokens: int,
         structured_output: bool = False,
         json_schema: Optional[str] = None,
+        disable_thinking: bool = False,
     ) -> Dict[str, Any]:
         """Create completion using Anthropic API."""
         url = f"{self.endpoint}/v1/messages"
@@ -298,35 +450,53 @@ class APIClient:
             else:
                 filtered_messages.append(msg)
 
-        # For Anthropic, add structured output instruction to system prompt
+        # For Anthropic, add structured output instruction to system prompt.
+        # Validate schema is well-formed JSON before concatenation: untrusted
+        # schema strings (built from templates/webhook data) could otherwise
+        # break out of the JSON fence and rewrite the system instruction.
         if structured_output and json_schema:
-            schema_instruction = (
-                f"\n\nIMPORTANT: You MUST respond ONLY with valid JSON that matches "
-                f"this JSON Schema:\n{json_schema}\n"
-                f"Do not include any text before or after the JSON. "
-                f"Do not wrap the JSON in markdown code blocks."
-            )
-            if system_prompt:
-                system_prompt += schema_instruction
+            import json as _json
+            try:
+                _json.loads(json_schema)
+            except _json.JSONDecodeError as err:
+                _LOGGER.warning(
+                    "Anthropic: invalid JSON schema, ignoring structured_output: %s", err
+                )
             else:
-                system_prompt = schema_instruction.strip()
-            _LOGGER.debug("Anthropic structured output enabled via system prompt")
+                schema_instruction = (
+                    f"\n\nIMPORTANT: You MUST respond ONLY with valid JSON that matches "
+                    f"this JSON Schema:\n{json_schema}\n"
+                    f"Do not include any text before or after the JSON. "
+                    f"Do not wrap the JSON in markdown code blocks."
+                )
+                if system_prompt:
+                    system_prompt += schema_instruction
+                else:
+                    system_prompt = schema_instruction.strip()
+                _LOGGER.debug("Anthropic structured output enabled via system prompt")
 
+        # Anthropic accepts temperature in [0, 1], not [0, 2] like OpenAI.
+        # Clip silently to avoid a 400 when a user-set config exceeds the cap.
+        clipped_temp = min(1.0, max(0.0, float(temperature)))
         payload = {
             "model": model,
             "messages": filtered_messages,
             "max_tokens": max_tokens,
-            "temperature": temperature,
+            "temperature": clipped_temp,
         }
 
         if system_prompt:
             payload["system"] = system_prompt
 
         data = await self._make_request(url, payload)
+        # Anthropic returns text in "content" array; extended thinking arrives
+        # as a separate thinking-type block (not <think> tags), so no strip
+        # is required. Extended thinking is opt-in — we simply never request it.
+        content = data["content"][0]["text"]
         return {
             "choices": [
                 {
-                    "message": {"content": data["content"][0]["text"]},
+                    "message": {"content": content},
                 }
             ],
             "usage": {
@@ -344,6 +514,7 @@ class APIClient:
         max_tokens: int,
         structured_output: bool = False,
         json_schema: Optional[str] = None,
+        disable_thinking: bool = False,
     ) -> Dict[str, Any]:
         """Create completion using Gemini API with google-genai library.
 
@@ -418,6 +589,15 @@ class APIClient:
                     config.response_mime_type = "application/json"
                     config.response_schema = parsed_schema
 
+                # Disable thinking for Gemini 2.5+ models (ignored by 2.0 and earlier)
+                if disable_thinking:
+                    try:
+                        config.thinking_config = types.ThinkingConfig(thinking_budget=0)
+                    except (AttributeError, TypeError) as err:
+                        _LOGGER.debug(
+                            "ThinkingConfig not supported by this google-genai version: %s", err
+                        )
+
                 return config
 
             config = await asyncio.to_thread(create_config)
@@ -490,6 +670,9 @@ class APIClient:
                 return response_text, usage
 
             response_text, usage = await asyncio.to_thread(extract_response)
+
+            if disable_thinking:
+                response_text = self._strip_think_blocks(response_text)
 
             return {
                 "choices": [{

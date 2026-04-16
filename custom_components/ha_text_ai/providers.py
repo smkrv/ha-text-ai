@@ -4,7 +4,7 @@ Provider registry for HA Text AI integration.
 Centralizes provider-specific configuration to avoid dispatch duplication
 across __init__.py, config_flow.py, and api_client.py.
 
-@license: PolyForm Noncommercial 1.0.0 (https://polyformproject.org/licenses/noncommercial/1.0.0)
+@license: MIT (https://opensource.org/licenses/MIT)
 @author: SMKRV
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai

@@ -1,7 +1,7 @@
 """
 The HA Text AI coordinator.
 
-@license: PolyForm Noncommercial 1.0.0 (https://polyformproject.org/licenses/noncommercial/1.0.0)
+@license: MIT (https://opensource.org/licenses/MIT)
 @author: SMKRV
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai
@@ -23,6 +23,7 @@ from homeassistant.util import dt as dt_util
 from .const import (
     DEFAULT_API_TIMEOUT,
     DEFAULT_CONTEXT_MESSAGES,
+    DEFAULT_DISABLE_THINKING,
     DEFAULT_MAX_HISTORY,
     DEFAULT_MAX_TOKENS,
     DEFAULT_TEMPERATURE,
@@ -56,6 +57,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         max_history_size: int = DEFAULT_MAX_HISTORY,
         context_messages: int = DEFAULT_CONTEXT_MESSAGES,
         api_timeout: int = DEFAULT_API_TIMEOUT,
+        disable_thinking: bool = DEFAULT_DISABLE_THINKING,
     ) -> None:
         """Initialize coordinator."""
         self.instance_name = instance_name
@@ -89,6 +91,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.api_timeout = api_timeout
+        self.disable_thinking = disable_thinking
 
         # Concurrency control
         self._request_lock = asyncio.Lock()
@@ -213,6 +216,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         context_messages: Optional[int] = None,
         structured_output: bool = False,
         json_schema: Optional[str] = None,
+        disable_thinking: Optional[bool] = None,
     ) -> dict:
         """Process question with context management."""
         if self.client is None:
@@ -228,6 +232,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 temp_temperature = temperature if temperature is not None else self.temperature
                 temp_max_tokens = max_tokens if max_tokens is not None else self.max_tokens
                 temp_system_prompt = system_prompt if system_prompt is not None else self._system_prompt
+                temp_disable_thinking = disable_thinking if disable_thinking is not None else self.disable_thinking
 
                 start_time = dt_util.utcnow()
 
@@ -250,6 +255,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
                     max_tokens=temp_max_tokens,
                     structured_output=structured_output,
                     json_schema=json_schema,
+                    disable_thinking=temp_disable_thinking,
                 )
 
                 latency = (dt_util.utcnow() - start_time).total_seconds()
@@ -263,7 +269,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 if error_details.get("is_connection_error"):
                     self.endpoint_status = "unavailable"
                 self.last_response = error_details
-                raise HomeAssistantError(f"Failed to process question: {err}")
+                raise HomeAssistantError(f"Failed to process question: {err}") from err
 
             finally:
                 self._is_processing = False
@@ -278,6 +284,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         max_tokens: int,
         structured_output: bool = False,
         json_schema: Optional[str] = None,
+        disable_thinking: bool = False,
     ) -> dict:
         """Send request to AI provider and return structured response.
 
@@ -292,6 +299,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 max_tokens=max_tokens,
                 structured_output=structured_output,
                 json_schema=json_schema,
+                disable_thinking=disable_thinking,
             )
 
             # Reset error state on success

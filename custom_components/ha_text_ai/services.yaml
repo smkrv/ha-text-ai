@@ -92,6 +92,15 @@ ask_question:
         text:
           multiline: true
 
+    disable_thinking:
+      name: Disable Thinking
+      description: >-
+        Disable model thinking/reasoning for this request.
+        Overrides the integration-level setting when provided.
+      required: false
+      selector:
+        boolean: {}
+
 clear_history:
   name: Clear History
   description: >-

@@ -1,7 +1,7 @@
 """
 History management for HA Text AI integration.
 
-@license: PolyForm Noncommercial 1.0.0 (https://polyformproject.org/licenses/noncommercial/1.0.0)
+@license: MIT (https://opensource.org/licenses/MIT)
 @author: SMKRV
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai
@@ -48,6 +48,18 @@ class AsyncFileHandler:
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.file.close()
+
+
+def _assert_not_symlink(path: str) -> None:
+    """Refuse to operate on a path that resolves to a symlink.
+
+    Why: another component or an attacker with filesystem access could
+    replace our history file with a symlink pointing at arbitrary disk
+    locations. Then os.remove or shutil.move would hit the target
+    instead of our managed file. Check before destructive ops.
+    """
+    if os.path.islink(path):
+        raise OSError(f"Refusing to operate on symlink: {path}")
 
 
 class HistoryManager:
@@ -243,6 +255,9 @@ class HistoryManager:
                     )
 
                     await self.hass.async_add_executor_job(
+                        _assert_not_symlink, self._history_file
+                    )
+                    await self.hass.async_add_executor_job(
                         shutil.move, self._history_file, archive_file
                     )
 
@@ -280,6 +295,9 @@ class HistoryManager:
             archives = await self.hass.async_add_executor_job(find_archives)
             if len(archives) > MAX_ARCHIVE_FILES:
                 for old_file in archives[:-MAX_ARCHIVE_FILES]:
+                    await self.hass.async_add_executor_job(
+                        _assert_not_symlink, old_file
+                    )
                     await self.hass.async_add_executor_job(os.remove, old_file)
                     _LOGGER.debug("Removed old archive: %s", old_file)
         except Exception as e:
@@ -359,6 +377,9 @@ class HistoryManager:
         try:
             self._conversation_history = []
             if await self._file_exists(self._history_file):
+                await self.hass.async_add_executor_job(
+                    _assert_not_symlink, self._history_file
+                )
                 await self.hass.async_add_executor_job(os.remove, self._history_file)
             _LOGGER.info("History for %s cleared", self.instance_name)
         except Exception as e:

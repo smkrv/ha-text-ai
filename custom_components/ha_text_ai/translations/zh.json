@@ -15,7 +15,8 @@
           "api_timeout": "API请求超时时间（5-600秒）",
           "context_messages": "保留的上下文消息数量（1-20）",
           "max_history_size": "最大对话历史大小（1-100）",
-          "allow_local_network": "允许本地网络端点（用于自托管代理）"
+          "allow_local_network": "允许本地网络端点（用于自托管代理）",
+          "disable_thinking": "禁用思考/推理模式（Qwen /no_think，移除 <think> 块，Gemini 2.5 thinking_budget=0）"
         }
       },
       "user": {
@@ -33,7 +34,8 @@
           "api_timeout": "API请求超时时间（5-600秒）",
           "context_messages": "保留的上下文消息数量（1-20）",
           "max_history_size": "最大对话历史大小（1-100）",
-          "allow_local_network": "允许本地网络端点（用于自托管代理）"
+          "allow_local_network": "允许本地网络端点（用于自托管代理）",
+          "disable_thinking": "禁用思考/推理模式（Qwen /no_think，移除 <think> 块，Gemini 2.5 thinking_budget=0）"
         }
       }
     },
@@ -86,7 +88,8 @@
           "api_timeout": "API请求超时时间（5-600秒）",
           "context_messages": "要包含在上下文中的先前消息数量（1-20）",
           "max_history_size": "最大对话历史大小（1-100）",
-          "allow_local_network": "允许本地网络端点（用于自托管代理）"
+          "allow_local_network": "允许本地网络端点（用于自托管代理）",
+          "disable_thinking": "禁用思考/推理模式（Qwen /no_think，移除 <think> 块，Gemini 2.5 thinking_budget=0）"
         }
       }
     }
@@ -141,6 +144,10 @@
         "json_schema": {
           "name": "JSON模式",
           "description": "定义预期响应结构的JSON模式。启用structured_output时必需。"
+        },
+        "disable_thinking": {
+          "name": "禁用思考",
+          "description": "为此请求禁用思考/推理模式。覆盖集成级别的设置。"
         }
       }
     },

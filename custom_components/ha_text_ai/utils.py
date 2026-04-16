@@ -1,7 +1,7 @@
 """
 Utility functions for HA Text AI integration.
 
-@license: PolyForm Noncommercial 1.0.0 (https://polyformproject.org/licenses/noncommercial/1.0.0)
+@license: MIT (https://opensource.org/licenses/MIT)
 @author: SMKRV
 @github: https://github.com/smkrv/ha-text-ai
 @source: https://github.com/smkrv/ha-text-ai
@@ -18,10 +18,19 @@ from homeassistant.core import HomeAssistant
 
 
 def normalize_name(name: str) -> str:
-    """Normalize name to conform to HA naming convention using underscores."""
+    """Normalize name to conform to HA naming convention using underscores.
+
+    If the input collapses to an empty string (all non-alphanumeric or
+    all underscores), fall back to a short hash of the original so that
+    downstream entity IDs never end with a trailing underscore.
+    """
     normalized = ''.join(c if c.isalnum() or c == '_' else '_' for c in name)
-    normalized = '_'.join(filter(None, normalized.split('_')))
-    return normalized.lower()
+    normalized = '_'.join(filter(None, normalized.split('_'))).lower()
+    if not normalized:
+        import hashlib
+        digest = hashlib.sha256(name.encode("utf-8", errors="replace")).hexdigest()[:8]
+        normalized = f"instance_{digest}"
+    return normalized
 
 
 def safe_log_data(

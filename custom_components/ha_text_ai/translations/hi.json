@@ -15,7 +15,8 @@
           "api_timeout": "एपीआई अनुरोध टाइमआउट सेकंड में (5-600)",
           "context_messages": "रखने के लिए संदर्भ संदेशों की संख्या (1-20)",
           "max_history_size": "अधिकतम बातचीत इतिहास आकार (1-100)",
-          "allow_local_network": "स्थानीय नेटवर्क एंडपॉइंट की अनुमति दें (सेल्फ-होस्टेड प्रॉक्सी के लिए)"
+          "allow_local_network": "स्थानीय नेटवर्क एंडपॉइंट की अनुमति दें (सेल्फ-होस्टेड प्रॉक्सी के लिए)",
+          "disable_thinking": "thinking/reasoning मोड बंद करें (Qwen /no_think, <think> ब्लॉक हटाता है, Gemini 2.5 thinking_budget=0)"
         }
       },
       "user": {
@@ -33,7 +34,8 @@
           "api_timeout": "एपीआई अनुरोध टाइमआउट सेकंड में (5-600)",
           "context_messages": "रखने के लिए संदर्भ संदेशों की संख्या (1-20)",
           "max_history_size": "अधिकतम बातचीत इतिहास आकार (1-100)",
-          "allow_local_network": "स्थानीय नेटवर्क एंडपॉइंट की अनुमति दें (सेल्फ-होस्टेड प्रॉक्सी के लिए)"
+          "allow_local_network": "स्थानीय नेटवर्क एंडपॉइंट की अनुमति दें (सेल्फ-होस्टेड प्रॉक्सी के लिए)",
+          "disable_thinking": "thinking/reasoning मोड बंद करें (Qwen /no_think, <think> ब्लॉक हटाता है, Gemini 2.5 thinking_budget=0)"
         }
       }
     },
@@ -86,7 +88,8 @@
           "api_timeout": "एपीआई अनुरोध टाइमआउट सेकंड में (5-600)",
           "context_messages": "संदर्भ में शामिल करने के लिए पिछले संदेशों की संख्या (1-20)",
           "max_history_size": "अधिकतम बातचीत इतिहास आकार (1-100)",
-          "allow_local_network": "स्थानीय नेटवर्क एंडपॉइंट की अनुमति दें (सेल्फ-होस्टेड प्रॉक्सी के लिए)"
+          "allow_local_network": "स्थानीय नेटवर्क एंडपॉइंट की अनुमति दें (सेल्फ-होस्टेड प्रॉक्सी के लिए)",
+          "disable_thinking": "thinking/reasoning मोड बंद करें (Qwen /no_think, <think> ब्लॉक हटाता है, Gemini 2.5 thinking_budget=0)"
         }
       }
     }
@@ -141,6 +144,10 @@
         "json_schema": {
           "name": "JSON स्कीमा",
           "description": "अपेक्षित प्रतिक्रिया की संरचना को परिभाषित करने वाला JSON स्कीमा। structured_output सक्षम होने पर आवश्यक।"
+        },
+        "disable_thinking": {
+          "name": "Thinking बंद करें",
+          "description": "इस अनुरोध के लिए thinking/reasoning मोड बंद करें। एकीकरण सेटिंग को ओवरराइड करता है।"
         }
       }
     },
