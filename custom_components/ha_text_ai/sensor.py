@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 import math
-from typing import Any, Dict
+from typing import Any
 from homeassistant.components.sensor import (
     SensorEntity,
     SensorEntityDescription,
@@ -78,7 +78,6 @@ _LOGGER = logging.getLogger(__name__)
 # Budget per field to stay well within the limit.
 _ATTR_TEXT_LIMIT = 2048
 _ATTR_PROMPT_LIMIT = 512
-
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -185,7 +184,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
                 return None
         return value
 
-    def _sanitize_attributes(self, attributes: Dict[str, Any]) -> Dict[str, Any]:
+    def _sanitize_attributes(self, attributes: dict[str, Any]) -> dict[str, Any]:
         """Sanitize all attributes for JSON serialization."""
         sanitized = {
             key: self._sanitize_value(value)
@@ -231,7 +230,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         return ENTITY_ICON
 
     @property
-    def extra_state_attributes(self) -> Dict[str, Any]:
+    def extra_state_attributes(self) -> dict[str, Any]:
         """Return entity specific state attributes."""
         if not self.coordinator.data:
             return {}

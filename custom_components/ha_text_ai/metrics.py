@@ -13,7 +13,7 @@ import logging
 import os
 import re
 import traceback
-from typing import Any, Dict
+from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
@@ -21,7 +21,7 @@ from homeassistant.util import dt as dt_util
 
 _LOGGER = logging.getLogger(__name__)
 
-DEFAULT_METRICS: Dict[str, Any] = {
+DEFAULT_METRICS: dict[str, Any] = {
     "total_tokens": 0,
     "prompt_tokens": 0,
     "completion_tokens": 0,
@@ -32,7 +32,6 @@ DEFAULT_METRICS: Dict[str, Any] = {
     "max_latency": 0,
     "min_latency": 0,
 }
-
 
 class MetricsManager:
     """Manages performance metrics for an instance."""
@@ -46,10 +45,10 @@ class MetricsManager:
         self.hass = hass
         self.instance_name = instance_name
         self._metrics_file = metrics_file
-        self._performance_metrics: Dict[str, Any] = DEFAULT_METRICS.copy()
+        self._performance_metrics: dict[str, Any] = DEFAULT_METRICS.copy()
 
     @property
-    def metrics(self) -> Dict[str, Any]:
+    def metrics(self) -> dict[str, Any]:
         return self._performance_metrics
 
     async def async_initialize(self) -> None:
@@ -57,7 +56,7 @@ class MetricsManager:
         loaded = await self._load_metrics()
         self._performance_metrics = loaded or DEFAULT_METRICS.copy()
 
-    async def _load_metrics(self) -> Dict[str, Any] | None:
+    async def _load_metrics(self) -> dict[str, Any] | None:
         try:
             exists = await self.hass.async_add_executor_job(
                 os.path.exists, self._metrics_file
@@ -108,7 +107,7 @@ class MetricsManager:
 
         await self._save_metrics()
 
-    async def get_current_metrics(self) -> Dict[str, Any]:
+    async def get_current_metrics(self) -> dict[str, Any]:
         """Get current performance metrics."""
         return self._performance_metrics.copy()
 
@@ -116,7 +115,7 @@ class MetricsManager:
         self,
         error: Exception,
         model: str,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Record an error in metrics and return error details."""
         self._performance_metrics["total_errors"] += 1
         self._performance_metrics["failed_requests"] += 1
@@ -146,7 +145,7 @@ class MetricsManager:
         if len(error_msg) > 256:
             error_msg = error_msg[:256] + "..."
 
-        error_details: Dict[str, Any] = {
+        error_details: dict[str, Any] = {
             "timestamp": dt_util.utcnow().isoformat(),
             "model": model,
             "instance": self.instance_name,

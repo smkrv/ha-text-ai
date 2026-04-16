@@ -12,7 +12,7 @@ import asyncio
 import logging
 import os
 from datetime import timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -39,7 +39,6 @@ from .metrics import MetricsManager
 from .utils import normalize_name
 
 _LOGGER = logging.getLogger(__name__)
-
 
 class HATextAICoordinator(DataUpdateCoordinator):
     """Home Assistant Text AI Conversation Coordinator."""
@@ -101,9 +100,9 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self._is_rate_limited = False
         self._is_maintenance = False
         self.endpoint_status = "ready"
-        self._system_prompt: Optional[str] = None
+        self._system_prompt: str | None = None
 
-        self._last_response: Dict[str, Any] = {
+        self._last_response: dict[str, Any] = {
             "timestamp": dt_util.utcnow().isoformat(),
             "question": "",
             "response": "",
@@ -132,7 +131,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
     # Convenience accessors for backward compatibility
     # ------------------------------------------------------------------
     @property
-    def _conversation_history(self) -> List[Dict[str, Any]]:
+    def _conversation_history(self) -> list[dict[str, Any]]:
         return self._history.conversation_history
 
     @property
@@ -155,12 +154,12 @@ class HATextAICoordinator(DataUpdateCoordinator):
     # Last response
     # ------------------------------------------------------------------
     @property
-    def last_response(self) -> Dict[str, Any]:
+    def last_response(self) -> dict[str, Any]:
         """Get the last response."""
         return self._last_response
 
     @last_response.setter
-    def last_response(self, value: Dict[str, Any]) -> None:
+    def last_response(self, value: dict[str, Any]) -> None:
         self._last_response = value
 
     # ------------------------------------------------------------------
@@ -173,7 +172,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         except Exception as err:
             _LOGGER.error("Error updating HA state for %s: %s", self.instance_name, err)
 
-    async def _async_update_data(self) -> Dict[str, Any]:
+    async def _async_update_data(self) -> dict[str, Any]:
         """Update coordinator data."""
         try:
             current_state = self._get_current_state()
@@ -209,14 +208,14 @@ class HATextAICoordinator(DataUpdateCoordinator):
     async def async_ask_question(
         self,
         question: str,
-        model: Optional[str] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        system_prompt: Optional[str] = None,
-        context_messages: Optional[int] = None,
+        model: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
+        system_prompt: str | None = None,
+        context_messages: int | None = None,
         structured_output: bool = False,
-        json_schema: Optional[str] = None,
-        disable_thinking: Optional[bool] = None,
+        json_schema: str | None = None,
+        disable_thinking: bool | None = None,
     ) -> dict:
         """Process question with context management."""
         if self.client is None:
@@ -279,11 +278,11 @@ class HATextAICoordinator(DataUpdateCoordinator):
         self,
         question: str,
         model: str,
-        messages: List[Dict[str, str]],
+        messages: list[dict[str, str]],
         temperature: float,
         max_tokens: int,
         structured_output: bool = False,
-        json_schema: Optional[str] = None,
+        json_schema: str | None = None,
         disable_thinking: bool = False,
     ) -> dict:
         """Send request to AI provider and return structured response.
@@ -348,12 +347,12 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
     async def async_get_history(
         self,
-        limit: Optional[int] = None,
-        filter_model: Optional[str] = None,
-        start_date: Optional[str] = None,
+        limit: int | None = None,
+        filter_model: str | None = None,
+        start_date: str | None = None,
         include_metadata: bool = False,
         sort_order: str = "newest",
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get conversation history with optional filtering."""
         return await self._history.async_get_history(
             limit=limit,
@@ -383,7 +382,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
             return STATE_ERROR
         return STATE_READY
 
-    def _get_safe_initial_state(self) -> Dict[str, Any]:
+    def _get_safe_initial_state(self) -> dict[str, Any]:
         return {
             "state": STATE_ERROR,
             "metrics": {},
@@ -403,7 +402,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
             "normalized_name": self.normalized_name,
         }
 
-    def _get_sanitized_last_response(self) -> Dict[str, Any]:
+    def _get_sanitized_last_response(self) -> dict[str, Any]:
         """Get sanitized version of last response with truncation."""
         response = self.last_response.copy()
 
@@ -422,7 +421,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
     def _calculate_uptime(self) -> float:
         return (dt_util.utcnow() - self._start_time).total_seconds()
 
-    def _get_truncated_system_prompt(self) -> Optional[str]:
+    def _get_truncated_system_prompt(self) -> str | None:
         if not self._system_prompt:
             return None
         if len(self._system_prompt) <= 4096:
@@ -430,7 +429,7 @@ class HATextAICoordinator(DataUpdateCoordinator):
         return self._system_prompt[:4096] + TRUNCATION_INDICATOR
 
     @staticmethod
-    def _validate_update_data(data: Dict[str, Any]) -> None:
+    def _validate_update_data(data: dict[str, Any]) -> None:
         for key in ("state", "metrics", "last_response"):
             if key not in data:
                 raise ValueError(f"Missing required key: {key}")

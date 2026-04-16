@@ -14,7 +14,7 @@ import os
 import shutil
 import traceback
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import aiofiles
 
@@ -34,7 +34,6 @@ MAX_ARCHIVE_FILES = 3
 
 _LOGGER = logging.getLogger(__name__)
 
-
 class AsyncFileHandler:
     """Async context manager for file operations."""
 
@@ -49,7 +48,6 @@ class AsyncFileHandler:
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         await self.file.close()
 
-
 def _assert_not_symlink(path: str) -> None:
     """Refuse to operate on a path that resolves to a symlink.
 
@@ -60,7 +58,6 @@ def _assert_not_symlink(path: str) -> None:
     """
     if os.path.islink(path):
         raise OSError(f"Refusing to operate on symlink: {path}")
-
 
 class HistoryManager:
     """Manages conversation history for an instance."""
@@ -84,10 +81,10 @@ class HistoryManager:
             history_dir, f"{normalized_name}_history.json"
         )
         self._max_history_file_size = MAX_HISTORY_FILE_SIZE
-        self._conversation_history: List[Dict[str, Any]] = []
+        self._conversation_history: list[dict[str, Any]] = []
 
     @property
-    def conversation_history(self) -> List[Dict[str, Any]]:
+    def conversation_history(self) -> list[dict[str, Any]]:
         return self._conversation_history
 
     @property
@@ -388,13 +385,13 @@ class HistoryManager:
 
     async def async_get_history(
         self,
-        limit: Optional[int] = None,
-        filter_model: Optional[str] = None,
-        start_date: Optional[str] = None,
+        limit: int | None = None,
+        filter_model: str | None = None,
+        start_date: str | None = None,
         include_metadata: bool = False,
         sort_order: str = "newest",
         default_model: str = "",
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Get conversation history with optional filtering and sorting."""
         try:
             history = self._conversation_history.copy()
@@ -425,8 +422,11 @@ class HistoryManager:
             else:
                 history.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
 
+            # Clamp limit to ABSOLUTE_MAX_HISTORY_SIZE to prevent pathological
+            # caller requests from producing multi-MB service payloads.
             if limit and limit > 0:
-                history = history[:limit]
+                effective_limit = min(int(limit), ABSOLUTE_MAX_HISTORY_SIZE)
+                history = history[:effective_limit]
 
             if include_metadata:
                 enriched = []
@@ -447,7 +447,7 @@ class HistoryManager:
             _LOGGER.error("Error getting history: %s", e)
             return []
 
-    def get_limited_history(self, max_display: int = 5) -> Dict[str, Any]:
+    def get_limited_history(self, max_display: int = 5) -> dict[str, Any]:
         """Get limited conversation history for sensor attributes.
 
         Returns last `max_display` entries with truncated text for HA state.

@@ -62,7 +62,6 @@ PROVIDER_REGISTRY: dict[str, dict[str, Any]] = {
     },
 }
 
-
 def get_provider_config(provider: str) -> dict[str, Any]:
     """Get full provider configuration.
 
@@ -73,16 +72,13 @@ def get_provider_config(provider: str) -> dict[str, Any]:
         raise ValueError(f"Unknown API provider: {provider}")
     return PROVIDER_REGISTRY[provider]
 
-
 def get_default_endpoint(provider: str) -> str:
     """Get default API endpoint for a provider."""
     return get_provider_config(provider)["default_endpoint"]
 
-
 def get_default_model(provider: str) -> str:
     """Get default model for a provider."""
     return get_provider_config(provider)["default_model"]
-
 
 def build_auth_headers(provider: str, api_key: str) -> dict[str, str]:
     """Build authentication headers for a provider."""

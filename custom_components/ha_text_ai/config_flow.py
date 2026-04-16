@@ -9,14 +9,13 @@ Config flow for HA text AI integration.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, Optional
+from typing import Any
 
 import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.const import CONF_API_KEY, CONF_NAME
 from homeassistant.core import callback
 from homeassistant.config_entries import ConfigFlowResult
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers import selector
 
 from .const import (
@@ -61,13 +60,17 @@ from .const import (
 )
 from homeassistant.util import dt as dt_util
 
-from .utils import normalize_name, safe_log_data, validate_endpoint
+from .utils import (
+    create_pinned_session,
+    normalize_name,
+    safe_log_data,
+    validate_endpoint,
+)
 from .providers import get_default_endpoint, get_default_model, build_auth_headers
 
 _LOGGER = logging.getLogger(__name__)
 
-
-def _build_parameter_schema(data: Dict[str, Any]) -> dict:
+def _build_parameter_schema(data: dict[str, Any]) -> dict:
     """Build shared parameter schema fields used by both ConfigFlow and OptionsFlow."""
     return {
         vol.Optional(
@@ -100,7 +103,6 @@ def _build_parameter_schema(data: Dict[str, Any]) -> dict:
         ): bool,
     }
 
-
 class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for HA text AI."""
 
@@ -112,7 +114,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._data = {}
         self._provider = None
 
-    async def async_step_user(self, user_input: Optional[Dict[str, Any]] = None) -> ConfigFlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle the initial step."""
         if user_input is None:
             return self.async_show_form(
@@ -131,7 +133,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return await self.async_step_provider()
 
     def _build_provider_schema(
-        self, data: Optional[Dict[str, Any]] = None
+        self, data: dict[str, Any] | None = None
     ) -> vol.Schema:
         """Build provider configuration schema with optional defaults from data."""
         defaults = data or {}
@@ -150,7 +152,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         schema_dict.update(_build_parameter_schema(defaults))
         return vol.Schema(schema_dict)
 
-    async def async_step_provider(self, user_input: Optional[Dict[str, Any]] = None) -> ConfigFlowResult:
+    async def async_step_provider(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle provider configuration step."""
         self._errors = {}
 
@@ -229,7 +231,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return normalized
 
-    async def _async_validate_api(self, user_input: Dict[str, Any]) -> bool:
+    async def _async_validate_api(self, user_input: dict[str, Any]) -> bool:
         """Validate API connection using provider registry."""
         try:
             if CONF_API_KEY not in user_input:
@@ -239,7 +241,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             try:
                 allow_local = user_input.get(CONF_ALLOW_LOCAL_NETWORK, DEFAULT_ALLOW_LOCAL_NETWORK)
-                endpoint = await validate_endpoint(
+                endpoint, resolved_ips = await validate_endpoint(
                     self.hass, user_input[CONF_API_ENDPOINT], allow_local=allow_local
                 )
             except ValueError as err:
@@ -253,7 +255,9 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     return False
                 return True
 
-            session = async_get_clientsession(self.hass)
+            # Pinned session ensures the reachability check goes to the same
+            # IP that will later be used by api_client (no DNS rebinding).
+            session = create_pinned_session(self.hass, endpoint, resolved_ips)
             headers = build_auth_headers(self._provider, user_input[CONF_API_KEY])
 
             from .providers import get_provider_config
@@ -274,7 +278,7 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._errors["base"] = "cannot_connect"
             return False
 
-    async def _create_entry(self, user_input: Dict[str, Any]) -> ConfigFlowResult:
+    async def _create_entry(self, user_input: dict[str, Any]) -> ConfigFlowResult:
         """Create the config entry with unique_id deduplication."""
         instance_name = user_input[CONF_NAME]
         normalized_name = normalize_name(instance_name)
@@ -314,7 +318,6 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Get the options flow for this handler."""
         return OptionsFlowHandler()
 
-
 class OptionsFlowHandler(config_entries.OptionsFlow):
     """Handle options flow."""
 
@@ -326,7 +329,9 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 return False
 
             try:
-                endpoint = await validate_endpoint(self.hass, endpoint, allow_local=allow_local)
+                endpoint, resolved_ips = await validate_endpoint(
+                    self.hass, endpoint, allow_local=allow_local
+                )
             except ValueError as err:
                 _LOGGER.error("Endpoint validation failed: %s", err)
                 self._errors["base"] = "cannot_connect"
@@ -335,7 +340,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             if provider == API_PROVIDER_GEMINI:
                 return True
 
-            session = async_get_clientsession(self.hass)
+            session = create_pinned_session(self.hass, endpoint, resolved_ips)
             headers = build_auth_headers(provider, api_key)
 
             from .providers import get_provider_config
@@ -356,11 +361,11 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             self._errors["base"] = "cannot_connect"
             return False
 
-    async def async_step_init(self, user_input: Optional[Dict[str, Any]] = None) -> ConfigFlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle provider selection step."""
         if not hasattr(self, "_errors"):
             self._errors: dict[str, str] = {}
-            self._selected_provider: Optional[str] = None
+            self._selected_provider: str | None = None
         current_data = {**self.config_entry.data, **self.config_entry.options}
         current_provider = current_data.get(CONF_API_PROVIDER, API_PROVIDER_OPENAI)
 
@@ -386,7 +391,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             }
         )
 
-    async def async_step_settings(self, user_input: Optional[Dict[str, Any]] = None) -> ConfigFlowResult:
+    async def async_step_settings(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Handle settings configuration step."""
         self._errors = {}
         current_data = {**self.config_entry.data, **self.config_entry.options}
@@ -477,8 +482,8 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     def _get_settings_schema(
         self,
         provider: str,
-        current_data: Dict[str, Any],
-        user_input: Optional[Dict[str, Any]],
+        current_data: dict[str, Any],
+        user_input: dict[str, Any] | None,
         default_endpoint: str,
         default_model: str,
     ) -> vol.Schema:

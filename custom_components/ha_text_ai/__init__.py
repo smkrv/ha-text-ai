@@ -9,7 +9,7 @@ The HA Text AI integration.
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict
+from typing import Any
 
 import asyncio
 
@@ -20,12 +20,11 @@ from homeassistant.const import CONF_API_KEY, CONF_NAME
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
-from homeassistant.helpers import aiohttp_client
 from homeassistant.util import dt as dt_util
 
 from .coordinator import HATextAICoordinator
 from .api_client import APIClient
-from .utils import normalize_name, safe_log_data, validate_endpoint
+from .utils import create_pinned_session, normalize_name, safe_log_data, validate_endpoint
 from .providers import get_default_endpoint, get_default_model, build_auth_headers
 from .const import (
     DOMAIN,
@@ -110,7 +109,7 @@ def get_coordinator_by_instance(hass: HomeAssistant, instance: str) -> HATextAIC
 
     raise HomeAssistantError(f"Instance {instance} not found")
 
-async def async_setup(hass: HomeAssistant, config: Dict[str, Any]) -> bool:
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the Home Assistant Text AI component."""
     # Initialize domain data storage
     hass.data.setdefault(DOMAIN, {})
@@ -274,22 +273,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             _LOGGER.error("API provider not specified")
             raise ConfigEntryNotReady("API provider is required")
 
-        session = aiohttp_client.async_get_clientsession(hass)
-
         model = config.get(CONF_MODEL, get_default_model(api_provider))
         raw_endpoint = config.get(CONF_API_ENDPOINT, get_default_endpoint(api_provider))
         allow_local = config.get(CONF_ALLOW_LOCAL_NETWORK, DEFAULT_ALLOW_LOCAL_NETWORK)
         if allow_local:
-            _LOGGER.warning(
+            _LOGGER.info(
                 "Local network mode enabled for endpoint %s — "
-                "SSRF protection disabled, API credentials may be sent without TLS",
+                "SSRF protection relaxed for self-hosted proxies",
                 raw_endpoint,
             )
         try:
-            endpoint = await validate_endpoint(hass, raw_endpoint, allow_local=allow_local)
+            endpoint, resolved_ips = await validate_endpoint(
+                hass, raw_endpoint, allow_local=allow_local
+            )
         except ValueError as err:
             _LOGGER.error("Invalid API endpoint: %s", err)
             raise ConfigEntryNotReady(f"Invalid API endpoint: {err}") from err
+
+        # Pinned session closes DNS-rebinding TOCTOU and isolates cookies
+        # from other integrations sharing the same endpoint hostname.
+        session = create_pinned_session(hass, endpoint, resolved_ips)
         # API key can now be updated via options
         api_key = config.get(CONF_API_KEY, entry.data.get(CONF_API_KEY))
         instance_name = entry.data.get(CONF_NAME, entry.entry_id)
@@ -362,7 +365,6 @@ async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Handle options update - reload the config entry."""
     _LOGGER.info("Options updated for %s, reloading integration", entry.title)
     await hass.config_entries.async_reload(entry.entry_id)
-
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
