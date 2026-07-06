@@ -46,6 +46,7 @@
       "name_exists": "具有此名称的实例已存在",
       "invalid_name": "无效的实例名称",
       "invalid_auth": "身份验证失败 - 检查您的API密钥",
+      "api_key_required": "更改提供商或端点时需要输入 API 密钥",
       "invalid_api_key": "无效的API密钥 - 请验证您的凭据",
       "cannot_connect": "无法连接到API服务",
       "invalid_model": "所选模型不可用",
@@ -59,7 +60,6 @@
       "invalid_instance": "指定的实例无效",
       "unknown": "发生意外错误",
       "empty": "名称不能为空",
-      "invalid_characters": "名称只能包含字母、数字、空格、下划线和连字符",
       "name_too_long": "名称必须少于50个字符"
     },
     "abort": {
@@ -218,8 +218,7 @@
           "rate_limited": "速率限制",
           "maintenance": "维护中",
           "initializing": "初始化中",
-          "retrying": "重试中",
-          "queued": "排队中"
+          "retrying": "重试中"
         },
         "state_attributes": {
           "question": {
@@ -311,6 +310,21 @@
           },
           "min_latency": {
             "name": "最小延迟"
+          },
+          "last_model": {
+            "name": "最近使用的模型"
+          },
+          "last_timestamp": {
+            "name": "最近响应时间"
+          },
+          "instance_name": {
+            "name": "实例名称"
+          },
+          "normalized_name": {
+            "name": "规范化名称"
+          },
+          "conversation_history": {
+            "name": "对话历史"
           }
         }
       }

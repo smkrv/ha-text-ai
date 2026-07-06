@@ -142,12 +142,16 @@ Transform your smart home experience with powerful AI assistance powered by mult
 - **Claude Haiku 4.5** - The fastest and most economical option in the series
 
 #### DeepSeek Models
-- **DeepSeek-V3** - A general-purpose model for a wide range of tasks
-- **DeepSeek-R1** - A specialized model focused on reasoning and coding
+- **deepseek-v4-flash** - A fast general-purpose model for a wide range of tasks (default)
+- **deepseek-v4-pro** - A more capable model for reasoning and coding
+
+> The legacy model names `deepseek-chat` and `deepseek-reasoner` stop working on 2026-07-24. If your instance still uses one of them, switch the model in the integration options.
 
 #### Google Gemini Models
-- **Gemini 3.1 Pro** - The newest and most advanced model available
-- **Gemini 3.1 Flash Lite** - Fastest and most cost-efficient model for high-volume workloads
+- **gemini-3.5-flash** - Fast and cost-efficient, suitable for most tasks (default)
+- **Gemini 3.1 Pro** - The most advanced Gemini model available
+
+> Google shut down `gemini-2.0-flash` on 2026-06-01 and retires the 2.5 family on 2026-10-16. If your instance uses one of those, switch the model in the integration options.
 
 <details>
 <summary>🌐 Potentially Compatible Providers</summary>
@@ -199,8 +203,8 @@ If the integration is not found in the default repository:
 5. Click "Download"
 
 ### Manual Installation
-1. Download the latest release
-2. Extract and copy `custom_components/ha_text_ai` to your `custom_components` directory
+1. Download `ha_text_ai.zip` from the latest release
+2. Extract the archive and copy the `ha_text_ai` folder into your `custom_components` directory
 3. Restart Home Assistant
 4. Add configuration via UI (Settings → Devices & Services → Add Integration)
 

@@ -21,7 +21,6 @@ from aiohttp.resolver import DefaultResolver
 
 from homeassistant.const import CONF_API_KEY
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -150,7 +149,6 @@ async def resolve_hostname_ips(
     return ips
 
 def create_pinned_session(
-    hass: HomeAssistant,
     endpoint: str,
     resolved_ips: list[str],
 ) -> aiohttp.ClientSession:
@@ -161,6 +159,13 @@ def create_pinned_session(
       rather than re-resolving the hostname on each request.
     - Cookie pollution: DummyCookieJar prevents cookies from leaking between
       this integration and other HA components sharing the same domain.
+
+    Built directly on aiohttp: HA's async_create_clientsession always
+    injects its own pooled connector and rejects a caller-supplied one,
+    so a custom resolver cannot go through the helper. The caller owns
+    the session and must close it. Requests must pass
+    allow_redirects=False so a 3xx response cannot route past the pinned
+    resolver to an unvalidated host.
     """
     parsed = urlparse(endpoint)
     hostname = (parsed.hostname or "").lower()
@@ -169,10 +174,9 @@ def create_pinned_session(
         hostname: [(ip, port) for ip in resolved_ips]
     }
     connector = aiohttp.TCPConnector(resolver=_PinnedResolver(pinned))
-    return async_create_clientsession(
-        hass,
-        cookie_jar=aiohttp.DummyCookieJar(),
+    return aiohttp.ClientSession(
         connector=connector,
+        cookie_jar=aiohttp.DummyCookieJar(),
     )
 
 async def validate_endpoint(

@@ -113,6 +113,9 @@ class APIClient:
                     json=payload,
                     headers=self.headers,
                     timeout=self.timeout,
+                    # The session pins DNS to validated IPs; following a
+                    # redirect would resolve a new host past that pin.
+                    allow_redirects=False,
                 ) as response:
                     _LOGGER.debug("Response status: %s", response.status)
                     if response.status == 200:
@@ -358,12 +361,18 @@ class APIClient:
         separate field alongside content. We skip the no_think append for
         this model and preserve reasoning_content in the response payload
         so it's available for logging/debug.
+
+        DeepSeek V4+ (deepseek-v4-flash/-pro) selects thinking mode via a
+        top-level "thinking" request parameter instead of the model name,
+        so /no_think does not apply there.
         """
         url = f"{self.endpoint}/chat/completions"
-        is_reasoner = "reasoner" in model.lower()
+        m_lower = model.lower()
+        is_reasoner = "reasoner" in m_lower
+        is_v4plus = re.search(r"deepseek-v[4-9]", m_lower) is not None
         final_messages = (
             self._apply_no_think_tag(messages)
-            if (disable_thinking and not is_reasoner)
+            if (disable_thinking and not is_reasoner and not is_v4plus)
             else messages
         )
         payload = {
@@ -373,6 +382,8 @@ class APIClient:
             "max_tokens": max_tokens,
             "stream": False,
         }
+        if disable_thinking and is_v4plus:
+            payload["thinking"] = {"type": "disabled"}
         self._apply_structured_output(payload, structured_output, json_schema)
 
         data = await self._make_request(url, payload)
@@ -627,15 +638,26 @@ class APIClient:
                     config.response_mime_type = "application/json"
                     config.response_schema = parsed_schema
 
-                # Disable thinking for Gemini 2.5+ models. Flash variants accept
-                # thinking_budget=0 (fully off); Pro variants reject 0 and require
-                # at least 128 tokens of thinking. 2.0 and earlier ignore the field.
+                # Disable thinking. Gemini 3.x+ replaced the numeric
+                # thinking_budget with a semantic thinking_level; Pro
+                # variants do not accept MINIMAL, their floor is LOW.
+                # Gemini 2.5: Flash accepts thinking_budget=0 (fully off),
+                # Pro rejects 0 and requires at least 128 tokens.
+                # 2.0 and earlier ignore the field.
                 if disable_thinking:
                     m_lower = model.lower()
-                    budget = 128 if "2.5-pro" in m_lower else 0
                     try:
-                        config.thinking_config = types.ThinkingConfig(thinking_budget=budget)
-                    except (AttributeError, TypeError) as err:
+                        if re.search(r"gemini-[3-9]", m_lower):
+                            level = "LOW" if "pro" in m_lower else "MINIMAL"
+                            config.thinking_config = types.ThinkingConfig(
+                                thinking_level=level
+                            )
+                        else:
+                            budget = 128 if "2.5-pro" in m_lower else 0
+                            config.thinking_config = types.ThinkingConfig(
+                                thinking_budget=budget
+                            )
+                    except (AttributeError, TypeError, ValueError) as err:
                         _LOGGER.debug(
                             "ThinkingConfig not supported by this google-genai version: %s", err
                         )
@@ -735,7 +757,11 @@ class APIClient:
             raise HomeAssistantError(f"Gemini API request failed: {e}") from e
 
     async def shutdown(self) -> None:
-        """Shutdown API client."""
+        """Shutdown API client and close its dedicated session."""
         _LOGGER.debug("Shutting down API client")
         self._closed = True
-        # Do NOT close the shared Home Assistant session
+        # The session is dedicated to this config entry (pinned resolver,
+        # isolated cookie jar), so it must be closed here to release the
+        # connector; nothing else owns it.
+        if self.session is not None and not self.session.closed:
+            await self.session.close()

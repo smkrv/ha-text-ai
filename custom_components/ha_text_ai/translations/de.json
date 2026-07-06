@@ -46,6 +46,7 @@
       "name_exists": "Eine Instanz mit diesem Namen existiert bereits",
       "invalid_name": "Ungültiger Instanzname",
       "invalid_auth": "Authentifizierung fehlgeschlagen - überprüfen Sie Ihren API-Schlüssel",
+      "api_key_required": "API-Schlüssel ist erforderlich, wenn Anbieter oder Endpunkt geändert wird",
       "invalid_api_key": "Ungültiger API-Schlüssel - bitte überprüfen Sie Ihre Anmeldeinformationen",
       "cannot_connect": "Verbindung zum API-Dienst fehlgeschlagen",
       "invalid_model": "Ausgewähltes Modell ist nicht verfügbar",
@@ -59,7 +60,6 @@
       "invalid_instance": "Ungültige Instanz angegeben",
       "unknown": "Unerwarteter Fehler aufgetreten",
       "empty": "Name darf nicht leer sein",
-      "invalid_characters": "Name darf nur Buchstaben, Zahlen, Leerzeichen, Unterstriche und Bindestriche enthalten",
       "name_too_long": "Name darf höchstens 50 Zeichen lang sein"
     },
     "abort": {
@@ -218,8 +218,7 @@
           "rate_limited": "Rate limitiert",
           "maintenance": "Wartung",
           "initializing": "Initialisierung",
-          "retrying": "Wiederholen",
-          "queued": "In der Warteschlange"
+          "retrying": "Wiederholen"
         },
         "state_attributes": {
           "question": {
@@ -311,6 +310,21 @@
           },
           "min_latency": {
             "name": "Minimale Latenz"
+          },
+          "last_model": {
+            "name": "Zuletzt verwendetes Modell"
+          },
+          "last_timestamp": {
+            "name": "Zeitpunkt der letzten Antwort"
+          },
+          "instance_name": {
+            "name": "Instanzname"
+          },
+          "normalized_name": {
+            "name": "Normalisierter Name"
+          },
+          "conversation_history": {
+            "name": "Konversationsverlauf"
           }
         }
       }

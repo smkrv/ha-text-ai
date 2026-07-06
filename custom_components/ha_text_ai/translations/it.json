@@ -46,6 +46,7 @@
       "name_exists": "Esiste già un'istanza con questo nome",
       "invalid_name": "Nome dell'istanza non valido",
       "invalid_auth": "Autenticazione fallita - controlla la tua chiave API",
+      "api_key_required": "La chiave API è obbligatoria quando si cambia provider o endpoint",
       "invalid_api_key": "Chiave API non valida - verifica le tue credenziali",
       "cannot_connect": "Impossibile connettersi al servizio API",
       "invalid_model": "Il modello selezionato non è disponibile",
@@ -59,7 +60,6 @@
       "invalid_instance": "Istanze specificata non valida",
       "unknown": "Si è verificato un errore imprevisto",
       "empty": "Il nome non può essere vuoto",
-      "invalid_characters": "Il nome può contenere solo lettere, numeri, spazi, trattini bassi e trattini",
       "name_too_long": "Il nome deve essere lungo 50 caratteri o meno"
     },
     "abort": {
@@ -218,8 +218,7 @@
           "rate_limited": "Limite di frequenza",
           "maintenance": "Manutenzione",
           "initializing": "Inizializzazione",
-          "retrying": "Riprova",
-          "queued": "In coda"
+          "retrying": "Riprova"
         },
         "state_attributes": {
           "question": {
@@ -311,6 +310,21 @@
           },
           "min_latency": {
             "name": "Latenza minima"
+          },
+          "last_model": {
+            "name": "Ultimo modello utilizzato"
+          },
+          "last_timestamp": {
+            "name": "Ora dell'ultima risposta"
+          },
+          "instance_name": {
+            "name": "Nome istanza"
+          },
+          "normalized_name": {
+            "name": "Nome normalizzato"
+          },
+          "conversation_history": {
+            "name": "Cronologia conversazione"
           }
         }
       }

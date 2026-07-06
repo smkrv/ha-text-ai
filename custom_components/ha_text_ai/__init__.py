@@ -80,8 +80,11 @@ SERVICE_SCHEMA_SET_SYSTEM_PROMPT = vol.Schema({
 
 SERVICE_SCHEMA_GET_HISTORY = vol.Schema({
     vol.Required("instance"): cv.string,
-    # Cap limit to protect automations from huge response payloads.
-    vol.Optional("limit", default=10): vol.All(cv.positive_int, vol.Range(min=1, max=100)),
+    # No default and no schema max: omitting limit returns the full history
+    # (pre-2.5.0 behavior) and oversized values are clamped to
+    # ABSOLUTE_MAX_HISTORY_SIZE in history.async_get_history instead of
+    # failing the whole service call.
+    vol.Optional("limit"): vol.All(cv.positive_int, vol.Range(min=1)),
     vol.Optional("filter_model"): cv.string,
     vol.Optional("start_date"): cv.string,
     vol.Optional("include_metadata"): cv.boolean,
@@ -244,7 +247,9 @@ async def async_check_api(session, endpoint: str, headers: dict, provider: str, 
         check_url = f"{endpoint}{check_path}"
 
         async with asyncio.timeout(api_timeout):
-            async with session.get(check_url, headers=headers) as response:
+            async with session.get(
+                check_url, headers=headers, allow_redirects=False
+            ) as response:
                 if response.status == 200:
                     return True
                 elif response.status == 401:
@@ -264,6 +269,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up HA Text AI from a config entry."""
     _LOGGER.debug("Setting up HA Text AI entry: %s", safe_log_data(dict(entry.data)))
 
+    session = None
     try:
         # Get provider from data or options (options takes precedence)
         config = {**entry.data, **entry.options}
@@ -292,7 +298,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # Pinned session closes DNS-rebinding TOCTOU and isolates cookies
         # from other integrations sharing the same endpoint hostname.
-        session = create_pinned_session(hass, endpoint, resolved_ips)
+        # The integration owns this session: APIClient.shutdown() closes it
+        # on unload, the except handler below closes it on failed setup.
+        session = create_pinned_session(endpoint, resolved_ips)
         # API key can now be updated via options
         api_key = config.get(CONF_API_KEY, entry.data.get(CONF_API_KEY))
         instance_name = entry.data.get(CONF_NAME, entry.entry_id)
@@ -359,6 +367,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     except Exception as err:
         _LOGGER.exception("Error setting up HA Text AI: %s", err)
+        if session is not None and not session.closed:
+            await session.close()
         raise
 
 async def async_update_options(hass: HomeAssistant, entry: ConfigEntry) -> None:

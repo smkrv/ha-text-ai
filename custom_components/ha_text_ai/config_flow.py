@@ -255,23 +255,28 @@ class HATextAIConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     return False
                 return True
 
-            # Pinned session ensures the reachability check goes to the same
-            # IP that will later be used by api_client (no DNS rebinding).
-            session = create_pinned_session(self.hass, endpoint, resolved_ips)
             headers = build_auth_headers(self._provider, user_input[CONF_API_KEY])
 
             from .providers import get_provider_config
             check_path = get_provider_config(self._provider).get("check_path", "/models")
             check_url = f"{endpoint}{check_path}"
 
-            async with session.get(check_url, headers=headers) as response:
-                if response.status == 401:
-                    self._errors["base"] = "invalid_auth"
-                    return False
-                elif response.status != 200:
-                    self._errors["base"] = "cannot_connect"
-                    return False
-                return True
+            # Pinned session ensures the reachability check goes to the same
+            # IP that will later be used by api_client (no DNS rebinding).
+            session = create_pinned_session(endpoint, resolved_ips)
+            try:
+                async with session.get(
+                    check_url, headers=headers, allow_redirects=False
+                ) as response:
+                    if response.status == 401:
+                        self._errors["base"] = "invalid_auth"
+                        return False
+                    elif response.status != 200:
+                        self._errors["base"] = "cannot_connect"
+                        return False
+                    return True
+            finally:
+                await session.close()
 
         except Exception as err:
             _LOGGER.error("API validation error: %s", str(err))
@@ -340,21 +345,26 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             if provider == API_PROVIDER_GEMINI:
                 return True
 
-            session = create_pinned_session(self.hass, endpoint, resolved_ips)
             headers = build_auth_headers(provider, api_key)
 
             from .providers import get_provider_config
             check_path = get_provider_config(provider).get("check_path", "/models")
             check_url = f"{endpoint}{check_path}"
 
-            async with session.get(check_url, headers=headers) as response:
-                if response.status == 401:
-                    self._errors["base"] = "invalid_auth"
-                    return False
-                elif response.status != 200:
-                    self._errors["base"] = "cannot_connect"
-                    return False
-                return True
+            session = create_pinned_session(endpoint, resolved_ips)
+            try:
+                async with session.get(
+                    check_url, headers=headers, allow_redirects=False
+                ) as response:
+                    if response.status == 401:
+                        self._errors["base"] = "invalid_auth"
+                        return False
+                    elif response.status != 200:
+                        self._errors["base"] = "cannot_connect"
+                        return False
+                    return True
+            finally:
+                await session.close()
 
         except Exception as err:
             _LOGGER.error("API validation error: %s", str(err))

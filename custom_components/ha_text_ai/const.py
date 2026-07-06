@@ -58,8 +58,11 @@ MAX_HISTORY_FILE_SIZE = 1 * 1024 * 1024
 # Default values
 DEFAULT_MODEL: Final = "gpt-4o-mini"
 DEFAULT_ANTHROPIC_MODEL: Final = "claude-sonnet-4-6"
-DEFAULT_DEEPSEEK_MODEL: Final = "deepseek-chat"
-DEFAULT_GEMINI_MODEL: Final = "gemini-2.0-flash"
+# deepseek-chat/deepseek-reasoner are discontinued 2026-07-24; V4 models
+# select thinking mode via a request parameter instead of the model name.
+DEFAULT_DEEPSEEK_MODEL: Final = "deepseek-v4-flash"
+# gemini-2.0-flash was shut down 2026-06-01; 2.5-flash follows 2026-10-16.
+DEFAULT_GEMINI_MODEL: Final = "gemini-3.5-flash"
 DEFAULT_TEMPERATURE: Final = 0.1
 DEFAULT_MAX_TOKENS: Final = 1000
 DEFAULT_REQUEST_INTERVAL: Final = 1.0
