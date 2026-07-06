@@ -116,6 +116,19 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the Home Assistant Text AI component."""
     # Initialize domain data storage
     hass.data.setdefault(DOMAIN, {})
+    _async_register_services(hass)
+    return True
+
+def _async_register_services(hass: HomeAssistant) -> None:
+    """Register domain services; safe to call again after unload.
+
+    Unloading the last config entry unregisters the services, and a config
+    entry reload (every options change does one) runs unload + setup_entry
+    without re-running async_setup — so setup_entry must be able to bring
+    the services back.
+    """
+    if hass.services.has_service(DOMAIN, SERVICE_ASK_QUESTION):
+        return
 
     async def async_ask_question(call: ServiceCall) -> dict:
         """Handle ask_question service with response data."""
@@ -171,17 +184,21 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
             _LOGGER.error("Error clearing history: %s", str(err))
             raise HomeAssistantError(f"Failed to clear history: {str(err)}") from err
 
-    async def async_get_history(call: ServiceCall) -> list:
+    async def async_get_history(call: ServiceCall) -> dict:
         """Handle get_history service."""
         try:
             coordinator = get_coordinator_by_instance(hass, call.data["instance"])
-            return await coordinator.async_get_history(
+            history = await coordinator.async_get_history(
                 limit=call.data.get("limit"),
                 filter_model=call.data.get("filter_model"),
                 start_date=call.data.get("start_date"),
                 include_metadata=call.data.get("include_metadata", False),
                 sort_order=call.data.get("sort_order", "newest")
             )
+            # HA requires action responses to be dicts. The bare list made
+            # every return_response call fail with a server error, so this
+            # path never worked before and the wrapper breaks no consumer.
+            return {"history": history}
         except Exception as err:
             _LOGGER.error("Error getting history: %s", str(err))
             raise HomeAssistantError(f"Failed to get history: {str(err)}") from err
@@ -225,8 +242,6 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         async_set_system_prompt,
         schema=SERVICE_SCHEMA_SET_SYSTEM_PROMPT
     )
-
-    return True
 
 async def async_check_api(session, endpoint: str, headers: dict, provider: str, api_timeout: int = DEFAULT_API_TIMEOUT) -> bool:
     """Check API availability using provider registry configuration."""
@@ -352,6 +367,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         # Store coordinator
         hass.data.setdefault(DOMAIN, {})
         hass.data[DOMAIN][entry.entry_id] = coordinator
+
+        # A reload after the last entry was unloaded needs the services back.
+        _async_register_services(hass)
 
         _LOGGER.debug("Stored coordinator in hass.data[%s][%s]", DOMAIN, entry.entry_id)
 

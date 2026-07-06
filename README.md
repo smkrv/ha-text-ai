@@ -283,12 +283,13 @@ data:
 ```yaml
 service: ha_text_ai.get_history
 data:
-  limit: 5  # optional, number of conversations to return (1-100)
+  limit: 5  # optional, number of conversations to return (values above 200 are clamped); omit to get the full stored history
   filter_model: "gpt-4o"  # optional, filter by specific AI model
   start_date: "2025-02-01"  # optional, filter conversations from this date
   include_metadata: false  # optional, include tokens, response time, etc.
   sort_order: "newest"  # optional, sort order: "newest" or "oldest"
   instance: sensor.ha_text_ai_gpt
+response_variable: history_result  # entries are in history_result.history
 ```
 
 ## 🚀 Advanced Automation Examples with Response Variables
