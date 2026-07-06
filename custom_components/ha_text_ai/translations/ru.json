@@ -16,7 +16,7 @@
           "context_messages": "Количество сохраняемых контекстных сообщений (1-20)",
           "max_history_size": "Максимальный размер истории разговора (1-100)",
           "allow_local_network": "Разрешить локальные сетевые адреса (для self-hosted прокси)",
-          "disable_thinking": "Отключить режим thinking/reasoning (Qwen /no_think, срезание блоков <think>, Gemini 2.5 thinking_budget=0)"
+          "disable_thinking": "Отключить режим thinking/reasoning (Qwen /no_think, срезание блоков think, Gemini 2.5 thinking_budget=0)"
         }
       },
       "user": {
@@ -35,7 +35,7 @@
           "context_messages": "Количество сохраняемых контекстных сообщений (1-20)",
           "max_history_size": "Максимальный размер истории разговора (1-100)",
           "allow_local_network": "Разрешить локальные сетевые адреса (для self-hosted прокси)",
-          "disable_thinking": "Отключить режим thinking/reasoning (Qwen /no_think, срезание блоков <think>, Gemini 2.5 thinking_budget=0)"
+          "disable_thinking": "Отключить режим thinking/reasoning (Qwen /no_think, срезание блоков think, Gemini 2.5 thinking_budget=0)"
         }
       }
     },
@@ -89,7 +89,7 @@
           "context_messages": "Количество предыдущих сообщений для включения в контекст (1-20)",
           "max_history_size": "Максимальный размер истории разговора (1-100)",
           "allow_local_network": "Разрешить локальные сетевые адреса (для self-hosted прокси)",
-          "disable_thinking": "Отключить режим thinking/reasoning (Qwen /no_think, срезание блоков <think>, Gemini 2.5 thinking_budget=0)"
+          "disable_thinking": "Отключить режим thinking/reasoning (Qwen /no_think, срезание блоков think, Gemini 2.5 thinking_budget=0)"
         }
       }
     }

@@ -16,7 +16,7 @@
           "context_messages": "Број контекстуалних порука које треба задржати (1-20)",
           "max_history_size": "Максимална величина историје разговора (1-100)",
           "allow_local_network": "Дозволи локалне мрежне адресе (за self-hosted проксије)",
-          "disable_thinking": "Онемогући thinking/reasoning режим (Qwen /no_think, уклања <think> блокове, Gemini 2.5 thinking_budget=0)"
+          "disable_thinking": "Онемогући thinking/reasoning режим (Qwen /no_think, уклања think блокове, Gemini 2.5 thinking_budget=0)"
         }
       },
       "user": {
@@ -35,7 +35,7 @@
           "context_messages": "Број контекстуалних порука које треба задржати (1-20)",
           "max_history_size": "Максимална величина историје разговора (1-100)",
           "allow_local_network": "Дозволи локалне мрежне адресе (за self-hosted проксије)",
-          "disable_thinking": "Онемогући thinking/reasoning режим (Qwen /no_think, уклања <think> блокове, Gemini 2.5 thinking_budget=0)"
+          "disable_thinking": "Онемогући thinking/reasoning режим (Qwen /no_think, уклања think блокове, Gemini 2.5 thinking_budget=0)"
         }
       }
     },
@@ -89,7 +89,7 @@
           "context_messages": "Број претходних порука које треба укључити у контекст (1-20)",
           "max_history_size": "Максимална величина историје разговора (1-100)",
           "allow_local_network": "Дозволи локалне мрежне адресе (за self-hosted проксије)",
-          "disable_thinking": "Онемогући thinking/reasoning режим (Qwen /no_think, уклања <think> блокове, Gemini 2.5 thinking_budget=0)"
+          "disable_thinking": "Онемогући thinking/reasoning режим (Qwen /no_think, уклања think блокове, Gemini 2.5 thinking_budget=0)"
         }
       }
     }

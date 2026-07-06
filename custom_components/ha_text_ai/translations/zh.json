@@ -16,7 +16,7 @@
           "context_messages": "保留的上下文消息数量（1-20）",
           "max_history_size": "最大对话历史大小（1-100）",
           "allow_local_network": "允许本地网络端点（用于自托管代理）",
-          "disable_thinking": "禁用思考/推理模式（Qwen /no_think，移除 <think> 块，Gemini 2.5 thinking_budget=0）"
+          "disable_thinking": "禁用思考/推理模式（Qwen /no_think，移除 think 块，Gemini 2.5 thinking_budget=0）"
         }
       },
       "user": {
@@ -35,7 +35,7 @@
           "context_messages": "保留的上下文消息数量（1-20）",
           "max_history_size": "最大对话历史大小（1-100）",
           "allow_local_network": "允许本地网络端点（用于自托管代理）",
-          "disable_thinking": "禁用思考/推理模式（Qwen /no_think，移除 <think> 块，Gemini 2.5 thinking_budget=0）"
+          "disable_thinking": "禁用思考/推理模式（Qwen /no_think，移除 think 块，Gemini 2.5 thinking_budget=0）"
         }
       }
     },
@@ -89,7 +89,7 @@
           "context_messages": "要包含在上下文中的先前消息数量（1-20）",
           "max_history_size": "最大对话历史大小（1-100）",
           "allow_local_network": "允许本地网络端点（用于自托管代理）",
-          "disable_thinking": "禁用思考/推理模式（Qwen /no_think，移除 <think> 块，Gemini 2.5 thinking_budget=0）"
+          "disable_thinking": "禁用思考/推理模式（Qwen /no_think，移除 think 块，Gemini 2.5 thinking_budget=0）"
         }
       }
     }

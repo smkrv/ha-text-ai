@@ -16,7 +16,7 @@
           "context_messages": "रखने के लिए संदर्भ संदेशों की संख्या (1-20)",
           "max_history_size": "अधिकतम बातचीत इतिहास आकार (1-100)",
           "allow_local_network": "स्थानीय नेटवर्क एंडपॉइंट की अनुमति दें (सेल्फ-होस्टेड प्रॉक्सी के लिए)",
-          "disable_thinking": "thinking/reasoning मोड बंद करें (Qwen /no_think, <think> ब्लॉक हटाता है, Gemini 2.5 thinking_budget=0)"
+          "disable_thinking": "thinking/reasoning मोड बंद करें (Qwen /no_think, think ब्लॉक हटाता है, Gemini 2.5 thinking_budget=0)"
         }
       },
       "user": {
@@ -35,7 +35,7 @@
           "context_messages": "रखने के लिए संदर्भ संदेशों की संख्या (1-20)",
           "max_history_size": "अधिकतम बातचीत इतिहास आकार (1-100)",
           "allow_local_network": "स्थानीय नेटवर्क एंडपॉइंट की अनुमति दें (सेल्फ-होस्टेड प्रॉक्सी के लिए)",
-          "disable_thinking": "thinking/reasoning मोड बंद करें (Qwen /no_think, <think> ब्लॉक हटाता है, Gemini 2.5 thinking_budget=0)"
+          "disable_thinking": "thinking/reasoning मोड बंद करें (Qwen /no_think, think ब्लॉक हटाता है, Gemini 2.5 thinking_budget=0)"
         }
       }
     },
@@ -89,7 +89,7 @@
           "context_messages": "संदर्भ में शामिल करने के लिए पिछले संदेशों की संख्या (1-20)",
           "max_history_size": "अधिकतम बातचीत इतिहास आकार (1-100)",
           "allow_local_network": "स्थानीय नेटवर्क एंडपॉइंट की अनुमति दें (सेल्फ-होस्टेड प्रॉक्सी के लिए)",
-          "disable_thinking": "thinking/reasoning मोड बंद करें (Qwen /no_think, <think> ब्लॉक हटाता है, Gemini 2.5 thinking_budget=0)"
+          "disable_thinking": "thinking/reasoning मोड बंद करें (Qwen /no_think, think ब्लॉक हटाता है, Gemini 2.5 thinking_budget=0)"
         }
       }
     }

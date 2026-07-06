@@ -16,7 +16,7 @@
           "context_messages": "Number of context messages to retain (1-20)",
           "max_history_size": "Maximum conversation history size (1-100)",
           "allow_local_network": "Allow local network endpoints (for self-hosted proxies)",
-          "disable_thinking": "Disable thinking/reasoning mode (Qwen /no_think, strips <think> blocks, Gemini 2.5 thinking_budget=0)"
+          "disable_thinking": "Disable thinking/reasoning mode (Qwen /no_think, strips think blocks, Gemini 2.5 thinking_budget=0)"
         }
       },
       "user": {
@@ -35,7 +35,7 @@
           "context_messages": "Number of context messages to retain (1-20)",
           "max_history_size": "Maximum conversation history size (1-100)",
           "allow_local_network": "Allow local network endpoints (for self-hosted proxies)",
-          "disable_thinking": "Disable thinking/reasoning mode (Qwen /no_think, strips <think> blocks, Gemini 2.5 thinking_budget=0)"
+          "disable_thinking": "Disable thinking/reasoning mode (Qwen /no_think, strips think blocks, Gemini 2.5 thinking_budget=0)"
         }
       }
     },
@@ -89,7 +89,7 @@
           "context_messages": "Number of previous messages to include in context (1-20)",
           "max_history_size": "Maximum conversation history size (1-100)",
           "allow_local_network": "Allow local network endpoints (for self-hosted proxies)",
-          "disable_thinking": "Disable thinking/reasoning mode (Qwen /no_think, strips <think> blocks, Gemini 2.5 thinking_budget=0)"
+          "disable_thinking": "Disable thinking/reasoning mode (Qwen /no_think, strips think blocks, Gemini 2.5 thinking_budget=0)"
         }
       }
     }

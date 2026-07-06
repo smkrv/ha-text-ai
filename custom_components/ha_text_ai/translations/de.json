@@ -16,7 +16,7 @@
           "context_messages": "Anzahl der zu behaltenden Kontextnachrichten (1-20)",
           "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)",
           "allow_local_network": "Lokale Netzwerkendpunkte erlauben (für selbst gehostete Proxys)",
-          "disable_thinking": "Thinking/Reasoning-Modus deaktivieren (Qwen /no_think, <think>-Blöcke entfernen, Gemini 2.5 thinking_budget=0)"
+          "disable_thinking": "Thinking/Reasoning-Modus deaktivieren (Qwen /no_think, think-Blöcke entfernen, Gemini 2.5 thinking_budget=0)"
         }
       },
       "user": {
@@ -35,7 +35,7 @@
           "context_messages": "Anzahl der zu behaltenden Kontextnachrichten (1-20)",
           "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)",
           "allow_local_network": "Lokale Netzwerkendpunkte erlauben (für selbst gehostete Proxys)",
-          "disable_thinking": "Thinking/Reasoning-Modus deaktivieren (Qwen /no_think, <think>-Blöcke entfernen, Gemini 2.5 thinking_budget=0)"
+          "disable_thinking": "Thinking/Reasoning-Modus deaktivieren (Qwen /no_think, think-Blöcke entfernen, Gemini 2.5 thinking_budget=0)"
         }
       }
     },
@@ -89,7 +89,7 @@
           "context_messages": "Anzahl der vorherigen Nachrichten, die im Kontext enthalten sein sollen (1-20)",
           "max_history_size": "Maximale Größe des Gesprächsverlaufs (1-100)",
           "allow_local_network": "Lokale Netzwerkendpunkte erlauben (für selbst gehostete Proxys)",
-          "disable_thinking": "Thinking/Reasoning-Modus deaktivieren (Qwen /no_think, <think>-Blöcke entfernen, Gemini 2.5 thinking_budget=0)"
+          "disable_thinking": "Thinking/Reasoning-Modus deaktivieren (Qwen /no_think, think-Blöcke entfernen, Gemini 2.5 thinking_budget=0)"
         }
       }
     }
