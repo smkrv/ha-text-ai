@@ -16,7 +16,7 @@ import asyncio
 import voluptuous as vol
 
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CONF_API_KEY, CONF_NAME
+from homeassistant.const import CONF_API_KEY, CONF_NAME, EVENT_HOMEASSISTANT_CLOSE
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
@@ -378,6 +378,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         # Register update listener for options changes
         entry.async_on_unload(entry.add_update_listener(async_update_options))
+
+        # HA Core stop does not unload entries, so close the dedicated
+        # session on the CLOSE event too; unload removes this listener
+        # and closes the session via APIClient.shutdown() instead.
+        async def _async_close_session_on_stop(_event) -> None:
+            if not session.closed:
+                await session.close()
+
+        entry.async_on_unload(
+            hass.bus.async_listen_once(
+                EVENT_HOMEASSISTANT_CLOSE, _async_close_session_on_stop
+            )
+        )
 
         _LOGGER.debug("Setup completed for %s", instance_name)
 

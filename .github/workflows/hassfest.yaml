@@ -35,11 +35,6 @@ jobs:
       - name: Run hassfest validation
         uses: home-assistant/actions/hassfest@master
 
-      - name: Print hassfest version
-        if: always()
-        run: |
-          echo "Hassfest version: $(hassfest --version)"
-
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: true

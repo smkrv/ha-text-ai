@@ -17,7 +17,6 @@ from urllib.parse import urlparse
 
 import aiohttp
 from aiohttp.abc import AbstractResolver
-from aiohttp.resolver import DefaultResolver
 
 from homeassistant.const import CONF_API_KEY
 from homeassistant.core import HomeAssistant
@@ -86,10 +85,8 @@ class _PinnedResolver(AbstractResolver):
     def __init__(
         self,
         pinned: dict[str, list[tuple[str, int]]],
-        fallback: AbstractResolver | None = None,
     ) -> None:
         self._pinned = pinned
-        self._fallback = fallback or DefaultResolver()
 
     async def resolve(
         self,
@@ -99,7 +96,11 @@ class _PinnedResolver(AbstractResolver):
     ) -> list[dict[str, Any]]:
         entries = self._pinned.get(host.lower())
         if entries is None:
-            return await self._fallback.resolve(host, port, family)
+            # Every request on a pinned session must target the validated
+            # host. Resolving anything else means a request escaped the pin
+            # (a new call site or a config bug) — fail closed rather than
+            # fall back to live, unvalidated DNS.
+            raise OSError(f"Refusing to resolve unpinned host: {host}")
         return [
             {
                 "hostname": host,
@@ -113,7 +114,7 @@ class _PinnedResolver(AbstractResolver):
         ]
 
     async def close(self) -> None:
-        await self._fallback.close()
+        """Nothing to close; the resolver holds only the pinned map."""
 
 def _family_for(ip: str) -> int:
     """Return AF_INET or AF_INET6 based on the IP literal."""
