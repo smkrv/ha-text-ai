@@ -27,6 +27,7 @@ Thumbs.db
 .storage/
 
 # Claude Code working files
+handoff.*.md
 CLAUDE.md
 AGENTS.md
 GEMINI.md
