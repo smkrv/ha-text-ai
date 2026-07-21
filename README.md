@@ -148,6 +148,41 @@ If the integration is not found in the default repository:
 
 > **Note:** This integration is configured exclusively through the UI (config entries). YAML configuration is not supported.
 
+## Quick Start
+
+After configuration you get one entity per instance, named `sensor.ha_text_ai_<name>`. It is a status sensor: it shows the last response and usage metrics, but you don't type questions into it. Questions go through the `ha_text_ai.ask_question` action, called from Developer Tools, automations, or scripts.
+
+### First question, no YAML
+
+1. Open Developer Tools > Actions (called "Services" in older HA versions).
+2. Search for "HA Text AI: Ask Question".
+3. Pick your instance, type a question, press "Perform action".
+4. The response appears below the form.
+
+### In an automation
+
+1. Go to Settings > Automations & scenes > Create automation.
+2. Add a trigger: a button press, a time, a state change.
+3. Add action > search "HA Text AI: Ask Question" > fill in the question and pick your instance.
+4. To use the reply in a follow-up step, the action needs `response_variable: ai_response`. If the visual editor doesn't show a field for it, open the three-dot menu on that action, choose "Edit in YAML", and add the line at the end.
+5. In the next action, `{{ ai_response.response_text }}` holds the full answer, for example as a notification message.
+
+Complete working automations: [Automation Examples](#automation-examples-with-response-variables).
+
+### On a dashboard
+
+The sensor keeps the last question and answer as attributes, so a Markdown card can show them:
+
+```yaml
+type: markdown
+content: >-
+  **Q:** {{ state_attr('sensor.ha_text_ai_my_assistant', 'question') }}
+
+  **A:** {{ state_attr('sensor.ha_text_ai_my_assistant', 'response') }}
+```
+
+The attributes fill in after the first question. They are capped at 2048 characters, so long answers come back complete only via `response_variable`.
+
 ## Available Services
 
 ### Response Variables
