@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
@@ -112,12 +112,18 @@ class HATextAICoordinator(DataUpdateCoordinator):
             "error": None,
         }
 
+        # always_update=False: listeners (the sensor) are notified only when
+        # the data dict changes. Every notification ends in a state write, and
+        # every state write with different attributes costs a recorder row plus
+        # a copy of all attributes, so the dict must stay stable between
+        # requests (issue #14). No per-tick values belong in it.
         super().__init__(
             hass,
             _LOGGER,
             name=instance_name,
             update_interval=timedelta(seconds=update_interval),
             config_entry=config_entry,
+            always_update=False,
         )
 
         self.available = True
@@ -137,6 +143,20 @@ class HATextAICoordinator(DataUpdateCoordinator):
     @property
     def max_history_size(self) -> int:
         return self._history.max_history_size
+
+    @property
+    def start_time(self) -> datetime:
+        """UTC time this coordinator was created."""
+        return self._start_time
+
+    @property
+    def uptime(self) -> float:
+        """Seconds since the coordinator was created.
+
+        Not part of the coordinator data on purpose: a value that changes on
+        every poll would make every poll a state write.
+        """
+        return (dt_util.utcnow() - self._start_time).total_seconds()
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -187,7 +207,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 "is_rate_limited": self._is_rate_limited,
                 "is_maintenance": self._is_maintenance,
                 "endpoint_status": self.endpoint_status,
-                "uptime": self._calculate_uptime(),
                 "system_prompt": self._get_truncated_system_prompt(),
                 "history_size": self._history.history_size,
                 "conversation_history": history_data["entries"],
@@ -391,7 +410,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
             "is_rate_limited": False,
             "is_maintenance": False,
             "endpoint_status": "error",
-            "uptime": self._calculate_uptime(),
             "system_prompt": None,
             "history_size": 0,
             "conversation_history": [],
@@ -417,9 +435,6 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 response[f"full_{field}_length"] = len(original)
 
         return response
-
-    def _calculate_uptime(self) -> float:
-        return (dt_util.utcnow() - self._start_time).total_seconds()
 
     def _get_truncated_system_prompt(self) -> str | None:
         if not self._system_prompt:

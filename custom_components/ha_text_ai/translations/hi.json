@@ -287,6 +287,9 @@
           "uptime": {
             "name": "अपटाइम"
           },
+          "started_at": {
+            "name": "प्रारंभ समय"
+          },
           "total_tokens": {
             "name": "कुल टोकन"
           },

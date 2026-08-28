@@ -455,9 +455,9 @@ automation:
 - **Performance metrics**: request success/failure counters and latency statistics
 - **Token usage**: total, prompt and completion token counters as reported by the provider's API
 - **Last interaction**: most recent question, response and timestamp
-- **System health**: error counter, maintenance flag, uptime
+- **System health**: error counter, maintenance flag, uptime and start time
 
-Attributes may be 0 or empty until the first request completes.
+Attributes may be 0 or empty until the first request completes. The sensor writes a new state only when a request starts or finishes, history is cleared or the system prompt changes, so it adds nothing to the recorder database between requests.
 
 <details>
 <summary>Detailed Sensor Attributes</summary>
@@ -539,8 +539,17 @@ Attributes may be 0 or empty until the first request completes.
 # Maintenance flag
 {{ state_attr('sensor.ha_text_ai_gpt', 'is_maintenance') }}  # false
 
-# Seconds since the integration instance was set up
+# Seconds since the instance was set up, as of the last state write. Reads 0
+# after a restart or an options change until the first request and does not
+# tick between requests; homeassistant.update_entity refreshes it on demand
+# (one recorder row per call). For a live figure use started_at.
 {{ state_attr('sensor.ha_text_ai_gpt', 'uptime') }}          # 547.58
+
+# UTC time the instance was set up (resets on HA restart or entry reload)
+{{ state_attr('sensor.ha_text_ai_gpt', 'started_at') }}      # 2026-08-28T20:15:03.876332+00:00
+
+# Live uptime in seconds
+{{ (now() - as_datetime(state_attr('sensor.ha_text_ai_gpt', 'started_at'))).total_seconds() }}
 ```
 
 ### History Storage

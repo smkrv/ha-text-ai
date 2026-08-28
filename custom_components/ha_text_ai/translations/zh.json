@@ -287,6 +287,9 @@
           "uptime": {
             "name": "正常运行时间"
           },
+          "started_at": {
+            "name": "启动时间"
+          },
           "total_tokens": {
             "name": "总标记数"
           },

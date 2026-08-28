@@ -287,6 +287,9 @@
           "uptime": {
             "name": "Tiempo de Actividad"
           },
+          "started_at": {
+            "name": "Iniciado el"
+          },
           "total_tokens": {
             "name": "Total de Tokens"
           },

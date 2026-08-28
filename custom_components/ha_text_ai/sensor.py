@@ -41,6 +41,7 @@ from .const import (
     ATTR_PERFORMANCE_METRICS,
     ATTR_HISTORY_SIZE,
     ATTR_UPTIME,
+    ATTR_STARTED_AT,
     ATTR_API_PROVIDER,
     ATTR_MODEL,
     ATTR_SYSTEM_PROMPT,
@@ -78,6 +79,14 @@ _LOGGER = logging.getLogger(__name__)
 # Budget per field to stay well within the limit.
 _ATTR_TEXT_LIMIT = 2048
 _ATTR_PROMPT_LIMIT = 512
+
+# The attribute dict must be a pure function of the coordinator data. HA skips
+# a write whose state and attributes equal the previous ones, and the recorder
+# shares identical attribute sets between rows; any value that changes on its
+# own (a clock, a counter) turns every write into a new states row plus a
+# ~4 KB attributes row - that is what filled a 4 GB database in issue #14.
+# `uptime` is therefore a snapshot taken in _handle_coordinator_update, and
+# `started_at` is the stable anchor for a live figure.
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -151,14 +160,22 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._last_response = {}
         self._metrics = {}
 
-        model = config_entry.data.get(CONF_MODEL, "Unknown")
-        api_provider = config_entry.data.get(CONF_API_PROVIDER, "Unknown")
+        # Options override entry data; the entry is reloaded on every options
+        # change, so reading them once here is enough.
+        config = {**config_entry.data, **config_entry.options}
+        self._model = config.get(CONF_MODEL, "Unknown")
+        self._api_provider = config.get(CONF_API_PROVIDER, "Unknown")
+
+        # Snapshots refreshed only in _handle_coordinator_update (see the
+        # note above _ATTR_TEXT_LIMIT).
+        self._uptime = 0.0
+        self._started_at = coordinator.start_time.isoformat()
 
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self._attr_unique_id)},
             name=self._attr_name,
             manufacturer="Community",
-            model=f"{model} ({api_provider} provider)",
+            model=f"{self._model} ({self._api_provider} provider)",
             sw_version=VERSION,
             entry_type=DeviceEntryType.SERVICE,
         )
@@ -241,8 +258,8 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
 
             # Base attributes
             attributes = {
-                ATTR_MODEL: self._config_entry.data.get(CONF_MODEL, "Unknown"),
-                ATTR_API_PROVIDER: self._config_entry.data.get(CONF_API_PROVIDER, "Unknown"),
+                ATTR_MODEL: self._model,
+                ATTR_API_PROVIDER: self._api_provider,
                 ATTR_TOTAL_ERRORS: metrics.get("total_errors", 0),
                 "instance_name": self._instance_name,
                 "normalized_name": self._normalized_name,
@@ -252,7 +269,8 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
                 ATTR_IS_RATE_LIMITED: data.get("is_rate_limited", False),
                 ATTR_IS_MAINTENANCE: data.get("is_maintenance", False),
                 ATTR_ENDPOINT_STATUS: data.get("endpoint_status", "unknown"),
-                ATTR_UPTIME: round(data.get("uptime", 0), 2),
+                ATTR_UPTIME: self._uptime,
+                ATTR_STARTED_AT: self._started_at,
                 ATTR_HISTORY_SIZE: data.get("history_size", 0),
             }
 
@@ -307,8 +325,19 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._handle_coordinator_update()
         _LOGGER.debug("Entity %s added to Home Assistant", self.entity_id)
 
+    async def async_update(self) -> None:
+        """Refresh the uptime snapshot on an explicit update request.
+
+        Reached only through homeassistant.update_entity (and once at add
+        time); the coordinator poll never calls this, so background polls
+        still write nothing. One recorder row per explicit call.
+        """
+        self._uptime = round(self.coordinator.uptime, 2)
+        await super().async_update()
+
     def _handle_coordinator_update(self) -> None:
         """Handle updated data from the coordinator."""
+        self._uptime = round(self.coordinator.uptime, 2)
         try:
             data = self.coordinator.data
             if not self.coordinator.last_update_success or not data:

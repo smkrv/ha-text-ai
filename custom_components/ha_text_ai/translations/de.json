@@ -287,6 +287,9 @@
           "uptime": {
             "name": "Betriebszeit"
           },
+          "started_at": {
+            "name": "Gestartet am"
+          },
           "total_tokens": {
             "name": "Gesamte Tokens"
           },

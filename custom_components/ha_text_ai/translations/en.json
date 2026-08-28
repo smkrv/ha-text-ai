@@ -287,6 +287,9 @@
           "uptime": {
             "name": "Uptime"
           },
+          "started_at": {
+            "name": "Started At"
+          },
           "total_tokens": {
             "name": "Total Tokens"
           },

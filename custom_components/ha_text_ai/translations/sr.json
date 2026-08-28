@@ -287,6 +287,9 @@
           "uptime": {
             "name": "Уптиме"
           },
+          "started_at": {
+            "name": "Покренуто"
+          },
           "total_tokens": {
             "name": "Укупно токена"
           },

@@ -29,7 +29,7 @@ API_PROVIDERS: Final = [
     API_PROVIDER_GEMINI
 ]
 
-VERSION: Final = "2.5.1"
+VERSION: Final = "2.5.2"
 
 # Default endpoints
 DEFAULT_OPENAI_ENDPOINT: Final = "https://api.openai.com/v1"
@@ -126,6 +126,7 @@ ATTR_ENDPOINT_STATUS: Final = "endpoint_status"
 ATTR_PERFORMANCE_METRICS: Final = "performance_metrics"
 ATTR_HISTORY_SIZE: Final = "history_size"
 ATTR_UPTIME: Final = "uptime"
+ATTR_STARTED_AT: Final = "started_at"
 ATTR_API_PROVIDER: Final = "api_provider"
 ATTR_METRICS: Final = "metrics"
 ATTR_STATE: Final = "state"
