@@ -22,23 +22,16 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
-from homeassistant.util import slugify
 
 from .const import (
     DOMAIN,
     CONF_MODEL,
     CONF_API_PROVIDER,
-    ATTR_TOTAL_RESPONSES,
     ATTR_TOTAL_ERRORS,
-    ATTR_AVG_RESPONSE_TIME,
-    ATTR_LAST_REQUEST_TIME,
-    ATTR_LAST_ERROR,
     ATTR_IS_PROCESSING,
     ATTR_IS_RATE_LIMITED,
     ATTR_IS_MAINTENANCE,
-    ATTR_API_VERSION,
     ATTR_ENDPOINT_STATUS,
-    ATTR_PERFORMANCE_METRICS,
     ATTR_HISTORY_SIZE,
     ATTR_UPTIME,
     ATTR_STARTED_AT,
@@ -65,8 +58,6 @@ from .const import (
     ENTITY_ICON,
     ENTITY_ICON_ERROR,
     ENTITY_ICON_PROCESSING,
-    DEFAULT_NAME_PREFIX,
-    CONF_MAX_HISTORY_SIZE,
     VERSION,
 )
 
@@ -138,8 +129,10 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
         self._conversation_history = []
         self._system_prompt = None
 
+        # has_entity_name + DeviceInfo.name already produce the friendly name;
+        # setting _attr_name to the instance too rendered "name name" in the UI.
         self._attr_has_entity_name = True
-        self._attr_name = self._instance_name
+        self._attr_name = None
         self.entity_id = f"sensor.ha_text_ai_{self._normalized_name}"
         self._attr_unique_id = config_entry.entry_id
 
@@ -173,7 +166,7 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
 
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, self._attr_unique_id)},
-            name=self._attr_name,
+            name=self._instance_name,
             manufacturer="Community",
             model=f"{self._model} ({self._api_provider} provider)",
             sw_version=VERSION,
@@ -304,13 +297,19 @@ class HATextAISensor(CoordinatorEntity, SensorEntity):
             # Last response handling
             last_response = data.get("last_response", {})
             if isinstance(last_response, dict):
+                # Error paths store the message under "error_message"
+                # (metrics.handle_error), success paths under "error".
+                last_error = (
+                    last_response.get("error")
+                    or last_response.get("error_message")
+                    or ""
+                )
                 attributes.update({
                     ATTR_RESPONSE: last_response.get("response", "")[:_ATTR_TEXT_LIMIT],
                     ATTR_QUESTION: last_response.get("question", "")[:_ATTR_TEXT_LIMIT],
                     "last_model": last_response.get("model", ""),
                     "last_timestamp": last_response.get("timestamp", ""),
-                    "last_error": (last_response.get("error", "")[:_ATTR_TEXT_LIMIT]
-                                 if last_response.get("error") else None),
+                    "last_error": last_error[:_ATTR_TEXT_LIMIT] or None,
                 })
 
             return self._sanitize_attributes(attributes)

@@ -31,6 +31,12 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+class RateLimitAPIError(HomeAssistantError):
+    """API rate limit still exceeded after all retries."""
+
+class UpstreamAPIError(HomeAssistantError):
+    """Upstream provider error (5xx) still failing after all retries."""
+
 class APIClient:
     """API Client for OpenAI and Anthropic."""
 
@@ -55,6 +61,9 @@ class APIClient:
         self._api_key = api_key
         if self.api_provider == API_PROVIDER_GEMINI and not api_key:
             raise ValueError("Gemini provider requires api_key parameter")
+        # Lazily created on the first Gemini request and reused afterwards;
+        # a fresh Client would spawn new httpx pools per question.
+        self._genai_client = None
         self._closed = False
 
     async def __aenter__(self):
@@ -139,7 +148,7 @@ class APIClient:
                             )
                             await asyncio.sleep(retry_after or (2 ** attempt))
                             continue
-                        raise HomeAssistantError("API rate limit exceeded")
+                        raise RateLimitAPIError("API rate limit exceeded")
 
                     # Upstream transient errors — retry with backoff
                     if response.status in retryable_5xx:
@@ -150,7 +159,7 @@ class APIClient:
                         if attempt < API_RETRY_COUNT - 1:
                             await asyncio.sleep(2 ** attempt)
                             continue
-                        raise HomeAssistantError(
+                        raise UpstreamAPIError(
                             f"Upstream error after retries: status {response.status}"
                         )
 
@@ -224,6 +233,10 @@ class APIClient:
                     model, messages, temperature, max_tokens,
                     structured_output, json_schema, disable_thinking
                 )
+        except HomeAssistantError:
+            # Typed errors (RateLimitAPIError, UpstreamAPIError) must keep
+            # their class so metrics.handle_error can classify them.
+            raise
         except Exception as e:
             _LOGGER.error("API request failed: %s", str(e))
             raise HomeAssistantError(f"API request failed: {str(e)}") from e
@@ -387,7 +400,7 @@ class APIClient:
         self._apply_structured_output(payload, structured_output, json_schema)
 
         data = await self._make_request(url, payload)
-        message = data["choices"][0]["message"]
+        message = self._extract_message(data)
         content = message.get("content", "")
         reasoning = message.get("reasoning_content")
         if disable_thinking and not is_reasoner:
@@ -402,9 +415,9 @@ class APIClient:
                 }
             ],
             "usage": {
-                "prompt_tokens": data["usage"]["prompt_tokens"],
-                "completion_tokens": data["usage"]["completion_tokens"],
-                "total_tokens": data["usage"]["total_tokens"],
+                "prompt_tokens": self._usage(data, "prompt_tokens"),
+                "completion_tokens": self._usage(data, "completion_tokens"),
+                "total_tokens": self._usage(data, "total_tokens"),
             },
         }
 
@@ -455,7 +468,7 @@ class APIClient:
         self._apply_structured_output(payload, structured_output, json_schema)
 
         data = await self._make_request(url, payload)
-        content = data["choices"][0]["message"]["content"]
+        content = self._extract_message(data).get("content", "")
         # Strip <think> blocks only for classic chat models. Reasoning models
         # never emit the tags in user-facing content.
         if disable_thinking and not is_reasoning:
@@ -467,9 +480,9 @@ class APIClient:
                 }
             ],
             "usage": {
-                "prompt_tokens": data["usage"]["prompt_tokens"],
-                "completion_tokens": data["usage"]["completion_tokens"],
-                "total_tokens": data["usage"]["total_tokens"],
+                "prompt_tokens": self._usage(data, "prompt_tokens"),
+                "completion_tokens": self._usage(data, "completion_tokens"),
+                "total_tokens": self._usage(data, "total_tokens"),
             },
         }
 
@@ -543,6 +556,8 @@ class APIClient:
             if block.get("type") == "text":
                 content = block.get("text", "")
                 break
+        input_tokens = self._usage(data, "input_tokens")
+        output_tokens = self._usage(data, "output_tokens")
         return {
             "choices": [
                 {
@@ -550,9 +565,9 @@ class APIClient:
                 }
             ],
             "usage": {
-                "prompt_tokens": data["usage"]["input_tokens"],
-                "completion_tokens": data["usage"]["output_tokens"],
-                "total_tokens": data["usage"]["input_tokens"] + data["usage"]["output_tokens"],
+                "prompt_tokens": input_tokens,
+                "completion_tokens": output_tokens,
+                "total_tokens": input_tokens + output_tokens,
             },
         }
 
@@ -590,12 +605,19 @@ class APIClient:
 
             def create_client():
                 if self.endpoint and self.endpoint != "https://generativelanguage.googleapis.com/v1beta":
-                    return genai.Client(api_key=api_key, transport="rest",
-                                       client_options={"api_endpoint": self.endpoint})
+                    # google-genai Client has no transport/client_options kwargs
+                    # (they belong to the legacy google-generativeai SDK); the
+                    # supported override is http_options' base_url.
+                    return genai.Client(
+                        api_key=api_key,
+                        http_options={"base_url": self.endpoint},
+                    )
                 else:
                     return genai.Client(api_key=api_key)
 
-            client = await asyncio.to_thread(create_client)
+            if self._genai_client is None:
+                self._genai_client = await asyncio.to_thread(create_client)
+            client = self._genai_client
 
             # Process messages to extract system instruction and chat history
             system_instruction = ""
@@ -756,10 +778,40 @@ class APIClient:
             _LOGGER.error("Gemini API error: %s", e)
             raise HomeAssistantError(f"Gemini API request failed: {e}") from e
 
+    @staticmethod
+    def _extract_message(data: dict[str, Any]) -> dict[str, Any]:
+        """Return the first choice's message or raise a descriptive error.
+
+        Some OpenAI-compatible backends return 200 with an empty ``choices``
+        list (or no ``choices`` at all); indexing straight into it produced
+        an opaque IndexError/KeyError before.
+        """
+        choices = data.get("choices") or []
+        if not choices:
+            raise HomeAssistantError("API returned an empty choices list")
+        message = choices[0].get("message")
+        if not isinstance(message, dict):
+            raise HomeAssistantError("API response choice has no message")
+        return message
+
+    @staticmethod
+    def _usage(data: dict[str, Any], key: str) -> int:
+        """Read a token counter; absent usage blocks count as 0."""
+        usage = data.get("usage")
+        if not isinstance(usage, dict):
+            return 0
+        return usage.get(key, 0)
+
     async def shutdown(self) -> None:
         """Shutdown API client and close its dedicated session."""
         _LOGGER.debug("Shutting down API client")
         self._closed = True
+        if self._genai_client is not None:
+            try:
+                await asyncio.to_thread(self._genai_client.close)
+            except Exception as err:
+                _LOGGER.debug("Error closing Gemini client: %s", err)
+            self._genai_client = None
         # The session is dedicated to this config entry (pinned resolver,
         # isolated cookie jar), so it must be closed here to release the
         # connector; nothing else owns it.

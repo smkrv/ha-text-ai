@@ -19,6 +19,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.util import dt as dt_util
 
+from .api_client import RateLimitAPIError, UpstreamAPIError
+
 _LOGGER = logging.getLogger(__name__)
 
 DEFAULT_METRICS: dict[str, Any] = {
@@ -156,7 +158,11 @@ class MetricsManager:
             else None,
         }
 
+        # Order matters: the typed API errors subclass HomeAssistantError,
+        # so they must be matched before the generic base class.
         error_mapping = {
+            RateLimitAPIError: {"is_rate_limited": True},
+            UpstreamAPIError: {"is_maintenance": True},
             HomeAssistantError: {"is_ha_error": True},
             ConnectionError: {"is_connection_error": True},
             TimeoutError: {"is_timeout": True},
@@ -168,6 +174,16 @@ class MetricsManager:
             if isinstance(error, error_type):
                 error_details.update(error_flags)
                 break
+
+        # APIClient wraps transport failures into HomeAssistantError, hiding
+        # the real cause (DNS failure, refused connection, socket timeout) on
+        # __cause__. Without this walk endpoint_status never left "ready".
+        cause = getattr(error, "__cause__", None)
+        while cause is not None:
+            if isinstance(cause, (ConnectionError, TimeoutError, OSError)):
+                error_details["is_connection_error"] = True
+                break
+            cause = getattr(cause, "__cause__", None)
 
         _LOGGER.error("AI Processing Error: %s", error_details)
         if _LOGGER.isEnabledFor(logging.DEBUG):

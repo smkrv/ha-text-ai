@@ -13,7 +13,7 @@ import logging
 import os
 import shutil
 import traceback
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import aiofiles
@@ -33,6 +33,18 @@ MAX_STORED_FIELD_SIZE = 32 * 1024
 MAX_ARCHIVE_FILES = 3
 
 _LOGGER = logging.getLogger(__name__)
+
+def _parse_history_timestamp(value: str) -> datetime:
+    """Parse an ISO timestamp; naive values are treated as UTC.
+
+    History timestamps come from dt_util.utcnow() (naive UTC). Comparing
+    them against an offset-aware start_date raised TypeError before, which
+    was caught as a generic failure and silently returned an empty result.
+    """
+    dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
 
 class AsyncFileHandler:
     """Async context manager for file operations."""
@@ -178,6 +190,10 @@ class HistoryManager:
                 "timestamp": dt_util.utcnow().isoformat(),
                 "question": question[:MAX_STORED_FIELD_SIZE],
                 "response": content[:MAX_STORED_FIELD_SIZE],
+                # Stored so get_history's filter_model works; without this
+                # field every entry filtered out and the filter always
+                # returned an empty list.
+                "model": response.get("model"),
             }
 
             self._conversation_history.append(history_entry)
@@ -199,8 +215,15 @@ class HistoryManager:
             if data_size > MAX_HISTORY_FILE_SIZE:
                 await self._rotate_history()
 
-            async with AsyncFileHandler(self._history_file, "w") as f:
+            # Write-then-rename keeps the last good copy if we are killed
+            # mid-write; a truncated JSON file silently wiped the loaded
+            # history on the next start before.
+            tmp_path = self._history_file + ".tmp"
+            async with AsyncFileHandler(tmp_path, "w") as f:
                 await f.write(data)
+            await self.hass.async_add_executor_job(
+                os.replace, tmp_path, self._history_file
+            )
         except Exception as e:
             _LOGGER.error("Error writing history file: %s", e)
             _LOGGER.debug(traceback.format_exc())
@@ -403,19 +426,20 @@ class HistoryManager:
 
             if start_date:
                 try:
-                    start_dt = datetime.fromisoformat(
-                        start_date.replace("Z", "+00:00")
-                    )
-                    history = [
-                        entry
-                        for entry in history
-                        if datetime.fromisoformat(
-                            entry["timestamp"].replace("Z", "+00:00")
-                        )
-                        >= start_dt
-                    ]
-                except (ValueError, KeyError) as e:
+                    start_dt = _parse_history_timestamp(start_date)
+                except ValueError as e:
                     _LOGGER.warning("Invalid start_date format: %s. Error: %s", start_date, e)
+                else:
+                    filtered = []
+                    for entry in history:
+                        try:
+                            if _parse_history_timestamp(entry["timestamp"]) >= start_dt:
+                                filtered.append(entry)
+                        except (KeyError, ValueError, AttributeError):
+                            # Entries with missing/malformed timestamps can't be
+                            # proven in-range and are excluded from the filter.
+                            continue
+                    history = filtered
 
             if sort_order == "oldest":
                 history.sort(key=lambda x: x.get("timestamp", ""))
