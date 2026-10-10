@@ -605,12 +605,15 @@ class APIClient:
 
             def create_client():
                 if self.endpoint and self.endpoint != "https://generativelanguage.googleapis.com/v1beta":
-                    # google-genai Client has no transport/client_options kwargs
-                    # (they belong to the legacy google-generativeai SDK); the
-                    # supported override is http_options' base_url.
+                    base_url = self.endpoint.rstrip("/")
+                    prefix, _, version = base_url.rpartition("/")
+                    http_options = {"base_url": base_url}
+                    # The SDK appends the API version to base_url itself.
+                    if version in {"v1", "v1beta", "v1alpha"}:
+                        http_options = {"base_url": prefix, "api_version": version}
                     return genai.Client(
                         api_key=api_key,
-                        http_options={"base_url": self.endpoint},
+                        http_options=http_options,
                     )
                 else:
                     return genai.Client(api_key=api_key)
