@@ -43,6 +43,7 @@ from .const import (
     MIN_MAX_TOKENS,
     MAX_MAX_TOKENS,
     MIN_REQUEST_INTERVAL,
+    MAX_REQUEST_INTERVAL,
     MIN_API_TIMEOUT,
     MAX_API_TIMEOUT,
     DEFAULT_NAME_PREFIX,
@@ -84,7 +85,7 @@ def _build_parameter_schema(data: dict[str, Any]) -> dict:
         vol.Optional(
             CONF_REQUEST_INTERVAL,
             default=data.get(CONF_REQUEST_INTERVAL, DEFAULT_REQUEST_INTERVAL),
-        ): vol.All(vol.Coerce(float), vol.Range(min=MIN_REQUEST_INTERVAL)),
+        ): vol.All(vol.Coerce(float), vol.Range(min=MIN_REQUEST_INTERVAL, max=MAX_REQUEST_INTERVAL)),
         vol.Optional(
             CONF_API_TIMEOUT,
             default=data.get(CONF_API_TIMEOUT, DEFAULT_API_TIMEOUT),

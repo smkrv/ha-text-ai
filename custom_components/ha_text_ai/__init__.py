@@ -20,6 +20,7 @@ from homeassistant.const import CONF_API_KEY, CONF_NAME, EVENT_HOMEASSISTANT_CLO
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse
 from homeassistant.exceptions import ConfigEntryNotReady, HomeAssistantError
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_registry as er
 from homeassistant.util import dt as dt_util
 
 from .coordinator import HATextAICoordinator
@@ -94,9 +95,18 @@ SERVICE_SCHEMA_GET_HISTORY = vol.Schema({
 def get_coordinator_by_instance(hass: HomeAssistant, instance: str) -> HATextAICoordinator:
     """Get coordinator by instance name or normalized name.
 
-    Accepts instance_name, normalized_name, or sensor entity_id.
+    Accepts instance_name, normalized_name, or sensor entity_id. The entity
+    selector in services.yaml hands us entity_ids, so resolve them through
+    the entity registry first — stripping the sensor.ha_text_ai_ prefix
+    breaks on user-renamed entities.
     """
     if instance.startswith("sensor."):
+        registry = er.async_get(hass)
+        entity_entry = registry.async_get(instance)
+        if entity_entry is not None and entity_entry.config_entry_id:
+            coord = hass.data.get(DOMAIN, {}).get(entity_entry.config_entry_id)
+            if isinstance(coord, HATextAICoordinator):
+                return coord
         instance = instance.replace("sensor.ha_text_ai_", "", 1)
 
     normalized_input = normalize_name(instance)

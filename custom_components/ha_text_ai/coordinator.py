@@ -241,16 +241,17 @@ class HATextAICoordinator(DataUpdateCoordinator):
             raise HomeAssistantError("AI client not initialized")
 
         async with self._request_lock:
+            # Resolve before try: the except path below reads temp_model.
+            temp_context = context_messages if context_messages is not None else self.context_messages
+            temp_model = model if model is not None else self.model
+            temp_temperature = temperature if temperature is not None else self.temperature
+            temp_max_tokens = max_tokens if max_tokens is not None else self.max_tokens
+            temp_system_prompt = system_prompt if system_prompt is not None else self._system_prompt
+            temp_disable_thinking = disable_thinking if disable_thinking is not None else self.disable_thinking
+
             try:
                 self._is_processing = True
                 await self.async_update_ha_state()
-
-                temp_context = context_messages if context_messages is not None else self.context_messages
-                temp_model = model if model is not None else self.model
-                temp_temperature = temperature if temperature is not None else self.temperature
-                temp_max_tokens = max_tokens if max_tokens is not None else self.max_tokens
-                temp_system_prompt = system_prompt if system_prompt is not None else self._system_prompt
-                temp_disable_thinking = disable_thinking if disable_thinking is not None else self.disable_thinking
 
                 start_time = dt_util.utcnow()
 
@@ -283,9 +284,13 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 return response
 
             except Exception as err:
-                error_details = await self._metrics.handle_error(err, self.model)
+                error_details = await self._metrics.handle_error(err, temp_model)
                 if error_details.get("is_connection_error"):
                     self.endpoint_status = "unavailable"
+                if error_details.get("is_rate_limited"):
+                    self._is_rate_limited = True
+                if error_details.get("is_maintenance"):
+                    self._is_maintenance = True
                 self.last_response = error_details
                 raise HomeAssistantError(f"Failed to process question: {err}") from err
 
@@ -322,14 +327,19 @@ class HATextAICoordinator(DataUpdateCoordinator):
 
             # Reset error state on success
             self._is_rate_limited = False
+            self._is_maintenance = False
             self.endpoint_status = "ready"
 
             timestamp = dt_util.utcnow().isoformat()
-            content = response["choices"][0]["message"]["content"]
+            choices = response.get("choices") or []
+            if not choices:
+                raise HomeAssistantError("API returned an empty response")
+            content = (choices[0].get("message") or {}).get("content", "")
+            usage = response.get("usage") or {}
             tokens = {
-                "prompt": response["usage"]["prompt_tokens"],
-                "completion": response["usage"]["completion_tokens"],
-                "total": response["usage"]["total_tokens"],
+                "prompt": usage.get("prompt_tokens", 0),
+                "completion": usage.get("completion_tokens", 0),
+                "total": usage.get("total_tokens", 0),
             }
 
             self.last_response = {
