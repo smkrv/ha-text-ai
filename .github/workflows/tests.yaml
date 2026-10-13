@@ -1,0 +1,48 @@
+name: Tests
+permissions:
+  contents: read
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'custom_components/**'
+      - 'tests/**'
+      - '.github/workflows/tests.yaml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'custom_components/**'
+      - 'tests/**'
+      - '.github/workflows/tests.yaml'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  tests:
+    name: Run unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+      cancel-in-progress: true
+
+    steps:
+      - name: Check out code from GitHub
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: |
+          pip install homeassistant "google-genai>=1.16.0,<3.0.0" "aiofiles>=23.0.0,<26.0.0"
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -t . -v
