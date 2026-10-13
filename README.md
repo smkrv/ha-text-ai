@@ -6,7 +6,7 @@
   ![Deutsch](https://img.shields.io/badge/lang-DE-blue?style=flat-square) ![English](https://img.shields.io/badge/lang-EN-blue?style=flat-square) ![Español](https://img.shields.io/badge/lang-ES-blue?style=flat-square) ![हिन्दी](https://img.shields.io/badge/lang-HI-blue?style=flat-square) ![Italiano](https://img.shields.io/badge/lang-IT-blue?style=flat-square) ![Русский](https://img.shields.io/badge/lang-RU-blue?style=flat-square) ![Српски](https://img.shields.io/badge/lang-SR-blue?style=flat-square) ![中文](https://img.shields.io/badge/lang-ZH-blue?style=flat-square)
 
 
-  <img src="https://github.com/smkrv/ha-text-ai/blob/main/custom_components/ha_text_ai/icons/logo%402x.png" alt="HA Text AI" style="width: 50%; max-width: 256px; max-height: 128px; aspect-ratio: 2/1; object-fit: contain;"/>
+  <img src="https://github.com/smkrv/ha-text-ai/blob/main/custom_components/ha_text_ai/brand/logo%402x.png" alt="HA Text AI" style="width: 50%; max-width: 256px; max-height: 128px; aspect-ratio: 2/1; object-fit: contain;"/>
 
 ### Multi-provider LLM integration for [Home Assistant](https://www.home-assistant.io/)
 </div>
