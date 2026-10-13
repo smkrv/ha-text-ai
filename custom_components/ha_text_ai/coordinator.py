@@ -287,10 +287,8 @@ class HATextAICoordinator(DataUpdateCoordinator):
                 error_details = await self._metrics.handle_error(err, temp_model)
                 if error_details.get("is_connection_error"):
                     self.endpoint_status = "unavailable"
-                if error_details.get("is_rate_limited"):
-                    self._is_rate_limited = True
-                if error_details.get("is_maintenance"):
-                    self._is_maintenance = True
+                self._is_rate_limited = bool(error_details.get("is_rate_limited"))
+                self._is_maintenance = bool(error_details.get("is_maintenance"))
                 self.last_response = error_details
                 raise HomeAssistantError(f"Failed to process question: {err}") from err
 
@@ -337,9 +335,9 @@ class HATextAICoordinator(DataUpdateCoordinator):
             content = (choices[0].get("message") or {}).get("content", "")
             usage = response.get("usage") or {}
             tokens = {
-                "prompt": usage.get("prompt_tokens", 0),
-                "completion": usage.get("completion_tokens", 0),
-                "total": usage.get("total_tokens", 0),
+                "prompt": usage.get("prompt_tokens") or 0,
+                "completion": usage.get("completion_tokens") or 0,
+                "total": usage.get("total_tokens") or 0,
             }
 
             self.last_response = {

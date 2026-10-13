@@ -743,9 +743,9 @@ class APIClient:
                 usage = {}
                 if hasattr(response, 'usage_metadata'):
                     usage = {
-                        "prompt_tokens": getattr(response.usage_metadata, 'prompt_token_count', 0),
-                        "completion_tokens": getattr(response.usage_metadata, 'candidates_token_count', 0),
-                        "total_tokens": getattr(response.usage_metadata, 'total_token_count', 0)
+                        "prompt_tokens": getattr(response.usage_metadata, 'prompt_token_count', 0) or 0,
+                        "completion_tokens": getattr(response.usage_metadata, 'candidates_token_count', 0) or 0,
+                        "total_tokens": getattr(response.usage_metadata, 'total_token_count', 0) or 0
                     }
                 else:
                     # Estimate token count as fallback
@@ -803,7 +803,7 @@ class APIClient:
         usage = data.get("usage")
         if not isinstance(usage, dict):
             return 0
-        return usage.get(key, 0)
+        return usage.get(key) or 0
 
     async def shutdown(self) -> None:
         """Shutdown API client and close its dedicated session."""
