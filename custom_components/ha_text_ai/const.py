@@ -29,7 +29,7 @@ API_PROVIDERS: Final = [
     API_PROVIDER_GEMINI
 ]
 
-VERSION: Final = "2.5.2"
+VERSION: Final = "2.5.3"
 
 # Default endpoints
 DEFAULT_OPENAI_ENDPOINT: Final = "https://api.openai.com/v1"
